@@ -1,0 +1,175 @@
+/*
+ * 會員登入 — PawCare 療癒系風格
+ * 圓角卡片 + 療癒綠 + Nunito 字型
+ */
+
+/* ===== 設計變數 ===== */
+:root {
+  --radius: 12px;
+  --background: #f7f6f2;
+  --foreground: #383a36;
+  --card: #ffffff;
+  --primary: #6bae8a;
+  --accent: #7bb3d4;
+  --muted: #f3f0e8;
+  --border: #e6e3da;
+  --destructive: #df4733;
+  --muted-foreground: #9c9e98;
+}
+
+/* ===== 切頁淡入動畫 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 頁面外殼（垂直水平置中）===== */
+.login-page {
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== 登入卡片 ===== */
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 6px 24px rgba(107, 174, 138, 0.10);
+  overflow: hidden;
+}
+
+.login-header {
+  padding: 2.5rem 2.5rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  border-left: 5px solid var(--primary);
+}
+
+.login-eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 4px;
+  color: var(--primary);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* ===== 表單 ===== */
+.login-form {
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #72756e;
+}
+
+.form-group input {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: var(--foreground);
+  background-color: #ffffff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--primary);
+}
+
+/* ===== 操作按鈕 ===== */
+.login-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.btn-primary {
+  padding: 0.8rem;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #5a9a78;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  padding: 0.8rem;
+  background-color: #ffffff;
+  color: #72756e;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: var(--muted);
+}
+
+/* ===== 卡片底部 ===== */
+.login-footer {
+  padding: 1.25rem 2.5rem 2rem;
+  font-size: 0.85rem;
+  color: #848680;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.login-footer a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}

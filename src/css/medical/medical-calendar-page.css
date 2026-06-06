@@ -1,0 +1,795 @@
+/* 行事曆頁面專屬純 CSS 排版 */
+.calendar-page {
+  .page-container {
+    max-width: clamp(731px, 80vw, 1100px); /* 👈 修正：動態最大寬度 */
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 20px; /* 👈 對齊診所搜尋頁的內容內距 */
+    box-sizing: border-box;
+  }
+
+  .calendar-container {
+    padding: 1.5rem 0;
+    width: 100%; /* 👈 確保滿版，受 page-container 限制 */
+  }
+
+  /* Banner 內部的文字與按鈕包裹層 */
+  .calendar-header {
+    position: relative;
+    z-index: 2; /* 必須大於遮罩的 1 */
+    display: flex;
+    flex-direction: column; /* 改為垂直堆疊以符合置中語彙 */
+    align-items: center; /* 內容水平置中 */
+    text-align: center; /* 文字置中 */
+    gap: 1.5rem; /* 文字群組與按鈕的間距 */
+    width: 80%;
+  }
+
+  /* 主標題優化 */
+  .calendar-header h1 {
+    font-size: 2.25rem; /* 放大字體，使其符合大 Banner 氣勢 */
+    font-weight: 800;
+    margin: 0 0 0.75rem 0;
+    color: #ffffff; /* 改為白色文字 */
+    letter-spacing: 2px;
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.8),
+      0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  /* 副標題優化 */
+  .calendar-header .subtitle {
+    font-size: 1.125rem;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85); /* 柔和白灰色 */
+    line-height: 1.5;
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.8),
+      0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  /* 1. 行事曆 Banner 容器：完全複製病歷紀錄的尺寸與左右留白 */
+  .calendar-banner {
+    width: 100%; /* 乖乖填滿 .page-wrapper 給它的空間 */
+    aspect-ratio: 1100 / 450;
+    margin-bottom: 2rem;
+    border-radius: 22px;
+    overflow: hidden;
+    position: relative;
+    /* 移除掉原本的 max-width: calc(...) */
+
+    /* 核心：使用 Flex 讓內容在正中央完美置中 */
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* 2. 均勻調暗遮罩：確保白色文字與按鈕絕對清晰 */
+  .calendar-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* 40% 透明度的深色遮罩 */
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* 3. Banner 底圖設定 */
+  .calendar-banner .banner-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* 「＋ 新增提醒」按鈕微調（確保在圖片上具備高質感） */
+  .add-event-btn {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 0.625rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .add-event-btn:hover {
+    transform: translateY(-2px); /* 滑鼠懸停時輕微浮起 */
+  }
+
+  /* 直式：單欄由上往下堆疊 */
+  .calendar-main-grid {
+    width: 100%; /* 同樣填滿 .page-wrapper */
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin: 0 auto;
+  }
+
+  /* 月份切換列 */
+  .month-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .month-navigation h3 {
+    font-size: 1.125rem;
+    font-weight: 800;
+    margin: 0;
+    color: #383a36;
+  }
+
+  /* 箭頭按鈕 */
+  .nav-arrow-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: #72756e;
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+
+  .nav-arrow-btn:hover {
+    background-color: var(--muted);
+  }
+
+  /* 👈 響應式斷點：當螢幕小於 1400px 或空間不足時，改回垂直堆疊 */
+  @media (max-width: 1400px) {
+    .page-container {
+      max-width: 731px;
+    }
+    .calendar-main-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    .calendar-right-zone {
+      width: 100%;
+      min-width: 0;
+    }
+    .calendar-header {
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  /* 星期欄位網格 */
+  .days-header-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 0.5rem;
+  }
+
+  .day-name-label {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0;
+    color: #9c9e98;
+  }
+
+  /* 日期數字網格 */
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+  }
+
+  /* 空白佔位格子 */
+  .days-grid .empty-day-cell {
+    height: 42px;
+  }
+
+  /* 基礎日期按鈕按鈕 */
+  .day-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0;
+    height: 46px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+
+  .day-btn:hover:not(.is-selected) {
+    background-color: var(--muted);
+  }
+
+  .day-number-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #383a36;
+  }
+
+  /* 狀態一：被滑鼠選中的日期 */
+  .day-btn.is-selected {
+    background-color: var(--primary) !important;
+  }
+  .day-btn.is-selected .day-number-text {
+    color: #ffffff !important;
+  }
+
+  /* 狀態二：今天是 2026-04-23 的淡綠色底色樣式 */
+  .day-btn.is-today:not(.is-selected) {
+    background-color: rgba(107, 174, 138, 0.12);
+  }
+  .day-btn.is-today:not(.is-selected) .day-number-text {
+    color: var(--primary);
+  }
+
+  /* 下方事件圓點容器 */
+  .event-dots-row {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+  }
+
+  .event-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  /* 右上角緊急通知小紅點 */
+  .urgent-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    background-color: var(--destructive);
+    border-radius: 50%;
+  }
+
+  /* 右側詳細清單排版 */
+  .event-list-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #383a36;
+  }
+
+  /* 沒有事件時的空盒子樣式 */
+  .no-event-box {
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .calendar-icon-placeholder {
+    font-size: 2.5rem;
+    opacity: 0.3;
+    margin-bottom: 0.5rem;
+  }
+
+  .no-event-text {
+    font-size: 0.875rem;
+    color: #848680;
+    margin: 0 0 1rem 0;
+  }
+
+  /* 膠囊型新增按鈕 */
+  .add-event-sm-btn {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.375rem 0.875rem;
+    border-radius: 10px;
+    transition: opacity 0.2s;
+  }
+  .add-event-sm-btn:hover {
+    opacity: 0.9;
+  }
+
+  /* 有事件時的直向堆疊條 */
+  .event-items-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .event-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+
+  /* 白色正方形 icon 盒 */
+  .event-icon-box {
+    width: 36px;
+    height: 36px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  /* 中間主要文字 */
+  .event-text-main {
+    flex: 1;
+    min-width: 0; /* 👈 重要：允許 Flex 項目縮小到 0，防止撐開容器 */
+  }
+
+  .event-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .event-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #383a36;
+    white-space: nowrap; /* 確保文字不換行以觸發省略號 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .event-detail-item .status-icon {
+    font-size: 0.85rem;
+  }
+
+  .event-meta-info {
+    font-size: 0.75rem;
+    color: #848680;
+    margin-top: 0.125rem;
+  }
+
+  /* 右側種類標籤 */
+  .event-type-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: #ffffff;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+  }
+
+  /* LINE 提醒卡片基礎設定 */
+  .line-card {
+    margin-top: 1rem;
+    background-color: #ffffff;
+    border: 1px solid rgba(230, 227, 218, 0.8);
+    border-radius: 16px; /* 👈 統一圓角為 16px */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); /* 輕量化陰影 */
+    transition: all 0.2s ease;
+  }
+
+  /* 狀態一：已綁定時的淡綠色半透明底色與特殊邊框 */
+  .line-card.line-connected-bg {
+    background-color: rgba(107, 174, 138, 0.08);
+    border-color: rgba(107, 174, 138, 0.4);
+  }
+
+  /* 頭部橫向排版 */
+  .line-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* 狀態圖示小盒子 */
+  .line-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .line-icon-box.line-active-icon {
+    background-color: var(--primary);
+  }
+
+  .line-logo-emoji {
+    font-size: 1.2rem;
+  }
+
+  /* 文字區域 */
+  .line-status-text {
+    flex: 1;
+    min-width: 0; /* 👈 防止 LINE 描述文字撐開卡片 */
+  }
+  .line-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #383a36;
+  }
+  .line-desc {
+    font-size: 0.75rem;
+    color: #848680;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .line-desc.text-active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* 右側狀態小圓點指示燈 */
+  .line-card .status-indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #d1d3cc;
+  }
+  .status-indicator-dot.dot-active {
+    background-color: var(--primary);
+  }
+
+  /* 已綁定區塊排版 */
+  .line-setting-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .setting-rule-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    background-color: #ffffff;
+    padding: 0.5rem;
+    border-radius: 8px;
+    color: #555752;
+  }
+  .rule-check {
+    margin-left: auto;
+    color: var(--primary);
+    font-weight: bold;
+  }
+
+  /* 解除綁定按鈕 (傳統白色帶邊框) */
+  .line-unbind-btn {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid var(--border);
+    color: #72756e;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-top: 0.25rem;
+    transition: background-color 0.2s;
+  }
+  .line-unbind-btn:hover {
+    background-color: var(--muted);
+  }
+
+  /* 未綁定時的 LINE 官方綠色大按鈕 */
+  .line-official-btn {
+    width: 100%;
+    background-color: #06c755;
+    color: #ffffff;
+    border: none;
+    padding: 0.625rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: opacity 0.2s;
+  }
+  .line-official-btn:hover {
+    opacity: 0.9;
+  }
+
+  /* 即將到來卡片內部樣式 */
+  .upcoming-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #383a36;
+  }
+
+  .upcoming-list-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .upcoming-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* 左側小日曆方塊 */
+  .date-mini-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .mini-box-day {
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .mini-box-month {
+    font-size: 0.65rem;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+
+  /* 中間文字排版 */
+  .upcoming-text-main {
+    flex: 1;
+    min-width: 0; /* 預防文字過長爆版 */
+  }
+
+  .upcoming-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .event-name-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #383a36;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .urgent-alert-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .upcoming-countdown-text {
+    font-size: 0.75rem;
+    color: #848680;
+    margin-top: 0.125rem;
+  }
+
+  /* 右側種類膠囊標籤 */
+  .upcoming-type-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  /* 圖例說明卡片樣式 */
+  .legend-card {
+    margin-top: 1rem;
+    padding: 1.25rem !important;
+    background-color: #ffffff;
+    border-radius: 16px; /* 👈 統一圓角為 16px */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  }
+
+  .legend-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #383a36;
+  }
+
+  .legend-list-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .legend-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  /* 圖例小圓點 */
+  .legend-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* 小圖標微調 */
+  .legend-icon {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+  }
+
+  /* 圖例文字 */
+  .legend-text {
+    font-size: 0.75rem;
+    color: #555752;
+  }
+
+  /* 滿版毛玻璃遮罩背景 */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4); /* 暗黑半透明 */
+    backdrop-filter: blur(4px); /* 毛玻璃特效 */
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  /* 彈窗白底主卡片 */
+  .modal-card {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: fadeInUp 0.25s ease-out forwards;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+
+  .modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 800;
+    margin: 0;
+    color: #383a36;
+  }
+
+  .modal-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.1rem;
+    color: #9c9e98;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+  }
+  .modal-close-btn:hover {
+    background-color: var(--muted);
+  }
+
+  /* 表單各欄位排版 */
+  .modal-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #72756e;
+    margin-bottom: 0.375rem;
+  }
+
+  /* 療癒系輸入框通用風格 */
+  .form-input {
+    border: 1px solid var(--border);
+    background-color: #ffffff;
+    padding: 0.625rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    color: #383a36;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus {
+    border-color: var(--primary);
+  }
+
+  /* 類型選擇橫排按鈕 */
+  .type-buttons-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .type-select-btn {
+    flex: 1;
+    border: none;
+    padding: 0.5rem 0;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+
+  /* 並排兩欄（日期、時間） */
+  .form-grid-2cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  /* 底部功能按鈕列 */
+  .modal-actions-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .modal-submit-btn {
+    flex: 1;
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 0.625rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: opacity 0.2s;
+  }
+  .modal-submit-btn:hover {
+    opacity: 0.9;
+  }
+
+  .modal-cancel-btn {
+    flex: 1;
+    background-color: #ffffff;
+    border: 1px solid var(--border);
+    color: #72756e;
+    padding: 0.625rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: background-color 0.2s;
+  }
+  .modal-cancel-btn:hover {
+    background-color: var(--muted);
+  }
+}

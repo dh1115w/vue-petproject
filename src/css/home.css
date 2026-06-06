@@ -1,0 +1,313 @@
+/*
+ * PawCare 療癒系首頁風格
+ * Bento Grid + 圓角卡片 + 療癒色系
+ */
+
+/* ===== CSS 變數 ===== */
+:root {
+  --radius: 12px;
+  --background: #f7f6f2;
+  --foreground: #383a36;
+  --card: #ffffff;
+  --primary: #6bae8a;
+  --accent: #7bb3d4;
+  --muted: #f3f0e8;
+  --border: #e6e3da;
+  --muted-foreground: #c4ad9378
+};
+
+/* ===== 切頁淡入動畫 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 整頁容器 ===== */
+.home-page {
+  font-family: "Nunito", "Noto Sans TC", sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Hero Section — Bento 卡片雙欄 (4:6 比例) ===== */
+.hero {
+  display: grid;
+  grid-template-columns: 2fr 3fr; /* 文字 40% : 照片 60% (4:6 = 2:3) */
+  grid-template-rows: 1fr; /* 單列撐滿高度 */
+  gap: 0rem;
+  width: 92%; /* 灰色留白只剩 4% 兩側 */
+  max-width: 1320px; /* 最大高度保持不變 */
+  margin: 0 auto;
+  padding: 32px 0;
+  box-sizing: border-box;
+  height: calc(100vh - 64px); /* 卡片直接填滿視窗 */
+  min-height: 480px; /* 小螢幕最低高度 */
+  align-items: stretch; /* 兩卡等高 */
+}
+
+/* 左側文字卡 — 療癒綠左邊條 */
+.hero-text {
+  background-color: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start; /* 靠左對齊 */
+  padding: 60px 52px;
+  gap: 24px;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hero-text:hover {
+  box-shadow: 0 6px 24px rgba(107, 174, 138, 0.15);
+  transform: translateY(-2px);
+}
+
+.hero-eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 4px;
+  color: var(--primary);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0;
+  text-align: left;
+}
+
+.hero-heading {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.5; /* 寬鬆行高，換行不擁擠 */
+  letter-spacing: 0.02em; /* 微調字距 */
+  color: var(--foreground);
+  margin: 0;
+  text-align: left;
+}
+
+.hero-desc {
+  font-size: 1rem;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+  max-width: 400px;
+  margin: 0;
+  text-align: left;
+}
+
+/* 膠囊狀 CTA 按鈕 */
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 40px; /* 更寬的內距，更有份量 */
+  background-color: var(--primary);
+  color: #ffffff;
+  border-radius: 9999px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  width: fit-content;
+  letter-spacing: 1px;
+  transition:
+    background-color 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.hero-cta:hover {
+  background-color: #5a9a78;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(107, 174, 138, 0.35);
+}
+
+/* 右側照片區 — 天空藍左邊條 */
+.hero-photo {
+  background-color: var(--muted);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-left: 5px solid #d6d9d2;
+  display: block;
+  min-height: 360px;
+  width: 100%;
+  object-fit: cover;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hero-photo:hover {
+  box-shadow: 0 6px 24px rgba(123, 179, 212, 0.15);
+  transform: translateY(-2px);
+}
+
+.photo-placeholder-text {
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0;
+}
+
+.photo-placeholder-hint {
+  font-size: 0.75rem;
+  color: #c8c0bb;
+  margin: 0;
+}
+
+/* ===== Services Section — Bento Grid ===== */
+.services {
+  width: 82%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 16px 0 80px;
+}
+
+.services-header {
+  margin-bottom: 28px;
+}
+
+.section-label {
+  font-size: 0.68rem;
+  letter-spacing: 4px;
+  color: var(--primary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: block;
+}
+
+.services-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* 4 欄 Bento Grid */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+/* 基礎卡片樣式 */
+.service-card {
+  background-color: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 32px 24px;
+  text-decoration: none;
+  color: var(--foreground);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.service-card:hover {
+  box-shadow: 0 6px 24px rgba(107, 174, 138, 0.15);
+  transform: translateY(-3px);
+}
+
+/* 各卡片左彩色邊條 */
+.service-card:nth-child(1) {
+  border-left: 4px solid #6bae8a;
+} /* 會員：療癒綠 */
+.service-card:nth-child(2) {
+  border-left: 4px solid #e29553;
+} /* 住宿：暖橘 */
+.service-card:nth-child(3) {
+  border-left: 4px solid #7bb3d4;
+} /* 美容：天空藍 */
+.service-card:nth-child(4) {
+  border-left: 4px solid #b59bd4;
+} /* 醫療：薰衣草紫 */
+
+.card-label {
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.card-desc {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+  flex: 1;
+  margin: 0;
+}
+
+.card-arrow {
+  font-size: 1rem;
+  color: var(--primary);
+  display: inline-block;
+  transition: transform 0.2s;
+}
+
+.service-card:hover .card-arrow {
+  transform: translateX(6px);
+}
+
+
+
+/* ===== RWD 響應式 ===== */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr; /* 改回垂直堆疊 */
+    grid-template-rows: auto auto;
+    width: 92%;
+    height: auto;
+    padding: 24px 0;
+  }
+  .hero-photo {
+    min-height: 200px;
+  }
+  .service-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr; /* 手機時改回 100% 布局 */
+    height: auto;
+  }
+  .hero-text {
+    padding: 40px 32px;
+  }
+  .hero-photo {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 520px) {
+  .hero-heading {
+    font-size: 1.8rem;
+  }
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+}

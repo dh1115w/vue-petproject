@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會員中心 - 毛孩萌沙龍</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 會員中心專屬加強樣式 */
+        .member-profile-card {
+            border-top: 5px solid var(--primary-color);
+        }
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ffeaa7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 15px auto;
+        }
+        .info-list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #f1f2f6;
+            font-size: 0.95rem;
+        }
+        .info-list-item:last-child {
+            border-bottom: none;
+        }
+        .pet-mini-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid #f1f2f6;
+            border-radius: 8px;
+            background: #fffdfb;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        .pet-mini-card:hover {
+            border-color: var(--secondary-color);
+            box-shadow: 0 4px 10px rgba(254, 202, 87, 0.15);
+        }
+        .pet-avatar {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ffecc8;
+        }
+        /* 表格視覺優化 */
+        .custom-dashboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e4e7eb;
+        }
+        .custom-dashboard-table th {
+            background-color: #fff2e6;
+            color: #d35400;
+            font-weight: bold;
+            padding: 14px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .custom-dashboard-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f2f6;
+            color: #444;
+            font-size: 0.9rem;
+        }
+        .custom-dashboard-table tr:last-child td {
+            border-bottom: none;
+        }
+        .custom-dashboard-table tr:hover {
+            background-color: #fffdfa;
+        }
+        .badge-info { background: #54a0ff; color: white; }
+        .badge-danger { background: #ff6b6b; color: white; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="gromming index.html" class="logo">
+                <img src="images/logo.png" alt="Logo" style="height: 30px; vertical-align: middle; margin-right: 5px;">
+                毛孩萌沙龍
+            </a>
+            <button class="menu-toggle" id="mobile-menu">☰</button>
+            <ul class="nav-menu">
+                <li><a href="gromming index.html">首頁</a></li>
+                <li><a href="gromming booking.html">線上預約</a></li>
+                <li><a href="gromming staff.html">美容師團隊</a></li>
+                <li><a href="gromming member.html" class="active">會員中心</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container page-content">
+        <h2 class="section-title">會員中心儀表板</h2>
+
+        <div class="grid grid-3" style="align-items: start;">
+            <!-- 📌 區塊 1：個人基本資料卡片 (對應 Member 資料表欄位) -->
+            <div class="card member-profile-card">
+                <div class="profile-avatar">🙋‍♂️</div>
+                <h3 style="text-align: center; margin-bottom: 15px;">王大明 <span class="badge badge-success" style="font-size: 0.75rem; vertical-align: middle;">驗證會員</span></h3>
+                
+                <div class="info-list">
+                    <div class="info-list-item">
+                        <span style="color:#747d8c;">登入帳號 (account)</span>
+                        <strong>taming888</strong>
+                    </div>
+                    <div class="info-list-item">
+                        <span style="color:#747d8c;">聯絡電話 (phone)</span>
+                        <strong>0912-345-678</strong>
+                    </div>
+                    <div class="info-list-item">
+                        <span style="color:#747d8c;">電子信箱 (email)</span>
+                        <strong>taming@example.com</strong>
+                    </div>
+                    <div class="info-list-item">
+                        <span style="color:#747d8c;">通訊地址 (address)</span>
+                        <strong style="max-width: 150px; text-align: right; word-break: break-all;">台南市大內區1號</strong>
+                    </div>
+                    <div class="info-list-item">
+                        <span style="color:#747d8c;">註冊日期 (createDate)</span>
+                        <strong>2026-01-15</strong>
+                    </div>
+                </div>
+                <a href="#" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 0.9rem; padding: 8px;">修改會員資料</a>
+            </div>
+
+            <!-- 📌 區塊 2：名片化毛孩清單 (對應 Pet 資料表欄位) -->
+            <div class="card col-span-2">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: var(--text-color);">我的毛孩們 (Pet)</h3>
+                    <a href="#" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem;">+ 新增毛孩</a>
+                </div>
+
+                <!-- 毛孩卡片 1 -->
+                <div class="pet-mini-card">
+                    <img src="images/pet-choco.jpg" alt="巧克力" class="pet-avatar" onerror="this.src='https://placehold.co🐾'">
+                    <div style="flex-grow: 1;">
+                        <h4 style="margin-bottom: 4px;">巧克力 <span class="role-badge" style="background:#fff2cc;">小男生 (gender: 1)</span></h4>
+                        <p style="font-size: 0.85rem; color:#666;">
+                            品種：貴賓狗 (breed) | 年齡：3 歲 (age) | 體重：5.20 kg (weight)
+                        </p>
+                        <p style="font-size: 0.85rem; color:#ff9f43; margin-top: 3px;">
+                            ✂ 醫療與個性備註：無過敏，剪耳後毛容易緊張，需溫柔安撫。
+                        </p>
+                    </div>
+                    <div>
+                        <span class="badge badge-success">已結紮</span>
+                    </div>
+                </div>
+
+                <!-- 毛孩卡片 2 -->
+                <div class="pet-mini-card">
+                    <img src="images/pet-mimi.jpg" alt="Mimi" class="pet-avatar" onerror="this.src='https://placehold.co🐾'">
+                    <div style="flex-grow: 1;">
+                        <h4 style="margin-bottom: 4px;">Mimi <span class="role-badge" style="background:#fce4ec; color:#c2185b;">小女生 (gender: 0)</span></h4>
+                        <p style="font-size: 0.85rem; color:#666;">
+                            品種：波斯貓 (breed) | 年齡：2 歲 (age) | 體重：4.10 kg (weight)
+                        </p>
+                        <p style="font-size: 0.85rem; color:#ff9f43; margin-top: 3px;">
+                            ✂ 醫療與個性備註：不喜歡碰尾巴，洗澡時需要Emily美容師協助。
+                        </p>
+                    </div>
+                    <div>
+                        <span class="badge badge-success">已結紮</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📌 區塊 3：即時預約狀態追蹤 (對應 Appointments 與 Services 資料表) -->
+        <div class="card" style="margin-top: 25px;">
+            <h3>最新美容預約進度 (Appointments)</h3>
+            <table class="custom-dashboard-table">
+                <thead>
+                    <tr>
+                        <th>預約編號</th>
+                        <th>預約毛孩</th>
+                        <th>選擇項目</th>
+                        <th>預約時間 (apt_date)</th>
+                        <th>指定美容師</th>
+                        <th>目前狀態 (status)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#APT-0024</td>
+                        <td><strong>巧克力</strong></td>
+                        <td>精緻造型剪毛 ($1,200)</td>
+                        <td>2026-06-05 13:00</td>
+                        <td>Andy</td>
+                        <td><span class="badge badge-info">已收到預約 (0)</span></td>
+                    </tr>
+                    <tr>
+                        <td>#APT-0012</td>
+                        <td><strong>Mimi</strong></td>
+                        <td>草本舒緩藥浴 ($800)</td>
+                        <td>2026-05-20 10:00</td>
+                        <td>Emily</td>
+                        <td><span class="badge badge-success">服務已完成 (1)</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 📌 區塊 4：資安與登入歷史紀錄 (對應 LoginLog 資料表欄位) -->
+        <div class="card" style="margin-top: 25px;">
+            <h3>最近帳號安全登入日誌 (LoginLog)</h3>
+            <p style="font-size: 0.85rem; color:#747d8c; margin-bottom: 5px;">此表格將即時與後台的 `lastLoginTime`、`lastLoginIp` 等欄位連動連線</p>
+            <table class="custom-dashboard-table">
+                <thead>
+                    <tr>
+                        <th>日誌編號 (logId)</th>
+                        <th>登入時間 (lastLoginTime)</th>
+                        <th>登出時間 (lastLogoutTime)</th>
+                        <th>登入來源 IP (lastLoginIp)</th>
+                        <th>驗證狀態 (lastStatus)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#8829</td>
+                        <td>2026-05-31 14:20:11</td>
+                        <td>2026-05-31 15:30:00</td>
+                        <td><code>192.168.1.50</code></td>
+                        <td><span class="badge badge-success">成功 (1)</span></td>
+                    </tr>
+                    <tr>
+                        <td>#8711</td>

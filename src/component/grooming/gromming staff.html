@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美容師團隊 - 毛孩萌沙龍</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="gromming index.html" class="logo">
+                <img src="images/logo.png" alt="Logo" style="height: 30px; vertical-align: middle; margin-right: 5px;">
+                毛孩萌沙龍
+            </a>
+            <button class="menu-toggle" id="mobile-menu">☰</button>
+            <ul class="nav-menu">
+                <li><a href="gromming index.html">首頁</a></li>
+                <li><a href="gromming booking.html">線上預約</a></li>
+                <li><a href="gromming staff.html" class="active">美容師團隊</a></li>
+                <li><a href="gromming member.html">會員中心</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container page-content">
+        <h2 class="section-title">專業美容師團隊</h2>
+        
+        <!-- 📌 美容師卡片群組：結合個人大頭貼 (Staff) -->
+        <div class="grid grid-2">
+            <div class="card" style="display: flex; gap: 20px; align-items: center; padding: 15px;">
+                <img src="images/staff-andy.jpg" alt="美容師 Andy" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #ff9f43;">
+                <div>
+                    <h3 style="margin-bottom: 5px;">Andy <span class="role-badge">店長 / 資深美容師</span></h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 5px;"><strong>專長：</strong> 大型犬剪毛、精緻賽場造型</p>
+                    <p style="font-size: 0.85rem; color: #666;">擁有10年美容經驗，對待大狗狗極具耐心與獨特的安撫技巧。</p>
+                </div>
+            </div>
+
+            <div class="card" style="display: flex; gap: 20px; align-items: center; padding: 15px;">
+                <img src="images/staff-emily.jpg" alt="美容師 Emily" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #ff9f43;">
+                <div>
+                    <h3 style="margin-bottom: 5px;">Emily <span class="role-badge">核心美容師</span></h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 5px;"><strong>專長：</strong> 傲嬌貓咪護理、微風藥浴減壓</p>
+                    <p style="font-size: 0.85rem; color: #666;">貓咪行為學專家，擅長低壓迫美容，讓怕水的貓咪也能放鬆洗澡。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📌 新增：環境實景照片牆 -->
+        <h2 class="section-title" style="margin-top: 50px;">安全透明的美容環境</h2>
+        <div class="grid grid-3">
+            <div style="overflow: hidden; border-radius: 8px;">
+                <img src="images/env-1.jpg" alt="開放式美容室" style="width:100%; height:180px; object-fit:cover; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <p style="text-align:center; font-size:0.85rem; margin-top:5px; color:#555;">全透明開放式美容室</p>
+            </div>
+            <div style="overflow: hidden; border-radius: 8px;">
+                <img src="images/env-2.jpg" alt="微氣泡泡澡設備" style="width:100%; height:180px; object-fit:cover; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <p style="text-align:center; font-size:0.85rem; margin-top:5px; color:#555;">日系恆溫微氣泡抗菌浴缸</p>
+            </div>
+            <div style="overflow: hidden; border-radius: 8px;">
+                <img src="images/env-3.jpg" alt="獨立休息區" style="width:100%; height:180px; object-fit:cover; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <p style="text-align:center; font-size:0.85rem; margin-top:5px; color:#555;">毛孩專屬獨立安靜等待區</p>
+            </div>
+        </div>
+
+        <!-- 📌 顧客真實評價：包含成果照 (對應 Reviews & Review_Photos 資料表) -->
+        <h2 class="section-title" style="margin-top: 50px;">顧客真實成果評價</h2>
+        <div class="reviews-container">
+            <div class="card review-card" style="border-left: 4px solid #feca57;">
+                <div class="review-header" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <strong>王*明 (毛孩：巧克力)</strong>
+                    <span class="stars" style="color: #ff9f43;">⭐⭐⭐⭐⭐ 5.0</span>
+                </div>
+                <p class="review-comment" style="color: #444; font-size: 0.95rem;">
+                    Andy 美容師幫我家巧克力剪的圓頭泰迪造型超可愛！毛髮蓬鬆度維持很久，洗完也沒有任何香精刺鼻味，大推！
+                </p>
+                
+                <!-- 📸 實體評價照片區塊 (對應 Review_Photos) -->
+                <div class="review-photos" style="display: flex; gap: 10px; margin: 12px 0;">
+                    <img src="images/review-dog1.jpg" alt="成果照-正面" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #eee;">
+                    <img src="images/review-dog2.jpg" alt="成果照-側面" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #eee;">
+                </div>
+
+                <div class="reply-box">
+                    <strong>店家回覆：</strong> 謝謝巧克力的爸爸！巧克力今天剪毛時一直討抱抱超級撒嬌，我們也很喜歡他！期待下次再見！
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 毛孩萌沙龍. All Rights Reserved.</p>
+    </footer>
+    <script src="js/main.js"></script>
+</body>
+</html>

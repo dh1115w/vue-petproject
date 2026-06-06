@@ -1,0 +1,465 @@
+/* 病歷紀錄頁專屬 CSS 排版 */
+.page-container {
+  max-width: clamp(731px, 80vw, 1100px); /* 👈 修正：動態最大寬度 */
+  margin: 0 auto;
+  width: 100%;
+}
+
+.records-container {
+  padding: 30px 0;
+}
+.records-header {
+  position: relative;
+  z-index: 2; /* 浮在遮罩上方 */
+  display: flex;
+  flex-direction: column; /* 改為垂直堆疊以符合置中語彙 */
+  align-items: center;    /* 內容水平置中 */
+  text-align: center;     /* 文字置中 */
+  gap: 1.5rem;            /* 文字群組與按鈕的間距 */
+  width: 80%;
+}
+.records-header h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin: 0 0 0.75rem 0;
+  color: #ffffff; /* 改為白色 */
+  letter-spacing: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+.records-header .subtitle {
+  font-size: 1.125rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85); /* 柔和白灰色 */
+  line-height: 1.5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 病歷紀錄 Banner 容器：完全複製健康追蹤的尺寸與留白 */
+.medical-records-banner {
+  max-width: calc(1150px - 3rem);
+  width: calc(100% - 3rem);
+  aspect-ratio: 1100 / 450;
+  height: auto;
+  margin: 0 auto 2rem;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  
+  /* 核心：與健康追蹤一致，使用 Flex 讓內容在正中央置中 */
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 均勻調暗遮罩：確保白色文字與按鈕絕對清晰 */
+.medical-records-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4); /* 40% 透明度的黑 */
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Banner 底圖設定 */
+.medical-records-banner .banner-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 頂部新增按鈕 */
+.add-record-top-btn {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.add-record-top-btn:hover {
+  transform: translateY(-2px); /* 滑鼠懸停時輕微浮起 */
+}
+/* 直式：單欄由上往下堆疊 */
+.records-main-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr; /* 桌面端雙欄：左側管理盒，右側病歷清單 */
+  gap: 2rem;
+  max-width: clamp(731px, 80vw, 1100px);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  align-items: start;
+}
+
+.records-main-grid .left-panel-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.records-main-grid .right-list-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 1. 拖曳虛線上傳盒 */
+.upload-dashed-zone {
+  border: 2px dashed #d1d3cc;
+  text-align: center;
+  background-color: #ffffff;
+  border-radius: 16px; /* 統一圓角 */
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.upload-dashed-zone.is-dragging {
+  border-color: var(--primary) !important;
+  background-color: rgba(107, 174, 138, 0.06) !important;
+}
+.upload-content-wrapper {
+  padding: 1.5rem 1rem;
+}
+.upload-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: #f3f0e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 0.75rem auto;
+  transition: background-color 0.2s;
+}
+.upload-icon-box.icon-active {
+  background-color: rgba(107, 174, 138, 0.15);
+}
+.upload-main-text {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #383a36;
+  margin: 0 0 0.25rem 0;
+}
+.upload-sub-text {
+  font-size: 0.75rem;
+  color: #848680;
+  margin: 0 0 1rem 0;
+}
+.upload-dashed-zone .select-file-btn {
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  color: #555752;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 0.875rem;
+  border-radius: 10px;
+}
+
+/* 2. 紀錄統計 */
+.left-panel-column .panel-small-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  color: #383a36;
+}
+.stats-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.stat-row-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.stat-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+.stat-label-text {
+  font-size: 0.875rem;
+  color: #555752;
+  flex: 1;
+}
+.stat-count-number {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+/* 3. 插圖展示卡 */
+.illustration-card {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.illustration-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+.illustration-footer-info {
+  padding: 0.75rem 1rem;
+  background-color: #ffffff;
+}
+.illustration-footer-info p {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #555752;
+  margin: 0;
+}
+
+/* 4. 右側搜尋過濾面板 */
+.filter-panel-card {
+  padding: 1.25rem !important;
+  border-radius: 16px !important; /* 👈 統一圓角為 16px */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.search-bar-row {
+  display: flex;
+  gap: 0.75rem;
+}
+.search-input-box {
+  position: relative;
+  flex: 1;
+}
+.search-input-box .lens-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+.records-search-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  padding: 0.625rem 0.75rem 0.625rem 2.25rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: #383a36;
+  outline: none;
+  box-sizing: border-box;
+}
+.records-search-input:focus {
+  border-color: var(--primary);
+}
+.filter-icon-btn {
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 0.75rem;
+  font-size: 1rem;
+  color: #72756e;
+}
+
+/* 分頁切換膠囊按鈕 */
+.tab-buttons-wrap {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+.tab-pill-btn {
+  background-color: #f3f0e8;
+  color: #555752;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.tab-pill-btn.is-active {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+/* 手機版響應式 */
+@media (max-width: 992px) {
+  .records-main-grid {
+    grid-template-columns: 1fr; /* RWD 恢復單欄堆疊 */
+    max-width: 760px;
+    gap: 1.5rem;
+  }
+}
+
+/* 病歷卡片列表堆疊區 */
+.records-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.record-item-card {
+  padding: 0 !important; /* 清空外框，讓裡面可以做滿版抽屜 */
+  overflow: hidden;
+  background-color: #ffffff;
+  border-radius: 16px !important; /* 👈 統一圓角為 16px */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+}
+
+/* 卡片未展開時的點擊頭部 */
+.record-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+.record-card-header:hover {
+  background-color: #faf9f6; /* 滑鼠滑過時有淡淡的高亮反饋 */
+}
+
+/* 類別 icon 大方盒 */
+.record-type-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* 中間文字排版 */
+.record-info-center {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.record-main-title {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #383a36;
+}
+
+.record-type-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* 日期診所一列小字 */
+.record-meta-row {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #848680;
+  margin-top: 0.25rem;
+}
+
+/* 病歷內部的標籤貼紙 */
+.record-tags-box {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+.record-mini-tag {
+  font-size: 0.7rem;
+  background-color: #f3f0e8;
+  color: #555752;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 6px;
+}
+
+/* 右側狀態和箭頭 */
+.record-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* 旋轉小箭頭核心 CSS 動態 */
+.chevron-arrow-icon {
+  font-size: 0.65rem;
+  color: #9c9e98;
+  display: inline-block;
+  transition: transform 0.2s ease; /* 順暢過渡動畫 */
+}
+.chevron-arrow-icon.is-rotated {
+  transform: rotate(90deg); /* 展開時旋轉 90 度向下 */
+}
+
+/* 📥 展開後的手風琴抽屜區域 */
+.record-expanded-drawer {
+  padding: 1rem;
+  background-color: #faf9f6;
+  border-top: 1px solid rgba(230, 227, 218, 0.6);
+  animation: fadeIn 0.2s ease;
+}
+
+.doctor-notes-text {
+  font-size: 0.8125rem;
+  color: #555752;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+/* 展開內部的動作按鈕 */
+.drawer-actions-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.drawer-view-btn {
+  background-color: var(--accent); /* 天空藍 */
+  color: #ffffff;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 0.75rem;
+  border-radius: 10px;
+}
+.drawer-view-btn:hover {
+  opacity: 0.9;
+}
+
+.drawer-download-btn {
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  color: #72756e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+  border-radius: 10px;
+}
+.drawer-download-btn:hover {
+  background-color: var(--muted);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

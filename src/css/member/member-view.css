@@ -1,0 +1,131 @@
+/*
+ * 會員專區 — PawCare 療癒系風格
+ * 圓角卡片 + 療癒綠 + Nunito 字型
+ */
+
+/* ===== 設計變數 ===== */
+:root {
+  --radius: 12px;
+  --background: #f7f6f2;
+  --foreground: #383a36;
+  --card: #ffffff;
+  --primary: #6bae8a;
+  --accent: #7bb3d4;
+  --muted: #f3f0e8;
+  --border: #e6e3da;
+  --destructive: #df4733;
+  --muted-foreground: #9c9e98;
+}
+
+/* ===== 切頁淡入動畫 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 頁面外殼 ===== */
+.member-view-page {
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  padding: 60px 24px;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== 返回連結 ===== */
+.page-header {
+  max-width: 460px;
+  margin: 0 auto 1rem;
+}
+
+.back-link {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--primary);
+}
+
+/* ===== 會員主卡片 ===== */
+.member-card {
+  max-width: 460px;
+  margin: 0 auto;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+.member-card-header {
+  padding: 2.5rem 2.5rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  border-left: 5px solid var(--primary);
+}
+
+.member-eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 4px;
+  color: var(--primary);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.member-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* ===== 導覽選單 ===== */
+.member-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  text-decoration: none;
+  color: var(--foreground);
+  border-radius: 12px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.nav-item:hover {
+  background-color: var(--muted);
+  transform: translateX(4px);
+}
+
+.nav-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.nav-arrow {
+  font-size: 1rem;
+  color: var(--primary);
+  transition: transform 0.2s;
+}
+
+.nav-item:hover .nav-arrow {
+  transform: translateX(4px);
+}

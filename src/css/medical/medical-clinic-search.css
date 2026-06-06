@@ -1,0 +1,513 @@
+/* 診所搜尋頁面專屬純 CSS 排版 */
+.main-container {
+  max-width: clamp(731px, 80vw, 1100px); /* 👈 修正：動態最大寬度 */
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 20px; /* 👈 對齊組員建議的內容內距 */
+  box-sizing: border-box;
+}
+
+.clinic-container {
+  padding: 2.5rem 0; /* 增加上下呼吸感 */
+}
+
+/* 文字區塊：置中且浮在遮罩最上層 */
+.clinic-header {
+  position: relative;
+  z-index: 2; /* 浮在遮罩上方 */
+  display: flex;
+  flex-direction: column; /* 改為垂直堆疊以符合置中語彙 */
+  align-items: center; /* 內容水平置中 */
+  text-align: center; /* 文字置中 */
+  gap: 1.5rem; /* 文字群組與按鈕的間距 */
+  width: 80%;
+}
+
+/* 主標題優化 */
+.clinic-header h1 {
+  font-size: 2.25rem; /* 放大字體，使其符合大 Banner 氣勢 */
+  font-weight: 800;
+  margin: 0 0 0.75rem 0;
+  color: #ffffff; /* 改為白色文字 */
+  letter-spacing: 2px;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 副標題優化 */
+.clinic-header .subtitle {
+  font-size: 1.125rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85); /* 柔和白灰色 */
+  line-height: 1.5;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 1. 附近診所 Banner 容器：完全複製健康追蹤的尺寸與左右留白 */
+.clinic-banner {
+  max-width: var(--content-max-width); /* 限制最大寬度，與下方對齊 */
+  width: 100%; /* 填滿父容器 */
+  aspect-ratio: 1100 / 450;
+  height: auto;
+  margin: 0 auto 2rem;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+
+  /* 核心：使用 Flex 讓內部的文字在正中央完美置中 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 2. 均勻調暗遮罩：確保白色文字絕對清晰 */
+.clinic-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4); /* 40% 透明度的深色遮罩 */
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 3. Banner 底圖設定 */
+.clinic-banner .banner-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 頂部新增按鈕 */
+.add-clinic-top-btn {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.add-clinic-top-btn:hover {
+  transform: translateY(-2px); /* 滑鼠懸停時輕微浮起 */
+}
+
+/* ==========================================================================
+   主排版網格佈局 (Dashboard Layout)
+   ========================================================================== */
+.clinic-main-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.5rem; /* 標準 Dashboard 間距 */
+  margin: 0 auto;
+  padding: 0; /* 由 main-container 統一控制 */
+  height: calc(100vh - 200px); /* 依據 header 高度動態計算 */
+  align-items: stretch;
+  width: 100%;
+  max-width: var(--content-max-width); /* 與 Banner 使用同一個變數 */
+}
+
+/* 左側面板 */
+.clinic-main-layout .left-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 繼承自網格容器的固定高度，確保底部對齊 */
+  gap: 0;
+  padding-right: 4px;
+  overflow: hidden; /* 防止父容器產生雙滾動條 */
+}
+
+/* 搜尋區域：固定在頂部，不被壓縮 */
+.sticky-header {
+  flex-shrink: 0;
+  margin-bottom: 1.25rem; /* 增加搜尋框與清單之間的視覺間距 */
+}
+
+/* 列表區域：自動延伸並開啟垂直滾動 */
+.scrollable-list {
+  flex-grow: 1;
+  overflow-y: auto; /* 恢復垂直滾動條 */
+  padding-right: 6px; /* 為滾動條留出呼吸空間 */
+}
+
+.clinic-container .search-box-card {
+  padding: 1rem !important;
+  flex-shrink: 0;
+}
+
+/* 搜尋輸入框包裹器 */
+.search-input-wrapper {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.search-input-wrapper .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.clinic-search-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background-color: #ffffff;
+  padding: 0.625rem 3rem 0.625rem 2.25rem; /* 👈 修正：右側增加 padding 以容納定位按鈕 */
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: #383a36;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.clinic-search-input:focus {
+  border-color: var(--primary);
+}
+
+/* 定位按鈕樣式 */
+.locate-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  color: #72756e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.locate-btn:hover {
+  background-color: rgba(
+    107,
+    174,
+    138,
+    0.12
+  ); /* 統一使用 chip-toggle 的選中底色 */
+  color: var(--primary);
+}
+
+/* 載入中動畫：圖示轉動 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.locate-btn.is-loading .locate-icon {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+/* 距離篩選列 */
+.distance-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.distance-filter-row .filter-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #72756e;
+  flex-shrink: 0;
+}
+
+.distance-filter-row .filter-buttons-group {
+  display: flex;
+  gap: 0.375rem;
+}
+
+/* 距離膠囊按鈕 */
+.distance-tab-btn {
+  background-color: #f3f0e8;
+  color: #72756e;
+  border: none;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+/* 選中時切換為療癒綠底白字 */
+.distance-tab-btn.is-active {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+/* 右側地圖大盒子（無內邊距，確保地圖滿版） */
+.right-map-panel {
+  padding: 0 !important;
+  overflow: hidden; /* 確保地圖圓角不會破版破出去 */
+  height: 100%; /* 強制地圖填滿右側網格高度 */
+  background-color: #e6e3da;
+  border: 1px solid rgba(230, 227, 218, 0.6);
+  border-radius: 12px; /* 👈 統一圓角為 12px */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 地圖本體樣式：強制 100% 撐滿右側 Bento 格子 */
+.embedded-google-map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border: 0;
+  display: block;
+}
+
+/* 響應式：手機畫面改為上下堆疊 */
+@media (max-width: 992px) {
+  .clinic-main-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 0; /* 行動端依然由 main-container 的 20px padding 保護 */
+  }
+
+  .clinic-main-layout .left-panel {
+    height: auto; /* RWD 模式下高度隨內容展開 */
+    padding-right: 0;
+  }
+
+  .scrollable-list {
+    overflow-y: visible; /* 手機端讓列表自然展開，避免出現小視窗滾動 */
+  }
+}
+
+/* 進階篩選標籤列 */
+.filter-chips-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap; /* 寬度不夠時自動換到下一行 */
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(230, 227, 218, 0.5); /* 上方加一條淡淡的分隔線 */
+}
+
+/* 基礎標籤按鈕（預設為透明底、灰色線） */
+.chip-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: #72756e;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.chip-toggle-btn:hover {
+  background-color: var(--muted);
+}
+
+/* 當按鈕被選中時：變換成療癒綠色邊框與淡綠色背景 */
+.chip-toggle-btn.is-active {
+  background-color: rgba(107, 174, 138, 0.12) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+.chip-icon {
+  font-size: 0.75rem;
+}
+
+/* 診所列表滾動顯示區域（高難度 RWD 排版必備） */
+.clinic-list-scroll-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* 搜尋結果統計文字 */
+.search-result-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 0;
+  color: #848680;
+  padding-left: 4px;
+}
+
+/* 診所卡片基礎樣式 */
+.clinic-item-card {
+  cursor: pointer;
+  background-color: #ffffff;
+  padding: 1.25rem !important; /* 👈 調整與組員一致的內距 */
+  border-radius: 12px !important; /* 👈 調整與組員一致的圓角 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* 👈 修正：加重陰影 */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 🔥 重點：當診所卡片被滑鼠選中點擊時的酷炫療癒綠外框與左線條高亮效果 */
+.clinic-item-card.is-selected-card {
+  box-shadow: 0 0 0 2px var(--primary) !important; /* 精緻外線圈框 */
+  border-left: 4px solid var(--primary) !important; /* 左側邊線 */
+}
+
+.clinic-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* 📍 大頭針圖示小方盒 */
+.clinic-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.badge-open {
+  background-color: rgba(107, 174, 138, 0.12);
+}
+.badge-closed {
+  background-color: #f3f0e8;
+}
+
+/* 右側詳細資訊 */
+.clinic-info-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.clinic-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.clinic-title-text {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #383a36;
+}
+
+/* 營業狀態膠囊 */
+.status-capsule {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+.capsule-open {
+  background-color: rgba(107, 174, 138, 0.15);
+  color: #4a7d60;
+}
+.capsule-closed {
+  background-color: #f3f0e8;
+  color: #72756e;
+}
+
+/* 營業時間、距離、評價文字 */
+.clinic-meta-row,
+.clinic-rating-row {
+  font-size: 0.75rem;
+  color: #848680;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+.divider-dot {
+  margin: 0 4px;
+}
+.rating-num {
+  font-weight: 700;
+  color: #383a36;
+  margin-left: 2px;
+}
+.clinic-item-card .reviews-count {
+  margin-left: 4px;
+}
+
+/* 底部各式小標籤貼紙外框 */
+.clinic-tags-wrapper {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.clinic-item-card .normal-tag {
+  font-size: 0.75rem;
+  background-color: #f3f0e8;
+  color: #555752;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+.clinic-item-card .night-tag {
+  font-size: 0.75rem;
+  background-color: rgba(123, 179, 212, 0.15);
+  color: #4a7593;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+/* 底部導航與撥號按鈕列 */
+.clinic-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(230, 227, 218, 0.4);
+}
+
+.action-nav-btn {
+  flex: 1;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem;
+  border-radius: 12px;
+  transition: opacity 0.2s;
+}
+.action-nav-btn:hover {
+  opacity: 0.9;
+}
+
+.action-phone-btn {
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  color: #72756e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  border-radius: 12px;
+  transition: background-color 0.2s;
+}
+.action-phone-btn:hover {
+  background-color: var(--muted);
+}

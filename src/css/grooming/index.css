@@ -1,0 +1,180 @@
+/*
+ * 美容首頁 — PawCare 療癒系風格
+ */
+
+:root {
+  --radius: 12px;
+  --background: #f7f6f2;
+  --foreground: #383a36;
+  --text-color: #383a36;
+  --card: #ffffff;
+  --primary: #6bae8a;
+  --primary-color: #6bae8a;
+  --primary-dark: #5a9a78;
+  --accent: #7bb3d4;
+  --muted: #f3f0e8;
+  --border: #e6e3da;
+  --muted-foreground: #9c9e98;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  line-height: 1.6;
+}
+
+/* ===== 共用容器 ===== */
+.container {
+  width: 92%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--foreground);
+  border-left: 5px solid var(--primary);
+  padding-left: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== 英雄橫幅（療癒漸層）===== */
+.hero {
+  background: linear-gradient(135deg, #6bae8a, #7bb3d4);
+  min-height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+  padding: 2rem;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-content h1 {
+  font-size: 2.6rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.hero-content p {
+  font-size: 1.15rem;
+  margin-bottom: 1.75rem;
+  opacity: 0.95;
+}
+
+/* 英雄區內按鈕：白底綠字更顯眼 */
+.hero .btn-primary {
+  background-color: #ffffff;
+  color: var(--primary);
+}
+
+.hero .btn-primary:hover {
+  background-color: #f3f0e8;
+}
+
+/* ===== 網格 ===== */
+.grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ===== 卡片 ===== */
+.card {
+  background-color: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 24px rgba(107, 174, 138, 0.15);
+  transform: translateY(-2px);
+}
+
+/* ===== 特色項目 ===== */
+.feature-item h4 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.feature-item p {
+  color: var(--muted-foreground);
+}
+
+/* ===== 服務項目卡內文字 ===== */
+.price {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 1.15rem;
+  margin: 0.25rem 0;
+}
+
+.duration {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.desc {
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* ===== 按鈕 ===== */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+/* ===== 頁尾 ===== */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  background-color: var(--foreground);
+  color: #ffffff;
+  margin-top: 2.5rem;
+  font-size: 0.85rem;
+}
+
+/* ===== 手機版 ===== */
+@media (max-width: 768px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .hero { min-height: 300px; }
+  .hero-content h1 { font-size: 2rem; }
+  .hero-content p { font-size: 1rem; }
+}

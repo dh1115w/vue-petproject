@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上預約 - 毛孩萌沙龍</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="gromming index.html" class="logo">
+                <img src="images/logo.png" alt="Logo" style="height: 30px; vertical-align: middle; margin-right: 5px;">
+                毛孩萌沙龍
+            </a>
+            <button class="menu-toggle" id="mobile-menu">☰</button>
+            <ul class="nav-menu">
+                <li><a href="gromming index.html">首頁</a></li>
+                <li><a href="gromming booking.html" class="active">線上預約</a></li>
+                <li><a href="gromming staff.html">美容師團隊</a></li>
+                <li><a href="gromming member.html">會員中心</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container page-content">
+        <h2 class="section-title">預約寵物美容</h2>
+        
+        <!-- 💡 調整為兩欄響應式佈局：左邊放溫馨提示圖，右邊放表單 -->
+        <div class="grid grid-2" style="align-items: start; gap: 40px;">
+            
+            <!-- 📌 新增：預約視覺形象與說明區 -->
+            <div class="booking-info-side">
+                <img src="images/booking-hero.jpg" alt="美容預約形象圖" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                <div class="card" style="background: #fff5eb; border: 1px solid #ffe0c2;">
+                    <h4 style="color: #e67e22; margin-bottom: 10px;">🐾 預約溫馨小叮嚀</h4>
+                    <p style="font-size: 0.9rem; color: #666; line-height: 1.8;">
+                        1. 為了毛孩的安全，若有心臟病、癲癇或具攻擊性請務必於備註告知。<br>
+                        2. 預約時段將為您保留 15 分鐘，逾時將自動取消並釋出時段。<br>
+                        3. 若欲取消預約，請於前一日至會員中心或來電取消。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 預約表單本體 -->
+            <form id="bookingForm" class="form-container" style="margin-top: 0;">
+                <!-- 寵物選擇 -->
+                <div class="form-group">
+                    <label for="petSelect">選擇您的毛孩 (pet_id)</label>
+                    <select id="petSelect" required>
+                        <option value="">-- 請選擇毛孩 --</option>
+                        <option value="1">巧克力 (貴賓/3歲)</option>
+                        <option value="2">Mimi (波斯貓/2歲)</option>
+                    </select>
+                </div>
+
+                <!-- 服務選擇 -->
+                <div class="form-group">
+                    <label for="serviceSelect">選擇服務項目 (service_id)</label>
+                    <select id="serviceSelect" required>
+                        <option value="">-- 請選擇服務 --</option>
+                        <option value="1">基礎洗澡 - $500</option>
+                        <option value="2">精緻造型剪毛 - $1200</option>
+                        <option value="3">草本舒緩藥浴 - $800</option>
+                    </select>
+                </div>
+
+                <!-- 美容師 -->
+                <div class="form-group">
+                    <label for="groomerSelect">指定美容師 (groomer_id)</label>
+                    <select id="groomerSelect" required>
+                        <option value="">-- 請選擇美容師 --</option>
+                        <option value="1">Andy (專長：大型犬)</option>
+                        <option value="2">Emily (專長：貓咪美容、藥浴)</option>
+                    </select>
+                </div>
+
+                <!-- 日期與時段 -->
+                <div class="form-group grid grid-2" style="padding:0; gap:15px; margin-top:0;">
+                    <div>
+                        <label for="aptDate">預約日期</label>
+                        <input type="date" id="aptDate" required>
+                    </div>
+                    <div>
+                        <label for="timeSlot">可用時段</label>
+                        <select id="timeSlot" required>
+                            <option value="">-- 請先選擇日期 --</option>
+                            <option value="1">09:00 - 11:00</option>
+                            <option value="2">13:00 - 15:00</option>
+                            <option value="3">15:30 - 17:30</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 備註 -->
+                <div class="form-group">
+                    <label for="notes">備註事項 (notes)</label>
+                    <textarea id="notes" rows="3" placeholder="請註明毛孩是否有過敏史、近期手術或特殊排斥行為..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">送出預約</button>
+            </form>
+
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 毛孩萌沙龍. All Rights Reserved.</p>
+    </footer>
+    <script src="js/main.js"></script>
+</body>
+</html>

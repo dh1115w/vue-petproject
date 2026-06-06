@@ -1,0 +1,528 @@
+/* ==========================================================================
+   全網格與排版佈局
+   ========================================================================== */
+.page-container {
+  max-width: clamp(731px, 80vw, 1100px); /* 👈 修正：動態最大寬度 */
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 20px; /* 👈 對齊診所搜尋頁的內容內距 */
+  box-sizing: border-box;
+}
+
+.tracking-container {
+  padding: 30px 0 1.5rem 0; /* 減少上方內距，讓標頭區域整體上移 */
+}
+
+/* 文字區塊：置中且浮在遮罩最上層 */
+.tracking-header {
+  position: relative;
+  z-index: 2; /* 必須大於遮罩的 1 */
+  text-align: center; /* 文字置中 */
+  padding: 0 1.5rem;
+  max-width: 80%; /* 限制寬度，防止文字拉得太長 */
+}
+
+/* 主標題優化 */
+.tracking-header h1 {
+  font-size: 2.25rem; /* 放大字體，使其像主 Banner 標題 */
+  font-weight: 800;
+  margin: 0 0 0.75rem 0;
+  color: #ffffff; /* 純白字 */
+  letter-spacing: 2px; /* 增加字距提升質感 */
+}
+
+/* 副標題優化 */
+.tracking-header .subtitle {
+  font-size: 1.125rem; /* 稍微放大副標題 */
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85); /* 柔和的白灰色，很有層次感 */
+  line-height: 1.5;
+}
+
+.tracking-main-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr; /* 左側固定寬度避免表單拉伸；右側圖表自動延伸 */
+  gap: 2rem; /* 對齊美容頁面的呼吸感間距 */
+  align-items: stretch; /* 👈 核心修正：讓左右兩欄高度自動等長，確保底部對齊 */
+  margin: 0 auto;
+  padding: 0 1.5rem; /* 確保內容不會緊貼瀏覽器邊緣 */
+}
+
+/* ==========================================================================
+   模組化卡片化 (與美容頁面風格同步)
+   ========================================================================== */
+.pawcare-card {
+  background-color: #ffffff;
+  border-radius: 20px; /* 提升圓角感，營造療癒系親和力 */
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02); /* 極輕量細緻陰影 */
+  padding: 1.5rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.pawcare-card:hover {
+  box-shadow: 0 8px 24px rgba(107, 174, 138, 0.12); /* 懸停時略微浮起，增加互動感 */
+}
+
+/* 左側表單強調色邊條 */
+.pawcare-card-accent-green {
+  border-left: 6px solid var(--primary);
+}
+
+/* ==========================================================================
+   左側面板：輸入表單樣式
+   ========================================================================== */
+.form-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.activity-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: rgba(107, 174, 138, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-header-row h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tracking-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tracking-container .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.tracking-container .form-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #555752;
+  margin-bottom: 0.375rem;
+}
+
+.tracking-container .form-input {
+  border: 1px solid var(--border);
+  background-color: #ffffff;
+  padding: 0.625rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+}
+
+.input-tip-text {
+  font-size: 0.75rem;
+  color: #6bae8a;
+  margin: 0.25rem 0 0 0;
+  font-weight: 600;
+}
+
+.flex-buttons-row {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.square-tab-btn,
+.mood-tab-btn {
+  flex: 1;
+  border: none;
+  padding: 0.5rem 0;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.2s;
+  background-color: #f3f0e8;
+  color: #72756e;
+}
+
+.square-tab-btn.is-active {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+.mood-tab-btn.is-active {
+  background-color: rgba(107, 174, 138, 0.15) !important;
+  box-shadow: 0 0 0 1.5px var(--primary);
+  color: var(--primary);
+}
+
+.submit-record-btn {
+  width: 100%;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+}
+
+/* ==========================================================================
+   右側面板：數據摘要小卡片
+   ========================================================================== */
+.right-charts-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-summary-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.summary-item-card {
+  padding: 1rem !important;
+}
+
+.summary-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.summary-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #72756e;
+}
+
+.summary-subtext {
+  font-size: 0.6875rem;
+  color: #9c9e98;
+}
+
+/* ==========================================================================
+   右側面板：圖表外殼與時間篩選
+   ========================================================================== */
+.chart-container-card {
+  padding: 1.25rem 4.5rem 1.25rem 1.25rem; /* 👈 修正：大幅增加右側 padding，為『過重/偏瘦』標籤留空間 */
+}
+
+.chart-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.chart-box-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #383a36;
+}
+
+.chart-box-subtitle {
+  font-size: 0.75rem;
+  color: #848680;
+  margin: 0.125rem 0 0 0;
+}
+
+.time-range-selector {
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background-color: #ffffff;
+}
+
+.tracking-container .range-btn {
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #848680;
+  transition: all 0.2s;
+}
+
+.range-btn.is-active {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+/* 折線圖 SVG 封裝器 */
+.chart-visual-wrapper {
+  width: 100%;
+  padding-top: 0.5rem;
+  overflow: visible; /* 👈 確保內部 SVG 文字可以超出封裝器顯示 */
+}
+
+.line-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible; /* 👈 關鍵：防止 SVG 內部的 <text> 標籤被裁切 */
+}
+
+/* ==========================================================================
+   飲食雙色長條圖 (純 CSS 實現)
+   ========================================================================== */
+.bar-chart-legend {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #848680;
+}
+
+.legend-badge-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-badge-item i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.dot-g {
+  background-color: var(--primary);
+}
+.dot-o {
+  background-color: #e29553;
+}
+
+.bar-chart-visual-wrapper {
+  display: flex;
+  height: 180px;
+  margin-top: 1rem;
+  position: relative;
+  padding-top: 10px;
+}
+
+.bar-chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  font-size: 10px;
+  color: #9c9e98;
+  height: 140px;
+  text-align: right;
+  padding-right: 6px;
+  border-right: 1px solid var(--border);
+}
+
+.bar-chart-main-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 140px;
+  padding-left: 8px;
+}
+
+.bar-column-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bars-two-mix-stack {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 長條柱本體與 Hover 浮動提示功能 */
+.single-bar {
+  width: 14px;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.single-bar:hover {
+  opacity: 0.85;
+}
+
+.water-bar {
+  background-color: var(--primary);
+}
+.food-bar {
+  background-color: #e29553;
+}
+
+/* CSS 懸浮數字泡泡 (Tooltip) */
+.bar-tooltip-val {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #383a36;
+  color: #fff;
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.single-bar:hover .bar-tooltip-val {
+  display: block;
+}
+
+.bar-x-label {
+  font-size: 11px;
+  color: #9c9e98;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   健康追蹤 Banner 樣式
+   ========================================================================== */
+/*  Banner 容器：負責控制左右留白、圓角，並將文字置中 */
+.health-tracking-banner {
+  max-width: calc(1100px - 3rem);
+  width: calc(100% - 3rem);
+  aspect-ratio: 1100 / 450;
+  height: auto;
+  margin: 0 auto 2rem;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+
+  /* 核心：使用 Flex 讓內部的文字區塊在正中央置中 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 2. 均勻調暗遮罩：讓整張圖片變暗，文字更突出 */
+.health-tracking-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(
+    0,
+    0,
+    0,
+    0.4
+  ); /* 40% 透明度的黑，覺得不夠暗可以改成 0.45 或 0.5 */
+  z-index: 1;
+  pointer-events: none;
+}
+
+.banner-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ==========================================================================
+   RWD 響應式斷點排版
+   ========================================================================== */
+@media (max-width: 992px) {
+  .tracking-header {
+    top: 1.5rem; /* 縮小上方間距 */
+    left: 1.25rem;
+    max-width: calc(100% - 2.5rem);
+  }
+
+  .health-tracking-banner {
+    width: calc(100% - 2.5rem); /* 配合行動端縮小的留白 */
+  }
+
+  .tracking-main-grid {
+    grid-template-columns: 1fr; /* 改回單欄垂直堆疊 */
+    max-width: 760px;
+    gap: 1.25rem;
+    padding: 0 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tracking-header h1 {
+    font-size: 1.25rem; /* 手機裝置減小標題字體 */
+  }
+
+  .tracking-header .subtitle {
+    font-size: 0.75rem; /* 手機裝置減小副標題字體 */
+  }
+
+  .tracking-header {
+    top: 1rem; /* 上方間距減小 */
+    left: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+}
+
+@media (max-width: 576px) {
+  .status-summary-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tracking-header h1 {
+    font-size: 1rem; /* 超小螢幕進一步減小標題 */
+  }
+
+  .tracking-header .subtitle {
+    font-size: 0.65rem;
+    margin-top: 0.125rem;
+  }
+
+  .tracking-header {
+    top: 0.75rem;
+    left: 0.75rem;
+    max-width: calc(100% - 1.5rem);
+  }
+}

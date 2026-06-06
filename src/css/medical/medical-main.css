@@ -1,0 +1,200 @@
+/* 
+ * PawCare 療癒系寵物 App 風 - 100% 純原生 CSS 設計系統
+ * 告別 Tailwind，使用純 CSS 實現 Bento Grid 與自訂元件
+ */
+
+:root {
+  /* 全域圓角大小 */
+  --radius: 12px;
+
+  /* 配色系統 */
+  --background: #f9f8f4; /* 👈 修正：更輕盈的灰白底色，增加飽滿感 */
+  --foreground: #383a36; /* 深碳灰字體 */
+  --card: #ffffff; /* 純白卡片 */
+  --primary: #6bae8a; /* 療癒綠 */
+  --secondary: #eeebe3; /* 奶茶棕 */
+  --muted: #f3f0e8; /* 淡奶茶 */
+  --accent: #7bb3d4; /* 天空藍 */
+  --destructive: #df4733; /* 警示紅 */
+  --border: #e6e3da; /* 邊框線 */
+}
+
+/* 👈 強制全域盒子模型：確保寬度包含 padding 與 border */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 👈 防止圖片與 SVG 撐開容器 */
+img,
+svg,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 基礎全域樣式設定 */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: "Nunito", "Noto Sans TC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 1rem 0;
+  font-weight: 700;
+}
+
+/* 點擊元素一律呈現手勢 */
+button,
+a,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   版面佈局 Layout (替代 Tailwind 的 Flex/Grid)
+   ========================================================================== */
+
+/* 全域主容器 */
+.pawcare-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 左側固定導覽列 (220px) */
+.pawcare-sidebar {
+  width: 220px;
+  background-color: #ffffff;
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 右側主內容區 */
+.pawcare-main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* 經典 Bento Grid (便當盒格子佈局) */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* ==========================================================================
+   自訂功能元件 Components
+   ========================================================================== */
+
+/* 1. 療癒系基本卡片 */
+.pawcare-card {
+  background-color: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid rgba(230, 227, 218, 0.8);
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* 👈 修正：增加視覺重量感 */
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* 卡片滑鼠懸停微動效果 */
+.pawcare-card:hover {
+  box-shadow: 0 6px 24px rgba(107, 174, 138, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 卡片彩色左邊條 */
+.pawcare-card.accent-green {
+  border-left: 5px solid var(--primary);
+}
+.pawcare-card.accent-blue {
+  border-left: 5px solid var(--accent);
+}
+.pawcare-card.accent-orange {
+  border-left: 5px solid #e29553;
+}
+
+/* 2. 寵物健康狀態膠囊標籤 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-badge.normal {
+  background-color: rgba(107, 174, 138, 0.15);
+  color: #4a7d60;
+}
+.status-badge.warning {
+  background-color: rgba(226, 149, 83, 0.15);
+  color: #a4622b;
+}
+.status-badge.danger {
+  background-color: rgba(223, 71, 51, 0.15);
+  color: #a62a1b;
+}
+
+/* 3. 側邊選單按鈕 */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #72756e;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+.sidebar-nav-item:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+.sidebar-nav-item.active {
+  background-color: rgba(107, 174, 138, 0.12);
+  color: var(--primary);
+}
+
+/* ==========================================================================
+   動畫效果 Animations
+   ========================================================================== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 只要加上這個 class，切換頁面畫面會自動漂亮淡入 */
+.page-enter {
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

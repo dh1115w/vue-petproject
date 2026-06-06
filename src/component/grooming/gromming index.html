@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>毛孩萌沙龍 (Vite)</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>毛孩萌沙龍 - 專業寵物美容</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 導覽列 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <!-- 📌 適合點 1：商標旁可以加入一個小 Logo 圖片 -->
+            <a href="gromming index.html" class="logo">
+                <img src="images/logo.png" alt="毛孩萌沙龍Logo" class="nav-logo" style="height: 30px; vertical-align: middle; margin-right: 5px;">
+                毛孩萌沙龍
+            </a>
+            <button class="menu-toggle" id="mobile-menu">☰</button>
+            <ul class="nav-menu">
+                <li><a href="gromming index.html" class="active">首頁</a></li>
+                <li><a href="gromming booking.html">線上預約</a></li>
+                <li><a href="gromming staff.html">美容師團隊</a></li>
+                <li><a href="gromming member.html">會員中心</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 英雄橫幅 -->
+    <!-- 📌 適合點 2：此處的背景圖可透過 CSS 的 background-image 帶入一張高畫質的寵物與美容師合影 -->
+    <header class="hero">
+        <div class="hero-content">
+            <h1>給毛孩最頂級的呵護</h1>
+            <p>專業美容師團隊，透明化價格，提供最安心的洗剪洗藥浴服務</p>
+            <a href="gromming booking.html" class="btn btn-primary">立即預約服務</a>
+        </div>
+    </header>
+
+    <!-- 📌 適合點 3：新增「店鋪特色/三大優勢」圖文區塊，讓網頁更像真實商店 -->
+    <section class="features-section container" style="margin-top: 50px;">
+        <h2 class="section-title">我們的堅持</h2>
+        <div class="grid grid-3">
+            <div class="feature-item" style="text-align: center;">
+                <img src="images/feature-1.jpg" alt="透明化空間" style="width: 100%; max-width: 150px; border-radius: 50%;">
+                <h4 style="margin-top: 10px;">全程透明公開</h4>
+                <p style="font-size: 0.9rem; color: #666;">開放式美容空間，家長最安心。</p>
+            </div>
+            <div class="feature-item" style="text-align: center;">
+                <img src="images/feature-2.jpg" alt="天然洗劑" style="width: 100%; max-width: 150px; border-radius: 50%;">
+                <h4 style="margin-top: 10px;">天然草本洗劑</h4>
+                <p style="font-size: 0.9rem; color: #666;">嚴選低敏配方，呵護毛孩肌膚。</p>
+            </div>
+            <div class="feature-item" style="text-align: center;">
+                <img src="images/feature-3.jpg" alt="專業認證" style="width: 100%; max-width: 150px; border-radius: 50%;">
+                <h4 style="margin-top: 10px;">國際證照美容師</h4>
+                <p style="font-size: 0.9rem; color: #666;">豐富經驗，安撫毛孩緊張情緒。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 熱門服務 (對應 Services 資料表) -->
+    <section class="services-section container" style="margin-top: 50px;">
+        <h2 class="section-title">熱門服務項目</h2>
+        <div class="grid grid-3">
+            <!-- 📌 適合點 4：在每個服務卡片最上方，加入對應的服務情境照片 -->
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <img src="images/service-bath.jpg" alt="基礎洗澡服務" style="width: 100%; height: 200px; object-fit: cover;">
+                <div style="padding: 20px;">
+                    <h3>基礎洗澡</h3>
+                    <p class="price">NT$ 500 起</p>
+                    <p class="duration">⏱ 時長：60 分鐘</p>
+                    <p class="desc">包含剪指甲、清耳朵、擠肛門腺、溫和洗毛精清潔。</p>
+                </div>
+            </div>
+
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <img src="images/service-cut.jpg" alt="精緻造型剪毛服務" style="width: 100%; height: 200px; object-fit: cover;">
+                <div style="padding: 20px;">
+                    <h3>精緻造型剪毛</h3>
+                    <p class="price">NT$ 1,200 起</p>
+                    <p class="duration">⏱ 時長：120 分鐘</p>
+                    <p class="desc">職人手剪、客製化造型溝通、全身毛髮蓬鬆打理。</p>
+                </div>
+            </div>
+
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <img src="images/service-spa.jpg" alt="草本舒緩藥浴服務" style="width: 100%; height: 200px; object-fit: cover;">
+                <div style="padding: 20px;">
+                    <h3>草本舒緩藥浴</h3>
+                    <p class="price">NT$ 800 起</p>
+                    <p class="duration">⏱ 時長：90 分鐘</p>
+                    <p class="desc">針對敏感肌毛孩，使用天然草本配方，改善皮膚問題。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 頁尾 -->
+    <footer>
+        <p>&copy; 2026 毛孩萌沙龍. All Rights Reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

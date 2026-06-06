@@ -1,0 +1,158 @@
+/*
+ * 美容預約頁 — PawCare 療癒系風格
+ */
+
+:root {
+  --radius: 12px;
+  --background: #f7f6f2;
+  --foreground: #383a36;
+  --text-color: #383a36;
+  --card: #ffffff;
+  --primary: #6bae8a;
+  --primary-color: #6bae8a;
+  --primary-dark: #5a9a78;
+  --accent: #7bb3d4;
+  --muted: #f3f0e8;
+  --border: #e6e3da;
+  --muted-foreground: #9c9e98;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  line-height: 1.6;
+}
+
+/* ===== 共用容器 ===== */
+.container {
+  width: 92%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-content {
+  padding: 40px 0;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--foreground);
+  border-left: 5px solid var(--primary);
+  padding-left: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== 網格 ===== */
+.grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+/* ===== 卡片 ===== */
+.card {
+  background-color: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+/* ===== 表單容器 ===== */
+.form-container {
+  background-color: var(--card);
+  padding: 1.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #72756e;
+}
+
+/* ===== 輸入框（圓角療癒系）===== */
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--foreground);
+  background-color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+}
+
+/* ===== 按鈕 ===== */
+.btn {
+  display: inline-block;
+  padding: 0.85rem 1.75rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* ===== 頁尾 ===== */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  background-color: var(--foreground);
+  color: #ffffff;
+  margin-top: 2.5rem;
+  font-size: 0.85rem;
+}
+
+/* ===== 手機版 ===== */
+@media (max-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}

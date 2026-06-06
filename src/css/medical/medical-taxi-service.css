@@ -1,0 +1,469 @@
+/* 到診叫車頁專屬 CSS */
+.transport-container {
+  padding: 1.5rem;
+}
+/* 文字區塊：置中且浮在遮罩最上層 */
+.transport-header {
+  position: relative;
+  z-index: 2; /* 浮在遮罩上方 */
+  display: flex;
+  flex-direction: column; /* 改為垂直堆疊以符合置中語彙 */
+  align-items: center; /* 內容水平置中 */
+  text-align: center; /* 文字置中 */
+  gap: 1.5rem; /* 文字群組與按鈕的間距 */
+  width: 80%;
+}
+/* 主標題優化 */
+.transport-header h1 {
+  font-size: 2.25rem; /* 放大字體，使其符合大 Banner 氣勢 */
+  font-weight: 800;
+  margin: 0 0 0.75rem 0;
+  color: #ffffff; /* 改為白色文字 */
+  letter-spacing: 2px;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+/* 副標題優化 */
+.transport-header .subtitle {
+  font-size: 1.125rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85); /* 柔和白灰色 */
+  line-height: 1.5;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 1. 接送服務 Banner 容器：完全複製健康追蹤的尺寸與留白 */
+.transport-banner {
+  max-width: clamp(731px, 80vw, 1100px);
+  width: 100%;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  aspect-ratio: 1100 / 450;
+  height: auto;
+  margin: 0 auto 2rem;
+  border-radius: 22px;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  /* 核心：使用 Flex 讓內部的文字在正中央完美置中 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 2. 均勻調暗遮罩：確保白色文字絕對清晰 */
+.transport-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2); /* 40% 透明度的黑紗 */
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 3. Banner 底圖設定 */
+.transport-banner .banner-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 頂部新增按鈕 */
+.add-taxi-top-btn {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.add-taxi-top-btn:hover {
+  transform: translateY(-2px); /* 滑鼠懸停時輕微浮起 */
+}
+
+/* 直式：單欄由上往下堆疊 */
+.transport-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  max-width: clamp(731px, 80vw, 1100px); /* 👈 修正：動態最大寬度 */
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box; /* 👈 強制盒子模型，防止被 padding 撐開 */
+}
+.left-setup-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 行程設定卡片內部 */
+.left-setup-column .panel-small-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  color: #383a36;
+}
+.route-inputs-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.location-group {
+  display: flex;
+  flex-direction: column;
+}
+.location-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #72756e;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 小圓點 */
+.location-label .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.blue-dot {
+  background-color: var(--accent);
+}
+.green-dot {
+  background-color: var(--primary);
+}
+
+/* 出發/目的地顯示底盒 */
+.location-static-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+}
+.bg-muted {
+  background-color: #f3f0e8;
+}
+.address-text {
+  font-size: 0.875rem;
+  color: #383a36;
+}
+.pin-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* 虛線裝飾分隔線 */
+.dashed-line-divider {
+  padding-left: 11px;
+  margin: 4px 0;
+}
+.vertical-line {
+  border-left: 2px dashed #d1d3cc;
+  height: 20px;
+  width: 0;
+}
+
+/* 目的地選中狀態點框 */
+.dest-active-box {
+  background-color: rgba(107, 174, 138, 0.05);
+  border: 2px solid rgba(107, 174, 138, 0.3);
+}
+.dest-info-wrapper {
+  flex: 1;
+}
+.dest-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #383a36;
+}
+.dest-address {
+  font-size: 0.75rem;
+  color: #848680;
+  margin-top: 2px;
+}
+.arrow-right-icon {
+  font-size: 0.65rem;
+  color: #9c9e98;
+}
+
+/* 常用診所快速選取膠囊 */
+.quick-clinics-row {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.clinic-chip-btn {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: #72756e;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.clinic-chip-btn:hover {
+  background-color: var(--muted);
+}
+
+/* 當選中該醫院時切換為淡綠色凹陷效果 */
+.clinic-chip-btn.is-active {
+  background-color: rgba(107, 174, 138, 0.12) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+/* 下方三欄式大數據預估面板 */
+.trip-info-estimate-grid {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(230, 227, 218, 0.5);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.estimate-item {
+  text-align: center;
+}
+.estimate-icon {
+  font-size: 1.1rem;
+  margin-bottom: 2px;
+}
+.estimate-value {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #383a36;
+}
+.estimate-label {
+  font-size: 0.75rem;
+  color: #9c9e98;
+  margin-top: 2px;
+}
+
+/* 右側地圖預留灰盒 */
+.right-map-placeholder {
+  background-color: #e6e3da;
+  border-radius: 16px;
+  border: 1px solid rgba(230, 227, 218, 0.5);
+  min-height: 400px;
+}
+
+/* RWD 手機優化 */
+@media (max-width: 992px) {
+  .transport-main-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem; /* 👈 行動端增加安全內距，防止貼邊 */
+    max-width: 100%;
+  }
+}
+
+/* 叫車頁右側面板樣式 */
+.right-ride-options-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.ride-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* 叫車卡片外殼 */
+.ride-option-item-box {
+  background-color: #ffffff;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ride-option-item-box:hover:not(.is-disabled) {
+  border-color: #d1d3cc;
+}
+
+/* 狀態一：被滑鼠選中的計程車款 */
+.ride-option-item-box.is-selected {
+  border-color: var(--primary) !important;
+  background-color: rgba(107, 174, 138, 0.05) !important;
+}
+
+/* 狀態二：不可選用的車款 */
+.ride-option-item-box.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 計程車內容排版 */
+.ride-car-emoji {
+  font-size: 1.75rem;
+  margin-right: 0.75rem;
+}
+.ride-car-info-main {
+  flex: 1;
+}
+.ride-car-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.car-name-text {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #383a36;
+}
+
+/* 推薦、停用標籤貼紙 */
+.badge-recommend {
+  font-size: 0.7rem;
+  background-color: rgba(226, 149, 83, 0.15);
+  color: #a4622b;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 700;
+}
+.badge-disabled {
+  font-size: 0.7rem;
+  background-color: #f3f0e8;
+  color: #72756e;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* 計程車評分與費用小字 */
+.ride-car-meta {
+  font-size: 0.75rem;
+  color: #848680;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+.ride-features-wrap {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.feature-tag {
+  font-size: 0.7rem;
+  background-color: rgba(107, 174, 138, 0.1);
+  color: var(--primary);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+.checked-circle {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* 寵物橫條資訊 */
+.pet-mini-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #f3f0e8;
+  padding: 0.75rem;
+  border-radius: 12px;
+}
+.driver-pet-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.driver-pet-text {
+  flex: 1;
+}
+.p-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #383a36;
+}
+.p-desc {
+  font-size: 0.75rem;
+  color: #848680;
+  margin-top: 2px;
+}
+.verified-check-mark {
+  font-size: 0.9rem;
+}
+
+/* 藍色安全提示框 */
+.safety-alert-notice-box {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: rgba(123, 179, 212, 0.1);
+  border: 1px solid rgba(123, 179, 212, 0.3);
+  border-radius: 16px;
+}
+.alert-icon {
+  font-size: 1.1rem;
+}
+.alert-content-text strong {
+  font-size: 0.75rem;
+  color: #4a7593;
+  display: block;
+}
+.alert-content-text p {
+  font-size: 0.75rem;
+  color: #4a7593;
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+/* 底部叫車超大按鈕 */
+.call-taxi-now-btn {
+  width: 100%;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 800;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.call-taxi-now-btn:hover {
+  opacity: 0.9;
+}
+
+.call-clinic-direct-btn {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  color: #555752;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 16px;
+  margin-top: -0.25rem;
+  transition: background-color 0.2s;
+}
+.call-clinic-direct-btn:hover {
+  background-color: var(--muted);
+}

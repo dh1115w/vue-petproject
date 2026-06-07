@@ -43,12 +43,7 @@
           <span class="card-arrow">了解更多   →</span>
         </RouterLink>
 
-        <RouterLink to="/boarding" class="service-card">
-          <span class="card-label">Boarding</span>
-          <h3 class="card-title">寵物住宿</h3>
-          <p class="card-desc">安心舒適的專業寄宿服務</p>
-          <span class="card-arrow">了解更多   →</span>
-        </RouterLink>
+       
 
         <RouterLink to="/grooming" class="service-card">
           <span class="card-label">Grooming</span>

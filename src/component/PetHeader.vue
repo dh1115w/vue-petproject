@@ -17,7 +17,7 @@
         </div>
 
 
-        <RouterLink to="/boarding" class="nav-link">住宿</RouterLink>
+       
 
         <!-- 美容選單 -->
         <div class="nav-dropdown">

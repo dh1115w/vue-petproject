@@ -41,6 +41,10 @@
             <RouterLink to="/medical/taxiservice" class="dropdown-item">寵物接送服務</RouterLink>
           </div>
         </div>
+
+        <div class="nav-dropdown">
+          <RouterLink to="/member/login" class="nav-link">登入/註冊</RouterLink>
+        </div>
       </nav>
 
     </div>

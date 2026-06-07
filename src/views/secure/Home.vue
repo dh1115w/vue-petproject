@@ -36,7 +36,7 @@
       </div>
 
       <div class="service-grid">
-        <RouterLink to="/grooming" class="service-card">
+        <RouterLink to="/grooming/member" class="service-card">
           <span class="card-label">Membership</span>
           <h3 class="card-title">會員專區</h3>
           <p class="card-desc">管理您的帳號與所有寵物資料</p>

@@ -27,7 +27,7 @@
             <div class="info-list-item"><span style="color:#747d8c;">通訊地址 (address)</span><strong style="max-width: 150px; text-align: right; word-break: break-all;">{{ memberInfo.address }}</strong></div>
             <div class="info-list-item"><span style="color:#747d8c;">註冊日期 (createDate)</span><strong>{{ memberInfo.createDate }}</strong></div>
           </div>
-          <button @click="openEditModal" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 0.9rem; padding: 8px;">修改會員資料</button>
+          <button @click="$router.push('/member/updateprofile')" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 0.9rem; padding: 8px;">修改會員資料</button>
         </div>
 
         <div class="card col-span-2">

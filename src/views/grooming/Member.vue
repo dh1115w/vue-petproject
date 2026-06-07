@@ -27,7 +27,7 @@
             <div class="info-list-item"><span style="color:#747d8c;">通訊地址 (address)</span><strong style="max-width: 150px; text-align: right; word-break: break-all;">{{ memberInfo.address }}</strong></div>
             <div class="info-list-item"><span style="color:#747d8c;">註冊日期 (createDate)</span><strong>{{ memberInfo.createDate }}</strong></div>
           </div>
-          <button @click="$router.push('/member/updateprofile')" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 0.9rem; padding: 8px;">修改會員資料</button>
+          <button @click="goToUpdateProfile" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 0.9rem; padding: 8px;">修改會員資料</button>
         </div>
 
         <div class="card col-span-2">
@@ -246,166 +246,108 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, reactive, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import NavBar from './NavBar.vue'
 
-export default {
-  name: 'MemberPage',
-  components: { NavBar },
-  data() {
-    return {
-      memberInfo: {
-        name: '王大明',
-        account: 'taming888',
-        phone: '0912-345-678',
-        email: 'taming@example.com',
-        address: '台南市大內區1號',
-        createDate: '2026-01-15'
-      },
-      myPets: [
-        {
-          name: '巧克力',
-          gender: 1,
-          breed: '貴賓狗',
-          age: 3,
-          weight: 5.20,
-          notes: '無過敏，剪耳後毛容易緊張，需溫柔安撫。',
-          isNeutered: true
-        },
-        {
-          name: 'Mimi',
-          gender: 0,
-          breed: '波斯貓',
-          age: 2,
-          weight: 4.10,
-          notes: '不喜歡碰尾巴，洗澡時需要Emily美容師協助。',
-          isNeutered: true
-        }
-      ],
-      appointments: [
-        { id: '#APT-0024', petName: '巧克力', serviceName: '精緻造型剪毛', price: '$1,200', date: '2026-06-05 13:00', groomer: 'Andy', status: 0 },
-        { id: '#APT-0012', petName: 'Mimi', serviceName: '草本舒緩藥浴', price: '$800', date: '2026-05-20 10:00', groomer: 'Emily', status: 1 },
-        { id: '#APT-0005', petName: '巧克力', serviceName: '基礎洗澡', price: '$500', date: '2026-04-15 15:30', groomer: 'Jason', status: 2 },
-        { id: '#APT-0030', petName: 'Mimi', serviceName: '貓咪舒壓洗護', price: '$800', date: '2026-06-12 11:00', groomer: 'Sophie', status: 3 }
-      ],
-      // 會員編輯相關
-      isEditModalOpen: false,
-      tempMemberInfo: {},
-      filterStatus: 'all',
-      // 預約分頁相關
-      currentAptPage: 1,
-      aptPageSize: 5,
-      // 毛孩分頁相關
-      currentPetPage: 1,
-      petPageSize: 2,
-      // 新增毛孩相關
-      isAddPetModalOpen: false,
-      newPet: {
-        name: '',
-        gender: 1,
-        breed: '',
-        age: null,
-        weight: null,
-        notes: '',
-        isNeutered: false
-      },
-      // 編輯毛孩相關
-      isEditPetModalOpen: false,
-      editingPet: {},
-      editingPetIndex: null
-    }
-  },
-  computed: {
-    totalPetPages() {
-      return Math.ceil(this.myPets.length / this.petPageSize);
-    },
-    filteredAppointments() {
-      if (this.filterStatus === 'all') return this.appointments;
-      return this.appointments.filter(apt => apt.status === parseInt(this.filterStatus));
-    },
-    totalAptPages() {
-      return Math.ceil(this.filteredAppointments.length / this.aptPageSize);
-    },
-    paginatedAppointments() {
-      const start = (this.currentAptPage - 1) * this.aptPageSize;
-      const end = start + this.aptPageSize;
-      return this.filteredAppointments.slice(start, end);
-    },
-    paginatedPets() {
-      const start = (this.currentPetPage - 1) * this.petPageSize;
-      const end = start + this.petPageSize;
-      return this.myPets.slice(start, end);
-    }
-  },
-  watch: {
-    totalPetPages(newVal) {
-      if (this.currentPetPage > newVal && newVal > 0) {
-        this.currentPetPage = newVal;
-      }
-    },
-    totalAptPages(newVal) {
-      if (this.currentAptPage > newVal && newVal > 0) {
-        this.currentAptPage = newVal;
-      }
-    },
-    // 當篩選條件改變時，回到預約表格的第一頁
-    filterStatus() {
-      this.currentAptPage = 1;
-    }
-  },
-  methods: {
-    openEditModal() {
-      this.tempMemberInfo = { ...this.memberInfo };
-      this.isEditModalOpen = true;
-    },
-    saveMemberInfo() {
-      this.memberInfo = { ...this.tempMemberInfo };
-      this.isEditModalOpen = false;
-      alert('會員資料更新成功！');
-    },
-    openAddPetModal() {
-      // 重置新毛孩表單
-      this.newPet = { name: '', gender: 1, breed: '', age: null, weight: null, notes: '', isNeutered: false };
-      this.isAddPetModalOpen = true;
-    },
-    saveNewPet() {
-      this.myPets.push({ ...this.newPet });
-      this.isAddPetModalOpen = false;
-      alert(`已成功加入毛孩：${this.newPet.name}！`);
-    },
-    openEditPetModal(pet) {
-      this.editingPetIndex = this.myPets.findIndex(p => p === pet);
-      this.editingPet = { ...pet }; // 淺拷貝以避免即時修改原始數據
-      this.isEditPetModalOpen = true;
-    },
-    updatePet() {
-      this.myPets[this.editingPetIndex] = { ...this.editingPet };
-      this.isEditPetModalOpen = false;
-      alert('毛孩資料已更新！');
-    },
-    getStatusLabel(status) {
-      const labels = {
-        0: '已收到預約',
-        1: '服務已完成',
-        2: '預約已取消',
-        3: '美容進行中'
-      };
-      return labels[status] || '未知狀態';
-    },
-    getStatusBadgeClass(status) {
-      const classes = {
-        0: 'badge-info',    // 藍色
-        1: 'badge-success', // 綠色
-        2: 'badge-secondary', // 灰色
-        3: 'badge-warning'  // 黃色
-      };
-      return classes[status] || '';
-    },
-    deletePet(name) {
-      if (confirm(`確定要刪除毛孩「${name}」的資料嗎？`)) {
-        this.myPets = this.myPets.filter(p => p.name !== name);
-      }
-    }
+const router = useRouter()
+
+const memberInfo = reactive({
+  name: '王大明',
+  account: 'taming888',
+  phone: '0912-345-678',
+  email: 'taming@example.com',
+  address: '台南市大內區1號',
+  createDate: '2026-01-15'
+})
+
+const myPets = ref([
+  { name: '巧克力', gender: 1, breed: '貴賓狗', age: 3, weight: 5.20, notes: '無過敏，剪耳後毛容易緊張，需溫柔安撫。', isNeutered: true },
+  { name: 'Mimi', gender: 0, breed: '波斯貓', age: 2, weight: 4.10, notes: '不喜歡碰尾巴，洗澡時需要Emily美容師協助。', isNeutered: true }
+])
+
+const appointments = ref([
+  { id: '#APT-0024', petName: '巧克力', serviceName: '精緻造型剪毛', price: '$1,200', date: '2026-06-05 13:00', groomer: 'Andy', status: 0 },
+  { id: '#APT-0012', petName: 'Mimi', serviceName: '草本舒緩藥浴', price: '$800', date: '2026-05-20 10:00', groomer: 'Emily', status: 1 },
+  { id: '#APT-0005', petName: '巧克力', serviceName: '基礎洗澡', price: '$500', date: '2026-04-15 15:30', groomer: 'Jason', status: 2 },
+  { id: '#APT-0030', petName: 'Mimi', serviceName: '貓咪舒壓洗護', price: '$800', date: '2026-06-12 11:00', groomer: 'Sophie', status: 3 }
+])
+
+const isEditModalOpen = ref(false)
+const tempMemberInfo = reactive({})
+const filterStatus = ref('all')
+const currentAptPage = ref(1)
+const aptPageSize = ref(5)
+const currentPetPage = ref(1)
+const petPageSize = ref(2)
+const isAddPetModalOpen = ref(false)
+const newPet = reactive({ name: '', gender: 1, breed: '', age: null, weight: null, notes: '', isNeutered: false })
+const isEditPetModalOpen = ref(false)
+const editingPet = reactive({})
+const editingPetIndex = ref(null)
+
+const totalPetPages = computed(() => Math.ceil(myPets.value.length / petPageSize.value))
+const filteredAppointments = computed(() => {
+  if (filterStatus.value === 'all') return appointments.value
+  return appointments.value.filter(apt => apt.status === parseInt(filterStatus.value))
+})
+const totalAptPages = computed(() => Math.ceil(filteredAppointments.value.length / aptPageSize.value))
+const paginatedAppointments = computed(() => {
+  const start = (currentAptPage.value - 1) * aptPageSize.value
+  return filteredAppointments.value.slice(start, start + aptPageSize.value)
+})
+const paginatedPets = computed(() => {
+  const start = (currentPetPage.value - 1) * petPageSize.value
+  return myPets.value.slice(start, start + petPageSize.value)
+})
+
+watch(totalPetPages, (newVal) => {
+  if (currentPetPage.value > newVal && newVal > 0) currentPetPage.value = newVal
+})
+watch(totalAptPages, (newVal) => {
+  if (currentAptPage.value > newVal && newVal > 0) currentAptPage.value = newVal
+})
+watch(filterStatus, () => { currentAptPage.value = 1 })
+
+function goToUpdateProfile() {
+  router.push('/member/updateprofile')
+}
+function saveMemberInfo() {
+  Object.assign(memberInfo, tempMemberInfo)
+  isEditModalOpen.value = false
+  alert('會員資料更新成功！')
+}
+function openAddPetModal() {
+  Object.assign(newPet, { name: '', gender: 1, breed: '', age: null, weight: null, notes: '', isNeutered: false })
+  isAddPetModalOpen.value = true
+}
+function saveNewPet() {
+  myPets.value.push({ ...newPet })
+  isAddPetModalOpen.value = false
+  alert(`已成功加入毛孩：${newPet.name}！`)
+}
+function openEditPetModal(pet) {
+  editingPetIndex.value = myPets.value.findIndex(p => p === pet)
+  Object.assign(editingPet, pet)
+  isEditPetModalOpen.value = true
+}
+function updatePet() {
+  myPets.value[editingPetIndex.value] = { ...editingPet }
+  isEditPetModalOpen.value = false
+  alert('毛孩資料已更新！')
+}
+function getStatusLabel(status) {
+  const labels = { 0: '已收到預約', 1: '服務已完成', 2: '預約已取消', 3: '美容進行中' }
+  return labels[status] || '未知狀態'
+}
+function getStatusBadgeClass(status) {
+  const classes = { 0: 'badge-info', 1: 'badge-success', 2: 'badge-secondary', 3: 'badge-warning' }
+  return classes[status] || ''
+}
+function deletePet(name) {
+  if (confirm(`確定要刪除毛孩「${name}」的資料嗎？`)) {
+    myPets.value = myPets.value.filter(p => p.name !== name)
   }
 }
 </script>

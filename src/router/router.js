@@ -20,7 +20,14 @@ const routes=[
   ]
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  // 每次換頁都捲到最上面（除非是上一頁/下一頁，則回到原本位置）
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    return { top: 0 }
+  }
 })
 
 export default router

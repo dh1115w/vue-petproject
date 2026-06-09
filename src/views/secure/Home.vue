@@ -7,7 +7,7 @@
         <p class="hero-eyebrow">Professional Pet Care Platform</p>
         <h1 class="hero-heading">專為您的毛孩<br>打造的一站式服務</h1>
         <p class="hero-desc">從日常美容到專業醫療，我們用心呵護每一位寵物家人。</p>
-        <RouterLink to="/member/member" class="hero-cta">立即開始</RouterLink>
+        <RouterLink v-if="!userStore.token" to="/member/login" class="hero-cta">立即開始</RouterLink>
       </div>
 
       <!-- Hero 影片：自動播放並無限循環 -->

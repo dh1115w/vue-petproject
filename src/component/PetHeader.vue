@@ -36,7 +36,7 @@
 
         <!-- 已登入：顯示圓形頭像 + 名字 -->
         <div class="nav-dropdown" v-else>
-          <div class="user-avatar">{{ userStore.account }}</div>
+          <div class="user-avatar">{{ userStore.memberInfo.account }}</div>
           <div class="dropdown-menu">
             <RouterLink to="/grooming/member" class="dropdown-item">會員專區</RouterLink>
             <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>

@@ -48,10 +48,31 @@ const testPassword = '1234'
 
 function handleLogin() {
   if (account.value === testAccount && password.value === testPassword) {
-    // 假裝這是後端登入成功後回傳的資料
+    // ===== 以下假裝是後端登入成功後回傳的資料 =====
+    // 之後接後端時，把這整段換成 axios 回傳的真實資料即可
     userStore.setToken('fake-token-12345')
-    userStore.setAccount(account.value)
-    userStore.setEmail('test@gmail.com')
+
+    // 會員資料
+    userStore.setMemberInfo({
+      name: '王小明',
+      account: account.value,
+      email: 'test@gmail.com',
+      phone: '0912-345-678',
+      address: '台南市大內區1號',
+      createDate: '2026-01-15',
+      birthday: '1998-05-10',
+      idNumber: 'A123456789',
+      gender: 'male'
+    })
+
+    // 寵物清單
+    userStore.setPets([
+      { id: 1, name: '巧克力', birthday: '2021-05-10', age: 3, gender: 'male', weight: 5.2, species: '狗', breed: '貴賓狗', size: 'small', neutered: 'isNeutered', health: '健康良好', personality: '親人但怕生' },
+      { id: 2, name: 'Mimi', birthday: '2022-03-15', age: 2, gender: 'female', weight: 4.1, species: '貓', breed: '波斯貓', size: 'small', neutered: 'isNeutered', health: '健康良好', personality: '愛撒嬌' }
+    ])
+
+    // 預設選第一隻寵物
+    userStore.setSelectPetId(1)
 
     Swal.fire({ 
       icon: 'success', 

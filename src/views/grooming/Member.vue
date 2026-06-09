@@ -192,72 +192,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import NavBar from './NavBar.vue'
+import useUserStore from '@/stores/user.js'
 
-const router = useRouter()
+const router = useRouter();
+const userStore=useUserStore();
 
-const memberInfo = reactive({
-  name: '',
-  account: '',
-  phone: '',
-  email: '',
-  address: '',
-  createDate: ''
-})
+const member=ref([]);
+const pets = ref([]);
 
-const myPets = ref([])
 
-const currentPetPage = ref(1)
-const petPageSize = ref(2)
-const isAddPetModalOpen = ref(false)
-const newPet = reactive({ name: '', birthday: '', age: null, gender: 'male', weight: null, species: '', breed: '', size: 'mid', neutered: 'unNeutered', health: '', personality: '' })
-const isEditPetModalOpen = ref(false)
-const editingPet = reactive({})
-const editingPetIndex = ref(null)
-
-const totalPetPages = computed(() => Math.ceil(myPets.value.length / petPageSize.value))
-const paginatedPets = computed(() => {
-  const start = (currentPetPage.value - 1) * petPageSize.value
-  return myPets.value.slice(start, start + petPageSize.value)
-})
-
-watch(totalPetPages, (newVal) => {
-  if (currentPetPage.value > newVal && newVal > 0) currentPetPage.value = newVal
-})
 
 function goToUpdateProfile() {
   router.push('/member/updateprofile')
 }
-function openAddPetModal() {
-  Object.assign(newPet, { name: '', birthday: '', age: null, gender: 'male', weight: null, species: '', breed: '', size: 'mid', neutered: 'unNeutered', health: '', personality: '' })
-  isAddPetModalOpen.value = true
-}
-function saveNewPet() {
-  myPets.value.push({ ...newPet })
-  isAddPetModalOpen.value = false
-  alert(`已成功加入毛孩：${newPet.name}！`)
-}
-function openEditPetModal(pet) {
-  editingPetIndex.value = myPets.value.findIndex(p => p === pet)
-  Object.assign(editingPet, pet)
-  isEditPetModalOpen.value = true
-}
-function updatePet() {
-  myPets.value[editingPetIndex.value] = { ...editingPet }
-  isEditPetModalOpen.value = false
-  alert('毛孩資料已更新！')
-}
-function deletePet(name) {
-  if (confirm(`確定要刪除毛孩「${name}」的資料嗎？`)) {
-    myPets.value = myPets.value.filter(p => p.name !== name)
-  }
-}
-function sizeLabel(size) {
-  const labels = { big: '大', mid: '中', small: '小' }
-  return labels[size] || size
-}
+
 </script>
 
 <style>

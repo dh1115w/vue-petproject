@@ -97,6 +97,19 @@
             </div>
           </div>
 
+          <!-- 4. 備註說明（方案一：直接顯示、固定高度、完美對齊版） -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label">📝 備註說明 (選填)</label>
+            <textarea 
+              v-model="formData.note" 
+              placeholder="例：今天便便有點軟，下午出門散步..." 
+              class="form-input"
+              style="width: 100%; height: 42px; min-height: 42px; max-height: 42px; resize: none; font-size: 14px; padding: 10px 12px; box-sizing: border-box; display: block; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s;"
+              onfocus="this.style.borderColor='#4caf50'; this.style.boxShadow='0 0 0 2px rgba(76, 175, 80, 0.1)';"
+              onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none';"
+            ></textarea>
+          </div>    
+
           <!-- 提交按鈕 -->
           <button class="submit-record-btn" @click="handleSubmitRecord">
             儲存今日紀錄
@@ -233,7 +246,7 @@
 
       </div>
     </div>
-  </div>
+</div>
 </template>
 
 <script setup>
@@ -248,7 +261,8 @@ const formData = ref({
   water: '',
   food: '',
   poop: '1',       // 預設選中 1 次
-  mood: '很好'     // 預設精神狀態很好
+  mood: '很好',     // 預設精神狀態很好
+  note: ''         // 新增：用來綁定多行文字框的備註內容
 })
 
 // 快捷按鈕的靜態選項配置
@@ -258,6 +272,9 @@ const statusOptions = [
   { label: "普通", emoji: "😐" },
   { label: "不好", emoji: "😟" }
 ]
+
+// 控制備註說明輸入框是否顯示的開關（預設隱藏）
+const showNote = ref(false)
 
 // ==========================================================================
 // 2. 圖表時間篩選狀態（預設為 'week'，可切換為 'month' 或 'year'）
@@ -338,7 +355,8 @@ function handleSubmitRecord() {
   const w = formData.value.weight || "13.6"
   const wt = formData.value.water || "480"
   const f = formData.value.food || "250"
+  const n = formData.value.note || "無" //新增：獲取備註內容，若為空則預設顯示「無」
   
-  alert(`今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g`)
+  alert(`今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`)
 }
 </script>

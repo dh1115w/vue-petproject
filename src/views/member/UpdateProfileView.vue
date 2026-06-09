@@ -174,7 +174,7 @@ const pets = ref([
 ])
 
 function addPet() {
-  if (pets.value.length >= 5) return
+  if (pets.value.length < 5) 
   pets.value.push({ name: '', birthday: '', age: '', gender: '', weight: '', size: '', species: '', breed: '', neutered: '', health: '', personality: '' })
 }
 

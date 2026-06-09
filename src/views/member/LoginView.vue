@@ -24,6 +24,7 @@
 
       <div class="login-footer">
         還沒有帳號？<RouterLink to="/member/createaccount">立即註冊</RouterLink>
+        ｜<RouterLink to="/member/forgetpassword">忘記密碼</RouterLink>
       </div>
 
     </div>

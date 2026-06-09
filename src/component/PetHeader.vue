@@ -42,8 +42,19 @@
           </div>
         </div>
 
-        <div class="nav-dropdown">
+        <!-- 沒登入：顯示登入/註冊 -->
+        <div class="nav-dropdown" v-if="!userStore.token">
           <RouterLink to="/member/login" class="nav-link">登入/註冊</RouterLink>
+        </div>
+
+        <!-- 已登入：顯示圓形頭像 + 名字 -->
+        <div class="nav-dropdown" v-else>
+          <div class="user-avatar">{{ userStore.account }}</div>
+          <div class="dropdown-menu">
+            <RouterLink to="/grooming/member" class="dropdown-item">會員專區</RouterLink>
+            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
+            <a href="#" class="dropdown-item" @click.prevent="handleLogout">登出</a>
+          </div>
         </div>
       </nav>
 
@@ -52,7 +63,16 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+import useUserStore from '@/stores/user.js'
 
+const router = useRouter()
+const userStore = useUserStore()
+
+function handleLogout() {
+  userStore.logout()      // 清空 token、account、email
+  router.push('/')        // 回首頁
+}
 </script>
 
 <style scoped>
@@ -105,6 +125,24 @@
   position: relative;
   display: flex;
   align-items: center;
+}
+
+/* 已登入的圓形頭像 */
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #2a2522;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  overflow: hidden;
 }
 
 .dropdown-menu {

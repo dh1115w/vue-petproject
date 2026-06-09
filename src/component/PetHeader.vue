@@ -7,18 +7,6 @@
       <nav class="nav-links">
         <RouterLink to="/" class="nav-link">首頁</RouterLink>
 
-        <div class="nav-dropdown">
-          <RouterLink to="/member/member" class="nav-link">會員專區</RouterLink>
-          <div class="dropdown-menu">
-            <RouterLink to="/member/login" class="dropdown-item">登入會員</RouterLink>
-            <RouterLink to="/member/createaccount" class="dropdown-item">註冊帳號</RouterLink>
-            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
-          </div>
-        </div>
-
-
-       
-
         <!-- 美容選單 -->
         <div class="nav-dropdown">
           <RouterLink to="/grooming" class="nav-link">美容</RouterLink>
@@ -105,6 +93,7 @@ function handleLogout() {
 
 .nav-links {
   display: flex;
+  align-items: center;
   gap: 36px;
 }
 

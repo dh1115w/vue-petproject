@@ -67,14 +67,14 @@
       </div>
     </main>
 
-    <!-- 編輯毛孩彈窗 (Modal) -->
+   <!-- 編輯毛孩彈窗 (Modal) -->
     <div v-if="isEditPetModalOpen" class="modal-overlay" @click.self="isEditPetModalOpen = false">
       <div class="card modal-content">
         <h3 class="modal-title">✏️ 編輯毛孩資訊</h3>
         <form @submit.prevent="updatePet">
           <div class="grid grid-2 modal-grid">
             <div class="modal-form-group">
-              <label>毛孩姓名</label>
+              <label>毛孩姓 名</label>
               <input type="text" v-model="editingPet.name" required>
             </div>
             <div class="modal-form-group">

@@ -37,3 +37,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Claude Code 個人設定檔（不上傳 GitHub）
+CLAUDE.md

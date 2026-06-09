@@ -36,28 +36,28 @@
       </div>
 
       <div class="service-grid">
-        <RouterLink to="/grooming/member" class="service-card">
+        <a href="#" class="service-card" @click.prevent="goWithLogin('/grooming/member')">
           <span class="card-label">Membership</span>
           <h3 class="card-title">會員專區</h3>
           <p class="card-desc">管理您的帳號與所有寵物資料</p>
           <span class="card-arrow">了解更多   →</span>
-        </RouterLink>
+        </a>
 
        
 
-        <RouterLink to="/grooming" class="service-card">
+        <a href="#" class="service-card" @click.prevent="goWithLogin('/grooming')">
           <span class="card-label">Grooming</span>
           <h3 class="card-title">寵物美容</h3>
           <p class="card-desc">專業造型師為您的毛孩打造完美造型</p>
           <span class="card-arrow">了解更多   →</span>
-        </RouterLink>
+        </a>
 
-        <RouterLink to="/medical" class="service-card">
+        <a href="#" class="service-card" @click.prevent="goWithLogin('/medical')">
           <span class="card-label">Medical</span>
           <h3 class="card-title">寵物醫療</h3>
           <p class="card-desc">專業獸醫師提供完整健康照護</p>
           <span class="card-arrow">了解更多   →</span>
-        </RouterLink>
+        </a>
       </div>
     </section>
 
@@ -66,10 +66,39 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import Swal from 'sweetalert2'
+import useUserStore from '@/stores/user.js'
 import '@/css/home.css'
 
 // 用於追蹤影片是否發生錯誤
 const videoError = ref(false)
+
+const router = useRouter()
+const userStore = useUserStore()
+
+// path = 登入後要前往的路徑（由各卡片傳入，所以可共用）
+function goWithLogin(path) {
+  if (userStore.token) {
+    // 已登入：正常前往
+    router.push(path)
+  } else {
+    // 沒登入：跳出警告
+    Swal.fire({
+      icon: 'warning',
+      title: '請先登入會員',
+      showCancelButton: true,
+      confirmButtonText: '登入',
+      cancelButtonText: '取消'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        router.push('/member/login')   // 按「登入」→ 登入頁
+      } else {
+        router.push('/')               // 按「取消」→ 首頁
+      }
+    })
+  }
+}
 </script>
 
 <style></style>

@@ -77,7 +77,7 @@ function handleLogin() {
     Swal.fire({ 
       icon: 'success', 
       title: '登入成功', 
-      timer: 1500, 
+      timer: 1000, 
       showConfirmButton: false })
     router.push('/')
   } else {

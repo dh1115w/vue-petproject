@@ -196,18 +196,103 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import useUserStore from '@/stores/user.js'
 
-const router = useRouter();
-const userStore=useUserStore();
+const router = useRouter()
+const userStore = useUserStore()
 
-const member=ref([]);
-const pets = ref([]);
+// ===== 1. 會員資料 / 寵物清單 =====
+// 都是登入時 LoginView 寫進 store 的假資料
+// pets 是陣列，對它 push / splice 就會直接更新畫面
+const memberInfo = userStore.memberInfo
+const pets = userStore.pets
 
 
+// ===== 2. 體型代碼轉成中文 =====
+function sizeLabel(size) {
+  if (size === 'big') return '大型'
+  if (size === 'mid') return '中型'
+  if (size === 'small') return '小型'
+  return size
+}
 
+
+// ===== 3. 分頁 =====
+// 先簡單做：全部寵物顯示在同一頁
+// totalPetPages 維持 1，模板裡的分頁按鈕就會自動隱藏
+const currentPetPage = ref(1)
+const totalPetPages = ref(1)
+const paginatedPets = pets
+
+
+// ===== 4. 新增寵物 =====
+const isAddPetModalOpen = ref(false)
+const newPet = ref(emptyPet())
+
+// 產生一隻欄位都空白的寵物（給表單當預設值）
+function emptyPet() {
+  return {
+    name: '',
+    birthday: '',
+    age: null,
+    gender: 'male',
+    weight: null,
+    species: '',
+    breed: '',
+    size: 'mid',
+    neutered: 'unNeutered',
+    health: '',
+    personality: ''
+  }
+}
+
+// 打開「新增寵物」彈窗
+function openAddPetModal() {
+  newPet.value = emptyPet()   // 先把表單清空
+  isAddPetModalOpen.value = true
+}
+
+// 確認新增：把表單資料加進寵物清單
+function saveNewPet() {
+  pets.push(newPet.value)
+  isAddPetModalOpen.value = false
+}
+
+
+// ===== 5. 編輯寵物 =====
+const isEditPetModalOpen = ref(false)
+const editingPet = ref(emptyPet())   // 彈窗裡綁定的資料（先放一份複本，按取消才不會動到原本的）
+let editTarget = null                // 記住正在編輯的是哪一隻
+
+// 打開「編輯寵物」彈窗
+function openEditPetModal(pet) {
+  editTarget = pet
+  editingPet.value = Object.assign({}, pet)   // 複製一份出來編輯
+  isEditPetModalOpen.value = true
+}
+
+// 儲存變更：把編輯後的資料寫回原本那隻寵物
+function updatePet() {
+  Object.assign(editTarget, editingPet.value)
+  isEditPetModalOpen.value = false
+}
+
+
+// ===== 6. 刪除寵物 =====
+function deletePet(name) {
+  const ok = confirm('確定要刪除「' + name + '」嗎？')
+  if (!ok) return
+
+  // 找到這隻寵物的位置，再把它移除
+  const index = pets.findIndex(function (p) {
+    return p.name === name
+  })
+  if (index !== -1) pets.splice(index, 1)
+}
+
+
+// ===== 7. 前往修改會員資料頁 =====
 function goToUpdateProfile() {
   router.push('/member/updateprofile')
 }
-
 </script>
 
 <style>

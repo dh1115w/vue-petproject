@@ -36,8 +36,8 @@
           <div class="form-group">
             <label>性別（必填）</label>
             <div class="radio-group">
-              <label class="radio-label"><input type="radio" value="男" v-model="gender" />男</label>
-              <label class="radio-label"><input type="radio" value="女" v-model="gender" />女</label>
+              <label class="radio-label"><input type="radio" value="male" v-model="gender" />男</label>
+              <label class="radio-label"><input type="radio" value="female" v-model="gender" />女</label>
             </div>
           </div>
 

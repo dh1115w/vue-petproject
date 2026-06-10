@@ -74,8 +74,8 @@
         <form @submit.prevent="updatePet">
           <div class="grid grid-2 modal-grid">
             <div class="modal-form-group">
-              <label>毛孩姓 名</label>
-              <input type="text" v-model="editingPet.name" required>
+              <label>毛孩姓名</label>
+              <input type="text" v-model="editingPet.name">
             </div>
             <div class="modal-form-group">
               <label>生日</label>
@@ -85,20 +85,20 @@
           <div class="grid grid-3 modal-grid">
             <div class="modal-form-group">
               <label>性別</label>
-              <select v-model="editingPet.gender" required class="modal-select">
+              <select v-model="editingPet.gender" class="modal-select">
                 <option value="male">公</option>
                 <option value="female">母</option>
               </select>
             </div>
-            <div class="modal-form-group"><label>年齡</label><input type="number" v-model.number="editingPet.age" required></div>
-            <div class="modal-form-group"><label>體重(kg)</label><input type="number" step="0.1" v-model.number="editingPet.weight" required></div>
+            <div class="modal-form-group"><label>年齡</label><input type="number" v-model.number="editingPet.age"></div>
+            <div class="modal-form-group"><label>體重(kg)</label><input type="number" step="0.1" v-model.number="editingPet.weight"></div>
           </div>
           <div class="grid grid-3 modal-grid">
-            <div class="modal-form-group"><label>物種</label><input type="text" v-model="editingPet.species" required></div>
-            <div class="modal-form-group"><label>品種</label><input type="text" v-model="editingPet.breed" required></div>
+            <div class="modal-form-group"><label>物種</label><input type="text" v-model="editingPet.species"></div>
+            <div class="modal-form-group"><label>品種</label><input type="text" v-model="editingPet.breed"></div>
             <div class="modal-form-group">
               <label>體型</label>
-              <select v-model="editingPet.size" required class="modal-select">
+              <select v-model="editingPet.size" class="modal-select">
                 <option value="big">大</option>
                 <option value="mid">中</option>
                 <option value="small">小</option>
@@ -107,7 +107,7 @@
           </div>
           <div class="modal-form-group">
             <label>是否結紮</label>
-            <select v-model="editingPet.neutered" required class="modal-select">
+            <select v-model="editingPet.neutered" class="modal-select">
               <option value="isNeutered">是</option>
               <option value="unNeutered">否</option>
             </select>
@@ -136,7 +136,7 @@
           <div class="grid grid-2 modal-grid">
             <div class="modal-form-group">
               <label>毛孩姓名</label>
-              <input type="text" v-model="newPet.name" placeholder="例如：巧克力" required>
+              <input type="text" v-model="newPet.name" placeholder="例如：巧克力">
             </div>
             <div class="modal-form-group">
               <label>生日</label>
@@ -146,20 +146,20 @@
           <div class="grid grid-3 modal-grid">
             <div class="modal-form-group">
               <label>性別</label>
-              <select v-model="newPet.gender" required class="modal-select">
+              <select v-model="newPet.gender" class="modal-select">
                 <option value="male">公</option>
                 <option value="female">母</option>
               </select>
             </div>
-            <div class="modal-form-group"><label>年齡</label><input type="number" v-model.number="newPet.age" required></div>
-            <div class="modal-form-group"><label>體重(kg)</label><input type="number" step="0.1" v-model.number="newPet.weight" required></div>
+            <div class="modal-form-group"><label>年齡</label><input type="number" v-model.number="newPet.age"></div>
+            <div class="modal-form-group"><label>體重(kg)</label><input type="number" step="0.1" v-model.number="newPet.weight"></div>
           </div>
           <div class="grid grid-3 modal-grid">
-            <div class="modal-form-group"><label>物種</label><input type="text" v-model="newPet.species" placeholder="例：狗、貓" required></div>
-            <div class="modal-form-group"><label>品種</label><input type="text" v-model="newPet.breed" required></div>
+            <div class="modal-form-group"><label>物種</label><input type="text" v-model="newPet.species" placeholder="例：狗、貓"></div>
+            <div class="modal-form-group"><label>品種</label><input type="text" v-model="newPet.breed"></div>
             <div class="modal-form-group">
               <label>體型</label>
-              <select v-model="newPet.size" required class="modal-select">
+              <select v-model="newPet.size" class="modal-select">
                 <option value="big">大</option>
                 <option value="mid">中</option>
                 <option value="small">小</option>
@@ -168,7 +168,7 @@
           </div>
           <div class="modal-form-group">
             <label>是否結紮</label>
-            <select v-model="newPet.neutered" required class="modal-select">
+            <select v-model="newPet.neutered" class="modal-select">
               <option value="isNeutered">是</option>
               <option value="unNeutered">否</option>
             </select>
@@ -195,6 +195,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import useUserStore from '@/stores/user.js'
+import Swal from 'sweetalert2'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -250,8 +251,52 @@ function openAddPetModal() {
   isAddPetModalOpen.value = true
 }
 
-// 確認新增：把表單資料加進寵物清單
+// 共用：檢查一隻寵物資料是否合格，不合格就跳 Swal 並回傳 false
+function checkPet(pet) {
+  // 姓名必填
+  if (pet.name.trim() === '') {
+    Swal.fire({ icon: 'warning', title: '請輸入毛孩姓名' })
+    return false
+  }
+  // 年齡要大於 0
+  if (Number(pet.age) <= 0) {
+    Swal.fire({ icon: 'warning', title: '年齡需大於 0' })
+    return false
+  }
+  // 體重要大於 0
+  if (Number(pet.weight) <= 0) {
+    Swal.fire({ icon: 'warning', title: '體重需大於 0' })
+    return false
+  }
+  // 生日有填才驗，且不能選未來
+  if (pet.birthday !== '') {
+    const today = new Date()
+    const birth = new Date(pet.birthday)
+    if (birth > today) {
+      Swal.fire({ icon: 'warning', title: '生日不能選未來的日期' })
+      return false
+    }
+  }
+  // 體型要跟體重對應（小<10、中10~25、大>25）
+  const w = Number(pet.weight)
+  let expectedSize = ''
+  if (w < 10) {
+    expectedSize = 'small'
+  } else if (w <= 25) {
+    expectedSize = 'mid'
+  } else {
+    expectedSize = 'big'
+  }
+  if (pet.size !== expectedSize) {
+    Swal.fire({ icon: 'warning', title: '體型與體重不符（小型<10、中型10~25、大型>25 公斤）' })
+    return false
+  }
+  return true   // 全部通過
+}
+
+// 確認新增：先驗證，通過才把表單資料加進寵物清單
 function saveNewPet() {
+  if (!checkPet(newPet.value)) return
   pets.push(newPet.value)
   isAddPetModalOpen.value = false
 }
@@ -269,8 +314,9 @@ function openEditPetModal(pet) {
   isEditPetModalOpen.value = true
 }
 
-// 儲存變更：把編輯後的資料寫回原本那隻寵物
+// 儲存變更：先驗證，通過才把編輯後的資料寫回原本那隻寵物
 function updatePet() {
+  if (!checkPet(editingPet.value)) return
   Object.assign(editTarget, editingPet.value)
   isEditPetModalOpen.value = false
 }
@@ -278,14 +324,23 @@ function updatePet() {
 
 // ===== 6. 刪除寵物 =====
 function deletePet(name) {
-  const ok = confirm('確定要刪除「' + name + '」嗎？')
-  if (!ok) return
-
-  // 找到這隻寵物的位置，再把它移除
-  const index = pets.findIndex(function (p) {
-    return p.name === name
+  // 用 Swal 跳確認視窗（非同步，要用 .then 等使用者按完按鈕）
+  Swal.fire({
+    icon: 'warning',
+    title: '確定要刪除「' + name + '」嗎？',
+    showCancelButton: true,   // 顯示「取消」按鈕
+    confirmButtonText: '刪除',
+    cancelButtonText: '取消'
+  }).then(function (result) {
+    // 使用者按了「刪除」才真的移除
+    if (result.isConfirmed) {
+      // 找到這隻寵物的位置，再把它移除
+      const index = pets.findIndex(function (p) {
+        return p.name === name
+      })
+      if (index !== -1) pets.splice(index, 1)
+    }
   })
-  if (index !== -1) pets.splice(index, 1)
 }
 
 

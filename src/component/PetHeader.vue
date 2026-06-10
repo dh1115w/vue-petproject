@@ -39,6 +39,12 @@
           <div class="user-avatar">{{ userStore.memberInfo.account }}</div>
           <div class="dropdown-menu">
 
+            <RouterLink to="/grooming/member" class="dropdown-item">會員專區</RouterLink>
+            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
+            <a href="#" class="dropdown-item" @click.prevent="handleLogout">登出</a>
+            
+            <div class="dropdown-divider"></div>
+            
             <!-- 切換預設寵物：點哪隻，哪隻就變成全站的預設寵物 -->
             <p class="dropdown-title">切換預設寵物</p>
             <a
@@ -53,11 +59,7 @@
               <span v-if="pet.id === userStore.selectPetId">✓</span>
             </a>
 
-            <div class="dropdown-divider"></div>
 
-            <RouterLink to="/grooming/member" class="dropdown-item">會員專區</RouterLink>
-            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
-            <a href="#" class="dropdown-item" @click.prevent="handleLogout">登出</a>
           </div>
         </div>
       </nav>
@@ -74,7 +76,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 function handleLogout() {
-  userStore.logout()      // 清空 token、account、email
+  userStore.logout()      // 清空 token及個人資訊
   router.push('/')        // 回首頁
 }
 

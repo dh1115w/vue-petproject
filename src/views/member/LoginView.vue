@@ -45,9 +45,50 @@ const password = ref('')
 
 // 沒有後端時，先寫死一組測試帳密（之後接後端再換成 axios 驗證）
 const testAccount= 'test'
-const testPassword = '1234'
+const testPassword = 'test1234'
 
 function handleLogin() {
+  // ===== 前端驗證：通過後才比對帳密 =====
+  // 規則用的正規表達式：帳號只能英數；密碼只能英數加常用符號
+  const accountRule = /^[A-Za-z0-9]+$/
+  const passwordRule = /^[A-Za-z0-9!@#$%^&*()_-]+$/
+
+  // 把前後空白去掉，避免使用者只打空白也算有填
+  const accountValue = account.value.trim()
+  const passwordValue = password.value.trim()
+
+  // 規則 1：帳號是空白
+  if (accountValue === '') {
+    Swal.fire({ icon: 'warning', title: '請輸入帳號' })
+    return // 直接結束，不再往下跑
+  }
+  // 規則 2：帳號長度需 4～30 字
+  if (accountValue.length < 4 || accountValue.length > 30) {
+    Swal.fire({ icon: 'warning', title: '帳號長度需為 4～30 個字' })
+    return
+  }
+  // 規則 3：帳號只能英文字母和數字
+  if (!accountRule.test(accountValue)) {
+    Swal.fire({ icon: 'warning', title: '帳號只能使用英文字母和數字' })
+    return
+  }
+  // 規則 4：密碼是空白
+  if (passwordValue === '') {
+    Swal.fire({ icon: 'warning', title: '請輸入密碼' })
+    return
+  }
+  // 規則 5：密碼長度需 8～80 字
+  if (passwordValue.length < 8 || passwordValue.length > 80) {
+    Swal.fire({ icon: 'warning', title: '密碼長度需為 8～80 個字' })
+    return
+  }
+  // 規則 6：密碼只能英數與 ! @ # $ % ^ & * ( ) _ -
+  if (!passwordRule.test(passwordValue)) {
+    Swal.fire({ icon: 'warning', title: '密碼含有不允許的符號' })
+    return
+  }
+
+  // ===== 通過驗證，開始比對帳密 =====
   if (account.value === testAccount && password.value === testPassword) {
     // ===== 以下假裝是後端登入成功後回傳的資料 =====
     // 之後接後端時，把這整段換成 axios 回傳的真實資料即可

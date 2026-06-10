@@ -108,7 +108,6 @@
               @click="selectedClinicId = clinic.id"
             >
               <div class="clinic-card-top flex">
-                <!-- 愛心收藏按鈕 -->
                 <button
                   class="favorite-btn"
                   :class="{ 'is-favorited': clinic.isFavorite }"

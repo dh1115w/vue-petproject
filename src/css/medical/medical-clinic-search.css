@@ -447,37 +447,6 @@
   line-height: 1.5;
 }
 
-/* 影片包裝器 */
-.video-wrapper {
-  width: 180px;
-  height: 165px;
-  overflow: hidden;
-  position: relative;
-  background-color: #ffffff; /* 網頁背景色，multiply 會以此為基底 */
-}
-
-.magic-video-cat {
-  width: 100%;
-  height: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
-
-  /* 🪄 互補魔法： */
-  /* 1. 先把影片色彩完全反轉，這時原本的綠色背景會變成洋紅色/紫色 */
-  filter: invert(1);
-
-  /* 2. 利用 screen 模式，把因為反轉而產生的「黑底」完全濾掉 */
-  mix-blend-mode: screen;
-}
-
-/* 💡 最關鍵的一步：在 video 的外層 wrapper 或加上一個重新反轉，讓貓咪和愛心變回原色 */
-.video-wrapper {
-  filter: invert(
-    1
-  ); /* 再反轉一次，負負得正！愛心變回原本的粉紅色，背景依然是透明的！ */
-}
-
 /* 診所列表滾動顯示區域（高難度 RWD 排版必備） */
 .clinic-list-scroll-view {
   display: flex;
@@ -652,4 +621,33 @@
 }
 .action-phone-btn:hover {
   background-color: var(--muted);
+}
+
+/* Tab 按鈕樣式 */
+.tab-switcher {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background-color: #f3f0e8;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #72756e;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.is-active {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+.clinic-item-card {
+  position: relative;
+  /* ... 其他樣式 ... */
 }

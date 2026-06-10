@@ -104,6 +104,15 @@ function sendCode() {
     return
   }
 
+  // 格式驗證：要嘛是合法帳號(4～30 字英數)，要嘛是 email 格式，兩者都不是才擋
+  const value = accountOrEmail.value.trim()
+  const isAccount = /^[A-Za-z0-9]{4,30}$/.test(value)        // 帳號：4～30 字英數
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)   // email 格式
+  if (!isAccount && !isEmail) {
+    Swal.fire({ icon: 'warning', title: '請輸入正確的帳號（4～30 字英數）或電子信箱' })
+    return
+  }
+
   // ===== 之後接後端時，把這段換成 axios 呼叫後端寄驗證碼 =====
   // 例如：axios.post('/api/member/send-reset-code', { accountOrEmail: accountOrEmail.value })
   // 後端負責：找出這個帳號/email、產生驗證碼、寄到信箱
@@ -128,6 +137,12 @@ function verifyCode() {
     return
   }
 
+  // 格式驗證：驗證碼必須是 6 位純數字
+  if (!/^[0-9]{6}$/.test(inputCode.value.trim())) {
+    Swal.fire({ icon: 'warning', title: '驗證碼為 6 位數字' })
+    return
+  }
+
   // ===== 之後接後端時，把這段換成 axios 請後端比對驗證碼 =====
   // 例如：axios.post('/api/member/verify-reset-code', { code: inputCode.value })
   // 現在沒有後端，先自己比對前端產生的那組
@@ -146,7 +161,17 @@ function resetPassword() {
     Swal.fire({ icon: 'warning', title: '請填寫新密碼與確認密碼' })
     return
   }
-  // 防呆 2：兩次要一致
+  // 防呆 2：密碼長度需 8～80 字（跟註冊頁同規則）
+  if (newPassword.value.length < 8 || newPassword.value.length > 80) {
+    Swal.fire({ icon: 'warning', title: '密碼長度需為 8～80 個字' })
+    return
+  }
+  // 防呆 3：密碼只能英數與 ! @ # $ % ^ & * ( ) _ -
+  if (!/^[A-Za-z0-9!@#$%^&*()_-]+$/.test(newPassword.value)) {
+    Swal.fire({ icon: 'warning', title: '密碼含有不允許的符號' })
+    return
+  }
+  // 防呆 4：兩次要一致
   if (newPassword.value !== confirmPassword.value) {
     Swal.fire({ icon: 'error', title: '兩次輸入的密碼不一致' })
     return

@@ -338,6 +338,146 @@
   font-size: 0.75rem;
 }
 
+/* Tab 按鈕樣式 */
+.tab-switcher {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(230, 227, 218, 0.5);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background-color: #f3f0e8;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #72756e;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.is-active {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+/* 收藏按鈕樣式 */
+.favorite-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  z-index: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorite-btn:hover {
+  transform: scale(1.1);
+}
+
+.favorite-btn.is-favorited {
+  color: #ff6b6b;
+  animation: heartBeat 0.3s ease;
+}
+
+@keyframes heartBeat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 空狀態容器 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.empty-state img {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
+.empty-state p {
+  color: #848680;
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 空狀態容器 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.empty-state p {
+  color: #848680;
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 影片包裝器 */
+.video-wrapper {
+  width: 180px;
+  height: 165px;
+  overflow: hidden;
+  position: relative;
+  background-color: #ffffff; /* 網頁背景色，multiply 會以此為基底 */
+}
+
+.magic-video-cat {
+  width: 100%;
+  height: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  /* 🪄 互補魔法： */
+  /* 1. 先把影片色彩完全反轉，這時原本的綠色背景會變成洋紅色/紫色 */
+  filter: invert(1);
+
+  /* 2. 利用 screen 模式，把因為反轉而產生的「黑底」完全濾掉 */
+  mix-blend-mode: screen;
+}
+
+/* 💡 最關鍵的一步：在 video 的外層 wrapper 或加上一個重新反轉，讓貓咪和愛心變回原色 */
+.video-wrapper {
+  filter: invert(
+    1
+  ); /* 再反轉一次，負負得正！愛心變回原本的粉紅色，背景依然是透明的！ */
+}
+
 /* 診所列表滾動顯示區域（高難度 RWD 排版必備） */
 .clinic-list-scroll-view {
   display: flex;
@@ -356,6 +496,8 @@
 
 /* 診所卡片基礎樣式 */
 .clinic-item-card {
+  position: relative;
+  padding: 1.25rem !important;
   cursor: pointer;
   background-color: #ffffff;
   padding: 1.25rem !important; /* 👈 調整與組員一致的內距 */

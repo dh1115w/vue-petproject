@@ -18,7 +18,7 @@
         </div>
         <div class="login-actions">
           <button type="submit" class="btn-primary">登入</button>
-          <button type="button" class="btn-secondary" @click="toMember">取消</button>
+          <button type="button" class="btn-secondary" @click="toHome">取消</button>
         </div>
       </form>
 
@@ -126,8 +126,8 @@ function handleLogin() {
     Swal.fire({ icon: 'error', title: '登入失敗', text: '帳號或密碼錯誤' })
   }
 }
-function toMember(){
-  router.push("/member/member");
+function toHome(){
+  router.push("/");
 }
 </script>
 

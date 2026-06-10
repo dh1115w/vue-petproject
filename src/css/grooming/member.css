@@ -275,6 +275,8 @@ body {
   width: 100%; padding: 10px;
   border: 1px solid #ddd; border-radius: 6px;
   font-size: 0.95rem;
+  box-sizing: border-box;   /* 把 padding、border 算進 width，避免日期框撐出格子 */
+  min-width: 0;             /* 在 grid 格子裡允許縮小，不會被內容頂寬 */
 }
 
 /* ===== 會員資料卡內元素 ===== */
@@ -390,6 +392,8 @@ body {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .modal-textarea {
@@ -397,6 +401,8 @@ body {
   border: 1px solid #ddd;
   border-radius: 6px;
   padding: 10px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .modal-actions {

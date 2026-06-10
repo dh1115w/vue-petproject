@@ -65,6 +65,11 @@
         </div>
 
       </form>
+
+      <!-- 表單最下方：小字連結，導去修改密碼頁 -->
+      <div class="password-link">
+        <RouterLink to="/member/updatepassword">修改密碼</RouterLink>
+      </div>
     </div>
 
   </div>

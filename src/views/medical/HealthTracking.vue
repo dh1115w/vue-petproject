@@ -97,18 +97,36 @@
             </div>
           </div>
 
-          <!-- 4. 備註說明（方案一：直接顯示、固定高度、完美對齊版） -->
+          <!-- 5.5 活動量快捷按鈕區 (新增豐富版面) -->
+          <div class="form-group">
+            <label class="form-label">🏃 活動量</label>
+            <div class="flex-buttons-row">
+              <button
+                v-for="act in activityOptions"
+                :key="act.label"
+                type="button"
+                class="square-tab-btn"
+                :class="{ 'is-active': formData.activity === act.label }"
+                @click="formData.activity = act.label"
+              >
+                {{ act.emoji }} {{ act.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 6. 備註說明  -->
           <div class="form-group" style="margin-bottom: 20px;">
             <label class="form-label">📝 備註說明 (選填)</label>
             <textarea 
               v-model="formData.note" 
               placeholder="例：今天便便有點軟，下午出門散步..." 
               class="form-input"
+              :class="{ 'is-focused': isNoteFocused }"
               style="width: 100%; height: 42px; min-height: 42px; max-height: 42px; resize: none; font-size: 14px; padding: 10px 12px; box-sizing: border-box; display: block; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s;"
-              onfocus="this.style.borderColor='#4caf50'; this.style.boxShadow='0 0 0 2px rgba(76, 175, 80, 0.1)';"
-              onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none';"
+              @focus="isNoteFocused = true"
+              @blur="isNoteFocused = false"
             ></textarea>
-          </div>    
+          </div>       
 
           <!-- 提交按鈕 -->
           <button class="submit-record-btn" @click="handleSubmitRecord">
@@ -262,6 +280,7 @@ const formData = ref({
   food: '',
   poop: '1',       // 預設選中 1 次
   mood: '很好',     // 預設精神狀態很好
+  activity: '中',   // 新增：活動量快捷選項的綁定值，預設為「中」
   note: ''         // 新增：用來綁定多行文字框的備註內容
 })
 
@@ -271,6 +290,13 @@ const statusOptions = [
   { label: "很好", emoji: "😊" },
   { label: "普通", emoji: "😐" },
   { label: "不好", emoji: "😟" }
+]
+
+// 活動量快捷選項的靜態選項配置
+const activityOptions = [
+  { label: "低", emoji: "🛌" },
+  { label: "中", emoji: "🚶" },
+  { label: "高", emoji: "🏃" }
 ]
 
 // 控制備註說明輸入框是否顯示的開關（預設隱藏）

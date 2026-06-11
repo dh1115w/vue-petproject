@@ -49,7 +49,7 @@
 }
 
 /* ==========================================================================
-   模組化卡片化 (與美容頁面風格同步)
+   模組化卡片化 
    ========================================================================== */
 .pawcare-card {
   background-color: #ffffff;
@@ -198,6 +198,125 @@
 /* ==========================================================================
    右側面板：數據摘要小卡片
    ========================================================================== */
+/* 新增警示與建議卡片和醫護提醒快訊區的樣式 */
+.insights-reminders-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}
+
+.insights-card,
+.reminders-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.insights-card:hover,
+.reminders-card:hover {
+  box-shadow: 0 8px 24px rgba(107, 174, 138, 0.12);
+}
+
+.insights-card {
+  border-left: 6px solid rgba(255, 193, 7, 0.3);
+}
+
+.reminders-card {
+  border-left: 6px solid var(--primary);
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.insight-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.insight-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.insight-content h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: #383a36;
+}
+
+.insight-content p {
+  font-size: 0.75rem;
+  margin: 0;
+  color: #555752;
+  line-height: 1.4;
+}
+
+.insight-item.warning .insight-icon {
+  color: #ffc107;
+}
+
+.insight-item.tip .insight-icon {
+  color: #6bae8a;
+}
+
+.reminder-item {
+  margin-bottom: 1.25rem;
+}
+
+.reminder-item:last-child {
+  margin-bottom: 0;
+}
+
+.reminder-item h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #383a36;
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: #f3f0e8;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.reminder-item p {
+  font-size: 0.75rem;
+  margin: 0;
+  color: #555752;
+}
+
+/* RWD 響應式調整 */
+@media (max-width: 992px) {
+  .insights-reminders-container {
+    grid-template-columns: 1fr;
+  }
+}
+
 .right-charts-panel {
   display: flex;
   flex-direction: column;

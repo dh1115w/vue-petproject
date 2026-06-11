@@ -5,6 +5,7 @@ import UpadteProfileView from '@/views/member/UpdateProfileView.vue'
 import ForgetPassword from '@/views/member/ForgetPassword.vue'
 import UpdatePassword from '@/views/member/UpdatePassword.vue'
 
+
 const memberRoutes = [
   {path: '/member/member',name: 'Member',component: MemberView},
   {path:'/member/login',name:'Login',component:LoginView},

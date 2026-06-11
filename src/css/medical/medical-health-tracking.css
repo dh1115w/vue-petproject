@@ -329,14 +329,20 @@
   gap: 0.75rem;
 }
 
+/* 卡片容器：改用 Flex 排版來做大區塊分割 */
 .summary-item-card {
   padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important; /* 讓內部元素由上往下排 */
+  position: relative; /* 讓圖示定位更安全 */
 }
 
+/* 頂部圖示容器：保留原本的大小，多餘的 trend 標籤在此不影響排版 */
 .summary-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   margin-bottom: 0.5rem;
 }
 
@@ -349,20 +355,36 @@
   justify-content: center;
 }
 
+/* 關鍵：透過 margin 調整，讓文字在右側剩餘的區塊中水平置中 */
+.summary-value,
+.summary-label,
+.summary-subtext {
+  width: calc(100% - 32px); /* 扣除左側圖示寬度，讓文字容器寬度等於右側區塊 */
+  margin-left: auto; /* 關鍵：將整個文字容器推到最右側 */
+  text-align: center; /* 關鍵：讓文字在右側區塊內完美置中 */
+}
+
+/* 各別文字的字體與間距設定 */
 .summary-value {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 800;
+  line-height: 1.2;
+  transform: translateY(-25px); /* 數值負越多，字就越往上移動 */
 }
 
 .summary-label {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #72756e;
+  margin-top: 4px; /* 微調與上方數字的間距 */
+  transform: translateY(-16px); /* 數值負越多，字就越往上移動 */
 }
 
 .summary-subtext {
-  font-size: 0.6875rem;
+  font-size: 0.8rem;
   color: #9c9e98;
+  margin-top: 2px; /* 微調與上方標題的間距 */
+  transform: translateY(-10px); /* 數值負越多，字就越往上移動 */
 }
 
 /* ==========================================================================

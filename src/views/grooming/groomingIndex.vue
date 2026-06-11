@@ -142,6 +142,10 @@
           <h4>Instagram</h4>
         </a>
       </div>
+      <!-- 營業時間改為下方置中文字 -->
+      <div class="business-hours-info">
+        <i class="fas fa-clock"></i> 營業時間： 10:00 - 20:00 (週一公休)
+      </div>
     </section>
 
   </div>
@@ -356,6 +360,15 @@ export default {
   width: 100%; /* 寬度佔滿 */
   word-break: break-all; /* 防止長單字溢出 */
   color: #333;
+}
+.business-hours-info {
+  margin-top: 35px;
+  font-size: 1.1rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 /* 新增的宣傳區塊樣式 */

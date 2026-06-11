@@ -18,12 +18,13 @@
         </div>
         <div class="login-actions">
           <button type="submit" class="btn-primary">登入</button>
-          <button type="button" class="btn-secondary" @click="toMember">取消</button>
+          <button type="button" class="btn-secondary" @click="toHome">取消</button>
         </div>
       </form>
 
       <div class="login-footer">
         還沒有帳號？<RouterLink to="/member/createaccount">立即註冊</RouterLink>
+        ｜<RouterLink to="/member/forgetpassword">忘記密碼</RouterLink>
       </div>
 
     </div>
@@ -34,16 +35,99 @@
 import '@/css/member/login.css'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import Swal from 'sweetalert2'
+import useUserStore from '@/stores/user.js'
 
 const router = useRouter()
+const userStore = useUserStore()
 const account = ref('')
 const password = ref('')
 
+// 沒有後端時，先寫死一組測試帳密（之後接後端再換成 axios 驗證）
+const testAccount= 'test'
+const testPassword = 'test1234'
+
 function handleLogin() {
-  console.log('帳號:', account.value, '密碼:', password.value)
+  // ===== 前端驗證：通過後才比對帳密 =====
+  // 規則用的正規表達式：帳號只能英數；密碼只能英數加常用符號
+  const accountRule = /^[A-Za-z0-9]+$/
+  const passwordRule = /^[A-Za-z0-9!@#$%^&*()_-]+$/
+
+  // 把前後空白去掉，避免使用者只打空白也算有填
+  const accountValue = account.value.trim()
+  const passwordValue = password.value.trim()
+
+  // 規則 1：帳號是空白
+  if (accountValue === '') {
+    Swal.fire({ icon: 'warning', title: '請輸入帳號' })
+    return // 直接結束，不再往下跑
+  }
+  // 規則 2：帳號長度需 4～30 字
+  if (accountValue.length < 4 || accountValue.length > 30) {
+    Swal.fire({ icon: 'warning', title: '帳號長度需為 4～30 個字' })
+    return
+  }
+  // 規則 3：帳號只能英文字母和數字
+  if (!accountRule.test(accountValue)) {
+    Swal.fire({ icon: 'warning', title: '帳號只能使用英文字母和數字' })
+    return
+  }
+  // 規則 4：密碼是空白
+  if (passwordValue === '') {
+    Swal.fire({ icon: 'warning', title: '請輸入密碼' })
+    return
+  }
+  // 規則 5：密碼長度需 8～80 字
+  if (passwordValue.length < 8 || passwordValue.length > 80) {
+    Swal.fire({ icon: 'warning', title: '密碼長度需為 8～80 個字' })
+    return
+  }
+  // 規則 6：密碼只能英數與 ! @ # $ % ^ & * ( ) _ -
+  if (!passwordRule.test(passwordValue)) {
+    Swal.fire({ icon: 'warning', title: '密碼含有不允許的符號' })
+    return
+  }
+
+  // ===== 通過驗證，開始比對帳密 =====
+  if (account.value === testAccount && password.value === testPassword) {
+    // ===== 以下假裝是後端登入成功後回傳的資料 =====
+    // 之後接後端時，把這整段換成 axios 回傳的真實資料即可
+    userStore.setToken('fake-token-12345')
+
+    // 會員資料
+    userStore.setMemberInfo({
+      name: '王小明',
+      account: account.value,
+      email: 'test@gmail.com',
+      phone: '0912-345-678',
+      address: '台南市大內區1號',
+      createDate: '2026-01-15',
+      birthday: '1998-05-10',
+      idNumber: 'A123456789',
+      gender: 'male'
+    })
+
+    // 寵物清單
+    userStore.setPets([
+      { id: 1, name: '巧克力', birthday: '2021-05-10', age: 3, gender: 'male', weight: 5.2, species: '狗', breed: '貴賓狗', size: 'small', neutered: 'isNeutered', health: '健康良好', personality: '親人但怕生' },
+      { id: 2, name: 'Mimi', birthday: '2022-03-15', age: 2, gender: 'female', weight: 4.1, species: '貓', breed: '波斯貓', size: 'small', neutered: 'isNeutered', health: '健康良好', personality: '愛撒嬌' }
+    ])
+
+    // 預設選第一隻寵物
+    userStore.setSelectPetId(1)
+
+    Swal.fire({ 
+      icon: 'success', 
+      title: '登入成功', 
+      timer: 1000, 
+      showConfirmButton: false })
+    router.push('/')
+  } else {
+    Swal.fire({ icon: 'error', title: '登入失敗', text: '帳號或密碼錯誤' })
+  }
 }
-function toMember(){
-  router.push("/member/member");
+function toHome(){
+  router.push("/");
 }
 </script>
 

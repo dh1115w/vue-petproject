@@ -9,8 +9,9 @@
       </header>
 
       <!-- 提交評價表單 -->
-      <section class="review-form-section card">
+      <section v-if="isLoggedIn" class="review-form-section card">
         <h3>📝 分享您的美容體驗</h3>
+        <p class="text-center mb-20">您目前以 <strong>{{ currentUserName }}</strong> 的身份登入。</p>
         <form @submit.prevent="submitReview">
           <div class="grid grid-2" style="gap: 20px;">
             <div class="form-group">
@@ -53,6 +54,13 @@
             <button type="submit" class="btn btn-primary">送出評價</button>
           </div>
         </form>
+      </section>
+      <section v-else class="review-form-section card text-center">
+        <h3>您尚未登入</h3>
+        <p class="mb-20">請登入會員後再分享您的美容體驗。</p>
+        <button type="button" class="btn btn-primary" @click="toggleLoginStatus">
+          <i class="fas fa-sign-in-alt"></i> 模擬登入
+        </button>
       </section>
 
       <hr class="divider" />
@@ -131,9 +139,7 @@
       </div>
     </div>
 
-    <footer>
-      <p>&copy; 2026 毛孩萌沙龍. All Rights Reserved.</p>
-    </footer>
+  
   </div>
 </template>
 
@@ -150,6 +156,8 @@ export default {
       filterGroomer: 'all',
       currentPage: 1,
       pageSize: 4, // 每頁顯示 4 筆評價
+      isLoggedIn: false, // 模擬登入狀態
+      currentUserName: '新用戶', // 模擬登入用戶名
       lightboxImage: null, // 儲存目前放大顯示的圖片
       newReview: {
         groomer: '',
@@ -184,6 +192,11 @@ export default {
     if (this.$route.query.groomer) {
       this.newReview.groomer = this.$route.query.groomer;
     }
+  },
+  created() {
+    // 初始載入時檢查是否有登入狀態 (這裡可以替換為實際的登入檢查邏輯)
+    this.isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    this.currentUserName = localStorage.getItem('currentUserName') || '新用戶'; // 載入用戶名
   },
   computed: {
     sortedReviews() {
@@ -268,6 +281,19 @@ export default {
     changePage(page) {
       this.currentPage = page;
       window.scrollTo({ top: 600, behavior: 'smooth' }); // 切換分頁時平滑滾動到列表頂部
+    },
+    toggleLoginStatus() {
+      this.isLoggedIn = !this.isLoggedIn;
+      if (this.isLoggedIn) {
+        this.currentUserName = '模擬會員'; // 模擬登入後的用戶名
+        localStorage.setItem('currentUserName', this.currentUserName); // 儲存用戶名
+        localStorage.setItem('isLoggedIn', 'true');
+        alert('您已模擬登入！');
+      } else {
+        localStorage.removeItem('isLoggedIn');
+        alert('您已模擬登出！');
+        localStorage.removeItem('currentUserName'); // 移除用戶名
+      }
     }
   }
 }

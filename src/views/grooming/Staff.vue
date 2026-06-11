@@ -31,9 +31,7 @@
       </div>
     </main>
 
-    <footer>
-      <p>&copy; 2026 毛孩萌沙龍. All Rights Reserved.</p>
-    </footer>
+
   </div>
 </template>
 

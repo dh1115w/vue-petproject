@@ -1,0 +1,428 @@
+/*
+ * 美容會員中心儀表板 — PawCare 療癒系風格
+ */
+
+:root {
+  --radius: 12px;
+  --background: #f7f6f2;
+  --foreground: #383a36;
+  --text-color: #383a36;
+  --card: #ffffff;
+  --primary: #6bae8a;
+  --primary-color: #6bae8a;
+  --primary-dark: #5a9a78;
+  --accent: #7bb3d4;
+  --muted: #f3f0e8;
+  --border: #e6e3da;
+  --muted-foreground: #9c9e98;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  line-height: 1.6;
+}
+
+/* ===== 共用容器 ===== */
+.container {
+  width: 92%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-content {
+  padding: 40px 0;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--foreground);
+  border-left: 5px solid var(--primary);
+  padding-left: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== 網格 ===== */
+.grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.col-span-2 { grid-column: span 2; }
+
+/* ===== 卡片 ===== */
+.card {
+  background-color: var(--card);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+/* ===== 按鈕 ===== */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* ===== 膠囊狀態標籤 ===== */
+.badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badge-success {
+  background-color: rgba(107, 174, 138, 0.15);
+  color: #4a7d60;
+}
+
+.role-badge {
+  background-color: var(--muted);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+/* ===== 頂部氛圍橫幅 ===== */
+.member-hero-banner {
+  width: 100%;
+  height: 180px;
+  position: relative;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.member-hero-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.65);
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 50%;
+  left: 40px;
+  transform: translateY(-50%);
+  color: #fff;
+}
+
+.hero-overlay h3 {
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+}
+
+.hero-overlay p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+/* ===== 會員資料卡（療癒綠頂條）===== */
+.member-profile-card {
+  border-top: 5px solid var(--primary);
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #f0f4ff;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info-list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.625rem 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.9rem;
+}
+
+/* ===== 毛孩迷你卡片 ===== */
+.pet-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background-color: #fffdfb;
+  margin-bottom: 1rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.pet-mini-card:hover {
+  box-shadow: 0 4px 12px rgba(107, 174, 138, 0.12);
+  transform: translateY(-2px);
+}
+
+.edit-pet-btn,
+.delete-pet-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #747d8c;
+  transition: color 0.2s;
+}
+
+.edit-pet-btn:hover {
+  color: var(--primary-color);
+}
+
+.delete-pet-btn:hover {
+  color: #ff4757;
+}
+
+/* ===== 毛孩列表分頁 ===== */
+.pet-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.mini-page-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--primary-color);
+  background: #fff;
+  color: var(--primary-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.mini-page-btn:disabled {
+  border-color: #ddd;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+/* ===== 彈窗 Modal ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000; backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  width: 95%; max-width: 500px; padding: 25px;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.modal-form-group {
+  margin-bottom: 15px;
+}
+
+.modal-form-group label {
+  display: block; margin-bottom: 5px;
+  font-weight: bold; font-size: 0.9rem; color: #555;
+}
+
+.modal-form-group input {
+  width: 100%; padding: 10px;
+  border: 1px solid #ddd; border-radius: 6px;
+  font-size: 0.95rem;
+  box-sizing: border-box;   /* 把 padding、border 算進 width，避免日期框撐出格子 */
+  min-width: 0;             /* 在 grid 格子裡允許縮小，不會被內容頂寬 */
+}
+
+/* ===== 會員資料卡內元素 ===== */
+.member-grid {
+  align-items: start;
+}
+
+.profile-name {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.profile-badge {
+  font-size: 0.75rem;
+  vertical-align: middle;
+}
+
+.info-list-item span {
+  color: #747d8c;
+}
+
+.info-address {
+  max-width: 150px;
+  text-align: right;
+  word-break: break-all;
+}
+
+.btn-edit-profile {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  padding: 8px;
+}
+
+/* ===== 毛孩區塊 ===== */
+.pet-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.pet-section-header h3 {
+  color: var(--text-color);
+}
+
+.btn-add-pet-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.pet-info {
+  flex-grow: 1;
+}
+
+.pet-name {
+  margin-bottom: 4px;
+}
+
+.pet-meta {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.pet-note {
+  font-size: 0.85rem;
+  color: var(--primary-color);
+}
+
+.pet-note--first {
+  margin-top: 3px;
+}
+
+.pet-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.pet-neutered-badge {
+  margin-bottom: 5px;
+}
+
+.pet-action-btns {
+  display: flex;
+  gap: 8px;
+}
+
+/* 性別標籤配色 */
+.role-badge--male {
+  background: #e1f5fe;
+  color: #0288d1;
+}
+
+.role-badge--female {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+/* ===== 彈窗內元素 ===== */
+.modal-title {
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 10px;
+}
+
+.modal-grid {
+  gap: 10px;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.modal-textarea {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+.btn-cancel {
+  background: #eee;
+  color: #666;
+}
+
+/* ===== 手機版 ===== */
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3 { grid-template-columns: 1fr; }
+  .col-span-2 { grid-column: span 1; }
+}

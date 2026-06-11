@@ -7,18 +7,6 @@
       <nav class="nav-links">
         <RouterLink to="/" class="nav-link">首頁</RouterLink>
 
-        <div class="nav-dropdown">
-          <RouterLink to="/member/member" class="nav-link">會員專區</RouterLink>
-          <div class="dropdown-menu">
-            <RouterLink to="/member/login" class="dropdown-item">登入會員</RouterLink>
-            <RouterLink to="/member/createaccount" class="dropdown-item">註冊帳號</RouterLink>
-            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
-          </div>
-        </div>
-
-
-        <RouterLink to="/boarding" class="nav-link">住宿</RouterLink>
-
         <!-- 美容選單 -->
         <div class="nav-dropdown">
           <RouterLink to="/grooming" class="nav-link">美容</RouterLink>
@@ -27,7 +15,6 @@
             <RouterLink to="/grooming/staff" class="dropdown-item">美容師團隊</RouterLink>
             <RouterLink to="/grooming/booking" class="dropdown-item">線上預約</RouterLink>
             <RouterLink to="/grooming/reviews" class="dropdown-item">評價專區</RouterLink>
-            <RouterLink to="/grooming/Member" class="dropdown-item">會員中心</RouterLink>
           </div>
         </div>
 
@@ -41,6 +28,40 @@
             <RouterLink to="/medical/taxiservice" class="dropdown-item">寵物接送服務</RouterLink>
           </div>
         </div>
+
+        <!-- 沒登入：顯示登入/註冊 -->
+        <div class="nav-dropdown" v-if="!userStore.token">
+          <RouterLink to="/member/login" class="nav-link">登入/註冊</RouterLink>
+        </div>
+
+        <!-- 已登入：顯示圓形頭像 + 名字 -->
+        <div class="nav-dropdown" v-else>
+          <div class="user-avatar">{{ userStore.memberInfo.account }}</div>
+          <div class="dropdown-menu">
+
+            <RouterLink to="/grooming/member" class="dropdown-item">會員專區</RouterLink>
+            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
+            <a href="#" class="dropdown-item" @click.prevent="handleLogout">登出</a>
+            
+            <div class="dropdown-divider"></div>
+            
+            <!-- 切換預設寵物：點哪隻，哪隻就變成全站的預設寵物 -->
+            <p class="dropdown-title">切換預設寵物</p>
+            <a
+              v-for="pet in userStore.pets"
+              :key="pet.id"
+              href="#"
+              class="dropdown-item"
+              @click.prevent="choosePet(pet.id)"
+            >
+              {{ pet.name }}
+              <!-- 目前選到的那隻，後面打勾 -->
+              <span v-if="pet.id === userStore.selectPetId">✓</span>
+            </a>
+
+
+          </div>
+        </div>
       </nav>
 
     </div>
@@ -48,7 +69,22 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+import useUserStore from '@/stores/user.js'
 
+const router = useRouter()
+const userStore = useUserStore()
+
+function handleLogout() {
+  userStore.logout()      // 清空 token及個人資訊
+  router.push('/')        // 回首頁
+}
+
+// 切換「預設寵物」：把點到的那隻寵物 id 存進 store
+// 存進去之後，整個專案（美容、醫療…）只要讀 userStore.selectPetId 就知道是哪一隻
+function choosePet(id) {
+  userStore.setSelectPetId(id)
+}
 </script>
 
 <style scoped>
@@ -81,6 +117,7 @@
 
 .nav-links {
   display: flex;
+  align-items: center;
   gap: 36px;
 }
 
@@ -101,6 +138,24 @@
   position: relative;
   display: flex;
   align-items: center;
+}
+
+/* 已登入的圓形頭像 */
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #2a2522;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  overflow: hidden;
 }
 
 .dropdown-menu {
@@ -154,5 +209,20 @@
 .dropdown-item:hover,
 .dropdown-item.router-link-active {
   color: #2a2522;
+}
+
+/* 「切換預設寵物」小標題 */
+.dropdown-title {
+  padding: 6px 18px;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: #b0b0aa;
+}
+
+/* 寵物清單和下面選單之間的分隔線 */
+.dropdown-divider {
+  height: 1px;
+  background-color: #e8e8e6;
+  margin: 6px 0;
 }
 </style>

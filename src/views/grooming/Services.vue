@@ -35,7 +35,7 @@
               <li v-for="feature in service.features" :key="feature"><span class="check-icon">✓</span> {{ feature }}</li>
             </ul>
             <router-link
-              to="/grooming/booking"
+              :to="{ path: '/grooming/booking', query: { serviceId: service.id } }"
               class="btn"
               :class="service.highlight ? 'btn-primary' : 'btn-outline'"
             >
@@ -60,9 +60,7 @@
       </section>
     </main>
 
-    <footer>
-      <p>&copy; 2026 毛孩萌沙龍. All Rights Reserved.</p>
-    </footer>
+
   </div>
 </template>
 
@@ -76,6 +74,7 @@ export default {
     return {
       services: [
         {
+          id: 1,
           title: '基礎洗澡 (Basic Bath)',
           image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&h=300&fit=crop',
           prices: [
@@ -93,6 +92,7 @@ export default {
           highlight: false
         },
         {
+          id: 2,
           title: '精緻造型剪毛 (Full Grooming)',
           image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=300&fit=crop',
           prices: [
@@ -110,6 +110,7 @@ export default {
           highlight: false
         },
         {
+          id: 3,
           title: '草本舒緩藥浴 (Medicated Bath)',
           image: 'https://images.unsplash.com/photo-1598133894008-61f7fdb8cc3a?w=500&h=300&fit=crop',
           prices: [
@@ -127,6 +128,7 @@ export default {
           highlight: false
         },
         {
+          id: 4,
           title: '深層芳療泥浴 (Mud Spa)',
           image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=500&h=300&fit=crop',
           prices: [
@@ -144,6 +146,7 @@ export default {
           highlight: false
         },
         {
+          id: 5,
           title: '貓咪舒壓洗護 (Cat Relaxation Wash)',
           image: 'https://images.unsplash.com/photo-1548546738-8509cb246ed3?w=500&h=300&fit=crop',
           prices: [
@@ -160,6 +163,7 @@ export default {
           highlight: false
         },
         {
+          id: 6,
           title: '貓咪廢毛梳理 (Cat De-shedding)',
           image: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=500&h=300&fit=crop',
           prices: [

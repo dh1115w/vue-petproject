@@ -318,3 +318,22 @@
   font-size: 0.8rem;
   color: #e74c3c;
 }
+
+/* 修改個人資料頁：最底下「修改密碼」小字連結（風格沿用登入頁 footer）*/
+.password-link {
+  padding: 1.25rem 2.5rem 2rem;
+  font-size: 0.85rem;
+  color: #848680;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.password-link a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.password-link a:hover {
+  text-decoration: underline;
+}

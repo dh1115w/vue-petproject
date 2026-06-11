@@ -20,11 +20,7 @@
         <!-- 1. 小福直立卡片 -->
         <div class="bento-card-pet">
           <div class="avatar-container-vertical">
-            <img
-              src="@/images/dog.jpg"
-              alt="小福"
-              class="pet-avatar-vertical"
-            />
+            <img :src="petAvatar" alt="小福" class="pet-avatar-vertical" />
             <!--<div class="heart-badge-vertical">❤️</div>-->
           </div>
           <div class="pet-info-vertical">
@@ -71,11 +67,13 @@
 </template>
 
 <script setup>
-// 100% 純 JavaScript，目前不需要複雜邏輯
 console.log("首頁主控台已成功載入！");
 
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import "@/css/medical/medical-dashboard.css";
+
+// 修正 Vite 報錯：引入預設圖片，並確保畫面使用 :src 綁定
+import defaultDogImage from "@/images/dog.jpg";
 
 // 寵物底部的狀態列表數據（對應 Vue 的 v-for）
 const petStatusList = ref([
@@ -84,7 +82,7 @@ const petStatusList = ref([
   { label: "絕育", value: "已結紮", ok: true },
 ]);
 
-// 2. 體重圖表數據（之後可以用來畫折線圖）
+// 體重圖表數據（之後可以用來畫折線圖）
 const weightData = ref([
   { date: "3/1", weight: 12.8 },
   { date: "3/8", weight: 13.1 },
@@ -96,29 +94,91 @@ const weightData = ref([
   { date: "4/19", weight: 13.6 },
 ]);
 
-// 3. 快捷鍵功能清單
+// 快捷鍵功能清單
 // 原本的 React 元件圖示（icon: Activity）我們直接改成更直覺、不依賴套件的網頁 Emoji 圖標
-const quickActions = ref([
+// const quickActions = ref([
+//   {
+//     label: "健康狀態追蹤",
+//     icon: "📈",
+//     path: "/medical/healthtracking",
+//     borderLeftColor: "#7BB3D4",
+//     desc: "記錄今日體重飲食",
+//   },
+//   {
+//     label: "病歷紀錄",
+//     icon: "📁",
+//     path: "/medical/medicalrecords",
+//     borderLeftColor: "#B59BD4",
+//     desc: "查看與上傳病歷",
+//   },
+//   {
+//     label: "行事曆提醒",
+//     icon: "📅",
+//     path: "/medical/calendarpage",
+//     borderLeftColor: "#E87A9A",
+//     desc: "疫苗與回診提醒",
+//   },
+//   {
+//     label: "附近診所搜尋",
+//     icon: "📍",
+//     path: "/medical/clinicsearch",
+//     borderLeftColor: "#E8A87A",
+//     desc: "找尋附近動物醫院",
+//   },
+//   {
+//     label: "寵物接送服務",
+//     icon: "🚗",
+//     path: "/medical/taxiservice",
+//     borderLeftColor: "#6BAE8A",
+//     desc: "寵物友善叫車服務",
+//   },
+//   //{ label: "醫療費用", icon: "💰", path: "/expenses", borderLeftColor: "#D4B86A", desc: "費用統計與紀錄" },
+// ]);
+
+// 1. 模擬未來從資料庫或全域狀態撈出來的「當前寵物即時數據」
+
+const currentPetLive = ref({
+  avatarUrl: "", // 留空會自動套用上面的 defaultDogImage
+  waterProgress: "480/600 ml (80%)",
+  currentWeight: "13.6 kg",
+  lastMedicalReport: "04/10 年度健康檢查報告 (正常)",
+  urgentReminder: "04/25 狂犬病疫苗 (2天後)",
+  nearestClinic: "台北動物醫院",
+});
+
+// 地理定位狀態 (用於附近診所功能防呆)
+const hasGeolocation = ref(false);
+const userRegion = ref("信義區"); // 會員居住區域保底（若有）
+
+// 判斷要顯示的頭貼網址
+const petAvatar = computed(() => {
+  return currentPetLive.value.avatarUrl || defaultDogImage;
+});
+
+// 快捷鍵功能清單 (利用 computed 融合你原本的樣式與最新的動態數據)
+
+const quickActions = computed(() => [
   {
     label: "健康狀態追蹤",
     icon: "📈",
     path: "/medical/healthtracking",
     borderLeftColor: "#7BB3D4",
-    desc: "記錄今日體重飲食",
+    // 核心改變：原本固定的說明文字，現在變成即時數據
+    desc: `今日飲水 ${currentPetLive.value.waterProgress} · 體重 ${currentPetLive.value.currentWeight}`,
   },
   {
     label: "病歷紀錄",
     icon: "📁",
     path: "/medical/medicalrecords",
     borderLeftColor: "#B59BD4",
-    desc: "查看與上傳病歷",
+    desc: `最新紀錄：${currentPetLive.value.lastMedicalReport}`,
   },
   {
     label: "行事曆提醒",
     icon: "📅",
     path: "/medical/calendarpage",
     borderLeftColor: "#E87A9A",
-    desc: "疫苗與回診提醒",
+    desc: `最近提醒：${currentPetLive.value.urgentReminder}`,
   },
   {
     label: "附近診所搜尋",
@@ -132,19 +192,21 @@ const quickActions = ref([
     icon: "🚗",
     path: "/medical/taxiservice",
     borderLeftColor: "#6BAE8A",
-    desc: "寵物友善叫車服務",
+    // 根據是否有疫苗行程，動態調整叫車提示
+    desc: currentPetLive.value.urgentReminder.includes("疫苗")
+      ? "有疫苗接種行程，建議提早預約寵物友善專車"
+      : "寵物友善叫車服務與專車媒合",
   },
-  //{ label: "醫療費用", icon: "💰", path: "/expenses", borderLeftColor: "#D4B86A", desc: "費用統計與紀錄" },
 ]);
 
-// 4. 即將到來的提醒事件
+// 即將到來的提醒事件
 const upcomingEvents = ref([
   { date: "4/25", title: "狂犬病疫苗", type: "vaccine", urgent: true },
   { date: "5/3", title: "年度健康檢查", type: "checkup", urgent: false },
   { date: "5/15", title: "心絲蟲預防藥", type: "medicine", urgent: false },
 ]);
 
-// 5. 最近病歷紀錄
+// 最近病歷紀錄
 const recentRecords = ref([
   {
     date: "2026/04/10",

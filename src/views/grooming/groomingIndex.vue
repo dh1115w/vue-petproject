@@ -105,9 +105,6 @@
           </div>
         </div>
 
-        <router-link to="/grooming/booking" class="btn btn-primary">
-          立即預約領取優惠
-        </router-link>
       </div>
     </section>
 
@@ -277,6 +274,12 @@ export default {
   text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
+.section-title {
+  letter-spacing: 0.4em; /* 增加字間距 */
+  text-indent: 0.4em;   /* 抵銷最後一個字的右側間距，確保視覺中心完全置中 */
+  font-weight: 700;     /* 加粗字體增加份量感 */
+}
+
 .features-section, .services-section {
   margin-top: 50px;
 }
@@ -324,7 +327,9 @@ export default {
   flex-wrap: wrap;
   justify-content: center;
   gap: 20px;
-  margin-top: 30px;
+  margin: 30px auto 0; /* 透過 auto 確保卡片區塊整體置中 */
+  width: 100%;
+  max-width: 780px; /* 5張卡片(140px*5) + 間距(20px*4) = 780px */
 }
 
 .contact-item {
@@ -376,17 +381,16 @@ export default {
   gap: 10px;
 }
 
-/* 新增的宣傳區塊樣式 */
+/* 宣傳區塊樣式 */
 .promo-section {
-  /* 改為更沉穩、柔和的綠色調漸層，降低亮度 */
-  background: linear-gradient(135deg, rgba(190, 230, 190, 0.95), rgba(150, 200, 150, 0.9)), 
+  background: linear-gradient(135deg, rgba(190, 230, 190, 0.95), rgba(108, 136, 108, 0.9)), 
               url('https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=2000&auto=format&fit=crop');
   background-size: cover;
   background-position: center;
-  color: #166534; /* 深綠色文字，提升閱讀舒適度 */
+  color: #166534;
   text-align: center;
-  padding: 40px 20px; /* 縮小垂直內邊距，從 80px 改為 40px */
-  margin-top: 30px; /* 縮小與上方區塊的間距 */
+  padding: 40px 20px;
+  margin-top: 30px; 
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   

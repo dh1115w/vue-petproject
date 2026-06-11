@@ -4,7 +4,9 @@
     <header class="dashboard-header">
       <div class="header-left">
         <h1>早安，王小明 👋</h1>
-        <p class="subtitle">今天是 2026 年 4 月 23 日，小福的健康狀況良好</p>
+        <p class="subtitle">
+          今天是 {{ formattedTodayDate }}，小福的健康狀況良好
+        </p>
       </div>
       <div class="header-right">
         <div class="status-badge normal">
@@ -74,6 +76,16 @@ import "@/css/medical/medical-dashboard.css";
 
 // 修正 Vite 報錯：引入預設圖片，並確保畫面使用 :src 綁定
 import defaultDogImage from "@/images/dog.jpg";
+
+//設定當天日期
+const formattedTodayDate = computed(() => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1; // 月份從 0 開始，所以要 +1
+  const date = today.getDate();
+
+  return `${year} 年 ${month} 月 ${date} 日`;
+});
 
 // 寵物底部的狀態列表數據（對應 Vue 的 v-for）
 const petStatusList = ref([

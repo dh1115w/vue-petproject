@@ -142,18 +142,6 @@
           <h4>Instagram</h4>
         </a>
       </div>
-
-      <!-- Google Map 嵌入區塊 -->
-      <div class="map-container">
-        <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m121.5434729!2d25.0416757!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442abc30148c0cf%3A0x280e30349195325!2zMTA25Y-w5YyX5biC5aSn5a6J5Y2A5b-g5a2d6KeS6Lev5Zub5q61MTIz6Jmf!5e0!3m2!1szh-TW!2stw!4v1717400000000!5m2!1szh-TW!2stw"
-          width="100%"
-          style="border:0; border-radius: 15px;"
-          allowfullscreen=""
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
-      </div>
     </section>
 
   </div>
@@ -368,24 +356,6 @@ export default {
   width: 100%; /* 寬度佔滿 */
   word-break: break-all; /* 防止長單字溢出 */
   color: #333;
-}
-.map-container {
-  margin-top: 40px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-  border-radius: 15px;
-  overflow: hidden;
-}
-.map-container iframe {
-  /* 桌面版預設高度 */
-  height: 450px;
-  display: block; /* 移除 iframe 底部的微小間隙 */
-}
-
-@media (max-width: 768px) {
-  .map-container iframe {
-    /* 手機版自動調整為較小的高度 */
-    height: 300px;
-  }
 }
 
 /* 新增的宣傳區塊樣式 */

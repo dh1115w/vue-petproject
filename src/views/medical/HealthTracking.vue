@@ -80,6 +80,23 @@
             </div>
           </div>
 
+          <!-- 4.5 便便狀態快捷按鈕區 -->
+          <div class="form-group">
+            <label class="form-label">💩 便便狀態</label>
+            <div class="flex-buttons-row">
+              <button
+                v-for="status in poopStatusOptions"
+                :key="status.label"
+                type="button"
+                class="mood-tab-btn"
+                :class="{ 'is-active': formData.poopStatus === status.label }"
+                @click="formData.poopStatus = status.label"
+              >
+                {{ status.emoji }} {{ status.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- 5. 精神狀態快捷按鈕區 -->
           <div class="form-group">
             <label class="form-label">✨ 今日精神狀態</label>
@@ -454,6 +471,7 @@ const formData = ref({
   water: "",
   food: "",
   poop: "1", // 預設選中 1 次
+  poopStatus: "", // 便便狀態快捷選項的綁定值，預設為空（未選擇）
   mood: "很好", // 預設精神狀態很好
   activity: "中", // 新增：活動量快捷選項的綁定值，預設為「中」
   note: "", // 新增：用來綁定多行文字框的備註內容
@@ -476,6 +494,13 @@ const activityOptions = [
 
 // 控制備註說明輸入框是否顯示的開關（預設隱藏）
 const showNote = ref(false);
+
+const poopStatusOptions = [
+  { label: "正常", emoji: "👍" },
+  { label: "軟便", emoji: "🟡" },
+  { label: "便秘", emoji: "🟠" },
+  { label: "拉肚子", emoji: "🔴" },
+];
 
 // ==========================================================================
 // 2. 圖表時間篩選狀態（預設為 'week'，可切換為 'month' 或 'year'）

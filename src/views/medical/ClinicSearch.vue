@@ -212,7 +212,7 @@ const isLocating = ref(false); // 定位中狀態
 const filters = ref({
   open: false, // 營業中
   night: false, // 夜間門診
-  appointment: false, // 免預約（對應原檔：非 needAppointment）
+  appointment: true,
 });
 
 // 在頂部新增 Tab 相關變數
@@ -230,7 +230,7 @@ const distanceOptions = ["1", "5", "10"];
 const filterOptions = [
   { key: "open", label: "營業中", icon: "🟢" },
   { key: "night", label: "夜間門診", icon: "🌙" },
-  { key: "appointment", label: "免預約", icon: "📅" },
+  { key: "appointment", label: "特寵", icon: "🦎" },
 ];
 
 // ==========================================================================
@@ -265,7 +265,7 @@ const clinicsDatabase = ref([
     hours: "10:00 - 20:00",
     isNight: false,
     needAppointment: true,
-    tags: ["皮膚科", "眼科"],
+    tags: ["皮膚科", "眼科", "特寵"],
     rawDistance: 1.2,
     isFavorite: false, // 新增收藏屬性
   },
@@ -324,8 +324,8 @@ const filteredClinics = computed(() => {
     const matchOpen = !filters.value.open || c.isOpen;
     const matchNight = !filters.value.night || c.isNight;
 
-    // 免預約對應 needAppointment 為 false (即不需要預約)
-    const matchAppt = !filters.value.appointment || !c.needAppointment;
+    // 特寵對應 needAppointment 為 true
+    const matchAppt = !filters.value.appointment || c.needAppointment;
 
     // 五個條件同時成立才留下來
     return matchSearch && matchDist && matchOpen && matchNight && matchAppt;

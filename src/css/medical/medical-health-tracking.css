@@ -100,7 +100,7 @@
 .tracking-form-body {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.2rem;
 }
 
 .tracking-container .form-group {
@@ -118,7 +118,7 @@
 .tracking-container .form-input {
   border: 1px solid var(--border);
   background-color: #ffffff;
-  padding: 0.625rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 12px;
   font-size: 0.875rem;
   outline: none;
@@ -127,6 +127,14 @@
 
 .form-input:focus {
   border-color: var(--primary);
+}
+
+.tracking-form-body .form-group {
+  margin-bottom: 0.5rem;
+}
+
+.your-button-group-start-class {
+  margin-top: 0.5rem;
 }
 
 .input-tip-text {
@@ -193,6 +201,16 @@
   font-weight: 700;
   border-radius: 12px;
   margin-top: 0.5rem;
+}
+
+.last-update-time {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 /* ==========================================================================

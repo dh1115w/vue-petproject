@@ -163,6 +163,8 @@
           <button class="submit-record-btn" @click="handleSubmitRecord">
             儲存今日紀錄
           </button>
+
+          <p class="last-update-time">最後更新時間：{{ lastUpdateTime }}</p>
         </div>
       </div>
 
@@ -648,6 +650,28 @@ const poopStatusOptions = [
   { label: "便秘", emoji: "🟠" },
   { label: "拉肚子", emoji: "🔴" },
 ];
+
+// 定義最後更新時間變數（Demo 展示時初始值可以寫一個模擬時間，或寫未紀錄）
+const lastUpdateTime = ref("2026/06/11 18:30");
+// 如果想預設寫未紀錄：const lastUpdateTime = ref("今日尚未紀錄");
+
+// 模擬點擊儲存按鈕的 function
+const saveDailyRecord = () => {
+  // ... 這裡執行你原本的 Axios 傳送給 Java 後端的邏輯 ...
+
+  // 當 Java 回傳儲存成功後，前端自動抓取當前精確時間更新畫面
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  // 全自動更新為最新時間！
+  lastUpdateTime.value = `${year}/${month}/${date} ${hours}:${minutes}`;
+
+  alert("今日健康數據儲存成功！");
+};
 
 // ==========================================================================
 // 2. 圖表時間篩選狀態（預設為 'week'，可切換為 'month' 或 'year'）

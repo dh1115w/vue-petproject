@@ -358,7 +358,7 @@ export default {
 }
 
 .contact-info {
-  font-size: 0.7rem; /* 稍微縮小字體以維持比例 */
+  font-size: 0.7rem; 
   color: #777;
   margin-top: 5px;
   line-height: 1.4;
@@ -368,7 +368,7 @@ export default {
 .business-hours-info {
   margin-top: 35px;
   font-size: 1.2rem; 
-  color: #aca9a7; /* 改為淡灰色 */
+  color: #aca9a7; 
   
   display: flex;
   align-items: center;

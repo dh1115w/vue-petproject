@@ -122,24 +122,24 @@
       <h2 class="section-title">聯絡我們</h2>
       <div class="contact-grid">
         <a href="https://www.google.com/maps/search/?api=1&query=台北市大安區忠孝東路四段123號" target="_blank" rel="noopener noreferrer" class="contact-item contact-link" title="在 Google 地圖中開啟">
-          <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
-          <h4>地址</h4>
+          <div class="contact-icon icon-address"><i class="fas fa-map-marker-alt"></i></div>
+          <p class="contact-info">台北市大安區忠孝東路四段123號</p>
         </a>
         <a href="tel:+886223456789" class="contact-item contact-link" title="點擊撥打電話">
-          <div class="contact-icon"><i class="fas fa-phone"></i></div>
-          <h4>電話</h4>
+          <div class="contact-icon icon-phone"><i class="fas fa-phone-alt"></i></div>
+          <p class="contact-info">02-2345-6789</p>
         </a>
         <a href="https://line.me/R/ti/p/@pet_grooming" class="contact-item contact-link" target="_blank" rel="noopener noreferrer">
           <div class="contact-icon icon-line"><i class="fab fa-line"></i></div>
-          <h4>LINE</h4>
+          <p class="contact-info">@pet_grooming</p>
         </a>
         <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" class="contact-item contact-link">
           <div class="contact-icon icon-facebook"><i class="fab fa-facebook-f"></i></div>
-          <h4>Facebook</h4>
+          <p class="contact-info">Pet Grooming Studio</p>
         </a>
         <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" class="contact-item contact-link">
           <div class="contact-icon icon-instagram"><i class="fab fa-instagram"></i></div>
-          <h4>Instagram</h4>
+          <p class="contact-info">@pet_grooming_life</p>
         </a>
       </div>
       <!-- 營業時間改為下方置中文字 -->
@@ -245,6 +245,9 @@ export default {
 </script>
 
 <style scoped>
+/* 引入 FontAwesome 圖示庫 CSS */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
 @import '@/css/grooming/index.css';
 
 /* 將內聯樣式整理至此 */
@@ -325,10 +328,10 @@ export default {
 }
 
 .contact-item {
-  width: 120px; /* 固定寬度 */
-  height: 120px; /* 固定高度，使其成為正方形 */
+  width: 140px; /* 進一步縮小寬度 */
+  min-height: 100px; /* 降低最小高度 */
   flex: none; /* 防止 flex 項目拉伸 */
-  padding: 10px; /* 增加內邊距，確保內容不會貼邊 */
+  padding: 15px 10px; /* 縮小內距讓版面更緊湊 */
   background: #fff;
   box-sizing: border-box; /* 確保 padding 不會增加總尺寸 */
   border-radius: 15px;
@@ -348,23 +351,25 @@ export default {
 }
 
 .contact-icon {
-  font-size: 1.7rem; /* 再稍微縮小圖標 */
-  margin-bottom: 5px; /* 減少圖標與文字的間距 */
-  color: #2c3e50;
+  font-size: 1.8rem; /* 稍微縮小圖示尺寸 */
+  margin-bottom: 6px; /* 調整圖示與資訊文字的間距 */
+  color: #2c3e50; /* 預設深色 */
   transition: color 0.3s ease;
 }
 
-.contact-item h4 {
-  font-size: 0.85rem; /* 再稍微縮小文字 */
-  margin: 0; /* 強制移除所有方向的預設邊距 */
-  width: 100%; /* 寬度佔滿 */
-  word-break: break-all; /* 防止長單字溢出 */
-  color: #333;
+.contact-info {
+  font-size: 0.7rem; /* 稍微縮小字體以維持比例 */
+  color: #777;
+  margin-top: 5px;
+  line-height: 1.4;
+  word-break: break-all;
 }
+
 .business-hours-info {
   margin-top: 35px;
-  font-size: 1.1rem;
-  color: #666;
+  font-size: 1.2rem; 
+  color: #aca9a7; /* 改為淡灰色 */
+  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -500,10 +505,15 @@ export default {
   color: inherit;
   text-decoration: none;
 }
-/* Hover 狀態下的圖示顏色變化 */
-.contact-item:hover .icon-line { color: #00c300; }
-.contact-item:hover .icon-facebook { color: #1877f2; }
-.contact-item:hover .icon-instagram { color: #e4405f; }
-.contact-item:hover .fa-map-marker-alt { color: #d32f2f; }
-.contact-item:hover .fa-phone { color: #2e7d32; }
+
+/* 直接為圖示加上顏色，讓它不再只是純文字感 */
+.icon-address { color: #d32f2f; }
+.icon-phone { color: #2e7d32; }
+.icon-line { color: #00c300; }
+.icon-facebook { color: #1877f2; }
+.icon-instagram { color: #e4405f; }
+
+.contact-item:hover {
+  background-color: #fdfdfd;
+}
 </style>

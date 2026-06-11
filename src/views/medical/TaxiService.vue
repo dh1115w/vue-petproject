@@ -1,32 +1,33 @@
 <template>
- <!-- 最外層容器，自帶頁面淡入動畫 -->
-<div class="transport-container page-enter">
+  <!-- 最外層容器，自帶頁面淡入動畫 -->
+  <div class="transport-container page-enter">
+    <!-- 新增的寵物接送 Banner 區塊 -->
+    <div class="transport-banner">
+      <!-- 這裡放您新增的寵物接送服務 Banner 圖片 -->
+      <img
+        src="@/images/taxi-service-banner01.jpg"
+        alt="寵物接送 Banner"
+        class="banner-image"
+      />
 
-  <!-- 新增的寵物接送 Banner 區塊 -->
-  <div class="transport-banner">
-    <!-- 這裡放您新增的寵物接送服務 Banner 圖片 -->
-    <img src="@/images/taxi-service-banner01.jpg" alt="寵物接送 Banner" class="banner-image" />
-    
-    <!-- 頁面頂部標頭 (移入 Banner 內部) -->
-    <header class="transport-header">
-      <h1>寵物接送服務</h1>
-      <p class="subtitle">寵物友善叫車服務，安心前往動物醫院</p>
+      <!-- 頁面頂部標頭 (移入 Banner 內部) -->
+      <header class="transport-header">
+        <h1>寵物接送服務</h1>
+        <p class="subtitle">寵物友善叫車服務，安心前往動物醫院</p>
 
-      <!-- 新增按鈕保持在 Banner 內右側或適當位置 -->
-      <button class="add-taxi-top-btn" @click="handleRecordInfo">
-        ＋ 立即定位您的位置
-      </button>
-    </header>
-  </div>
+        <!-- 新增按鈕保持在 Banner 內右側或適當位置 -->
+        <button class="add-taxi-top-btn" @click="handleRecordInfo">
+          ＋ 立即定位您的位置
+        </button>
+      </header>
+    </div>
 
     <!-- 主排版區：採用標準 Grid 網格佈局（左側行程設定 + 右側叫車選項） -->
     <div class="transport-main-grid stagger-children">
-
       <!-- ==========================================
            【左側欄】：行程設定 + 寵物資訊
            ========================================== -->
       <div class="left-setup-column">
-
         <!-- 行程設定卡片 -->
         <div class="pawcare-card pawcare-card-accent-green">
           <h3 class="panel-small-title">行程設定</h3>
@@ -39,7 +40,9 @@
               </label>
               <div class="location-static-box bg-muted">
                 <span class="pin-icon text-accent">📍</span>
-                <span class="address-text">台北市大安區敦化南路二段 100 號（目前位置）</span>
+                <span class="address-text"
+                  >台北市大安區敦化南路二段 100 號（目前位置）</span
+                >
               </div>
             </div>
 
@@ -87,7 +90,9 @@
             </div>
             <div class="estimate-item">
               <div class="estimate-icon">🕒</div>
-              <div class="estimate-value">{{ selectedClinic.estimatedTime }}</div>
+              <div class="estimate-value">
+                {{ selectedClinic.estimatedTime }}
+              </div>
               <div class="estimate-label">預估時間</div>
             </div>
             <div class="estimate-item">
@@ -96,39 +101,82 @@
               <div class="estimate-label">預估費用</div>
             </div>
           </div>
-
         </div>
 
         <!-- 寵物資訊確認卡片 -->
-        <div class="pawcare-card" style="margin-top: 1rem;">
+        <div class="pawcare-card" style="margin-top: 1rem">
+          <!-- 💡 提示：增加（可多選一同搭車）提示飼主 -->
           <h3 class="panel-small-title">寵物資訊</h3>
+
           <div class="pet-info-form-body">
-            <!-- 寵物簡介橫條 -->
-            <div class="pet-mini-profile-row">
-              <img src="@/images/dog.jpg" alt="小福" class="driver-pet-avatar" />
-              <div class="driver-pet-text">
-                <div class="p-name">小福</div>
-                <div class="p-desc">黃金獵犬 · 13.6 kg</div>
+            <!-- 寵物清單包裹層，用來拉開多隻寵物卡片之間的距離 -->
+            <div class="pet-selection-list">
+              <!-- 核心修改：使用 v-for 跑所有寵物，並綁定點擊事件與動態變色類名 .is-checked -->
+              <div
+                v-for="pet in myAllPets"
+                :key="pet.id"
+                class="pet-mini-profile-row"
+                :class="{ 'is-checked': checkedPetIds.includes(pet.id) }"
+                @click="togglePetSelection(pet.id)"
+              >
+                <!-- 左側：圖片與文字資訊（完全保留你原本的結構） -->
+                <div class="pet-meta-box">
+                  <!-- 頭貼防呆：如果 pet.avatar 為空，就套用你原本最棒的預設圖 defaultDogImage -->
+                  <img
+                    :src="pet.avatar || defaultDogImage"
+                    :alt="pet.name"
+                    class="driver-pet-avatar"
+                  />
+                  <div class="driver-pet-text">
+                    <div class="p-name">{{ pet.name }}</div>
+                    <div class="p-desc">{{ pet.breed }} · {{ pet.weight }}</div>
+                  </div>
+                </div>
+
+                <!-- 右側：打勾狀態顯示（主寵物顯示📌鎖定，其他顯示✅或空心框） -->
+                <span class="verified-check-mark">
+                  <span
+                    v-if="checkedPetIds.includes(pet.id)"
+                    style="color: #6bae8a"
+                  >
+                    {{ pet.id === currentGlobalPetId.value ? "📌" : "✅" }}
+                  </span>
+                  <span v-else style="color: #cccccc">🔲</span>
+                </span>
               </div>
-              <span class="verified-check-mark">✅</span>
+              <!-- 結尾 pet-mini-profile-row -->
             </div>
+            <!-- 結尾 pet-selection-list -->
 
             <!-- 寵物數量選擇 -->
-            <div class="form-group" style="margin-top: 1rem;">
+            <div class="form-group" style="margin-top: 1rem">
               <label class="form-label">寵物數量</label>
               <div class="flex-buttons-row">
-                <button v-for="n in ['1', '2', '3+']" :key="n" type="button" class="square-tab-btn" :class="{ 'is-active': petCount === n }" @click="petCount = n">{{ n }}</button>
+                <button
+                  v-for="n in ['1', '2', '3']"
+                  :key="n"
+                  type="button"
+                  class="square-tab-btn"
+                  :class="{ 'is-active': petCount === n }"
+                  @click="petCount = n"
+                >
+                  {{ n }}
+                </button>
               </div>
             </div>
 
             <!-- 需求備註輸入 -->
-            <div class="form-group" style="margin-top: 1rem;">
+            <div class="form-group" style="margin-top: 1rem">
               <label class="form-label">特殊需求備註</label>
-              <input type="text" v-model="specialNotes" placeholder="例：需要大型車廂、寵物有攻擊性..." class="form-input" />
+              <input
+                type="text"
+                v-model="specialNotes"
+                placeholder="例：需要大型車廂、寵物有攻擊性..."
+                class="form-input"
+              />
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- ==========================================
@@ -143,7 +191,10 @@
               v-for="option in rideOptions"
               :key="option.id"
               class="ride-option-item-box"
-              :class="{ 'is-selected': selectedRideId === option.id, 'is-disabled': !option.available }"
+              :class="{
+                'is-selected': selectedRideId === option.id,
+                'is-disabled': !option.available,
+              }"
               @click="option.available && (selectedRideId = option.id)"
             >
               <div class="ride-item-top flex">
@@ -151,8 +202,12 @@
                 <div class="ride-car-info-main">
                   <div class="ride-car-name-row">
                     <span class="car-name-text">{{ option.name }}</span>
-                    <span v-if="option.recommended" class="badge-recommend">推薦</span>
-                    <span v-if="!option.available" class="badge-disabled">目前不可用</span>
+                    <span v-if="option.recommended" class="badge-recommend"
+                      >推薦</span
+                    >
+                    <span v-if="!option.available" class="badge-disabled"
+                      >目前不可用</span
+                    >
                   </div>
                   <!-- 時間與車資 -->
                   <div class="ride-car-meta">
@@ -162,11 +217,20 @@
                   </div>
                   <!-- 特色貼紙標籤 -->
                   <div class="ride-features-wrap">
-                    <span v-for="f in option.features" :key="f" class="feature-tag">🐾 {{ f }}</span>
+                    <span
+                      v-for="f in option.features"
+                      :key="f"
+                      class="feature-tag"
+                      >🐾 {{ f }}</span
+                    >
                   </div>
                 </div>
                 <!-- 勾選狀態 -->
-                <span v-if="selectedRideId === option.id && option.available" class="checked-circle">✓</span>
+                <span
+                  v-if="selectedRideId === option.id && option.available"
+                  class="checked-circle"
+                  >✓</span
+                >
               </div>
             </div>
           </div>
@@ -177,42 +241,117 @@
           <span class="alert-icon">⚠️</span>
           <div class="alert-content-text">
             <strong>安全提醒</strong>
-            <p>建議將寵物放入提籠或使用安全帶固定，確保行車安全。司機已通過寵物友善認證訓練。</p>
+            <p>
+              建議將寵物放入提籠或使用安全帶固定，確保行車安全。司機已通過寵物友善認證訓練。
+            </p>
           </div>
         </div>
 
         <!-- 立即叫車 CTA 按鈕 -->
-        <button class="call-taxi-now-btn" @click="handleCallTaxi">🚗 立即叫車</button>
-        <button class="call-clinic-direct-btn" @click="handleCallClinic">📞 直接撥打診所電話</button>
+        <button class="call-taxi-now-btn" @click="handleCallTaxi">
+          🚗 立即叫車
+        </button>
+        <button class="call-clinic-direct-btn" @click="handleCallClinic">
+          📞 直接撥打診所電話
+        </button>
       </div>
-
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import '@/css/medical/medical-taxi-service.css'
+import { ref, computed } from "vue";
+import "@/css/medical/medical-taxi-service.css";
 // ==========================================================================
 // 1. 常用動物醫院叫車數據
 // ==========================================================================
 const recentClinics = [
-  { name: "台北動物醫院", address: "台北市大安區仁愛路四段 300 號", distance: "0.8 km", estimatedTime: "5 分鐘" },
-  { name: "愛寵動物診所", address: "台北市信義區基隆路一段 180 號", distance: "1.2 km", estimatedTime: "8 分鐘" },
-  { name: "毛孩子動物醫院", address: "台北市松山區南京東路五段 88 號", distance: "2.1 km", estimatedTime: "12 分鐘" }
-]
+  {
+    name: "台北動物醫院",
+    address: "台北市大安區仁愛路四段 300 號",
+    distance: "0.8 km",
+    estimatedTime: "5 分鐘",
+  },
+  {
+    name: "愛寵動物診所",
+    address: "台北市信義區基隆路一段 180 號",
+    distance: "1.2 km",
+    estimatedTime: "8 分鐘",
+  },
+  {
+    name: "毛孩子動物醫院",
+    address: "台北市松山區南京東路五段 88 號",
+    distance: "2.1 km",
+    estimatedTime: "12 分鐘",
+  },
+];
 
 // 當前選中的目的地診所（預設選中第一間 recentClinics[0]）
-const selectedClinic = ref(recentClinics[0])
+const selectedClinic = ref(recentClinics[0]);
+
+// 1. 模擬全域目前選中的主寵物 A
+const currentGlobalPetId = ref("pet_01");
+
+// 2. 模擬用戶名下的所有寵物清單
+const myAllPets = ref([
+  {
+    id: "pet_01",
+    name: "小福",
+    breed: "黃金獵犬",
+    weight: "13.6 kg",
+    avatar: "",
+  },
+  {
+    id: "pet_02",
+    name: "Mimi",
+    breed: "美國短毛貓",
+    weight: "4.2 kg",
+    avatar: "",
+  },
+  {
+    id: "pet_03",
+    name: "巧克力",
+    breed: "柴犬",
+    weight: "10.2 kg",
+    avatar: "",
+  },
+]);
+
+// 3. 預設選中陣列：直接把當前主寵物填進去當初始值（不需靠生命周期）
+const checkedPetIds = ref([currentGlobalPetId.value]);
+
+// ==========================================
+// 最直覺的點擊處理函式 (取代 checkbox 原生多選)
+// ==========================================
+const togglePetSelection = (petId) => {
+  const index = checkedPetIds.value.indexOf(petId);
+
+  if (petId === currentGlobalPetId.value) return;
+
+  if (index === -1) {
+    checkedPetIds.value.push(petId);
+  } else {
+    checkedPetIds.value.splice(index, 1);
+  }
+
+  const totalChecked = checkedPetIds.value.length;
+
+  if (totalChecked === 1) {
+    petCount.value = "1";
+  } else if (totalChecked === 2) {
+    petCount.value = "2";
+  } else {
+    petCount.value = "3";
+  }
+};
+// ==========================================================================
+// 寵物資訊與需求雙向綁定數據
+// ==========================================================================
+const petCount = ref("1"); // 對應原檔的 useState("1")
+const specialNotes = ref(""); // 對應原檔的 useState("")
 
 // ==========================================================================
-// 2. 寵物資訊與需求雙向綁定數據
-// ==========================================================================
-const petCount = ref('1')      // 對應原檔的 useState("1")
-const specialNotes = ref('')   // 對應原檔的 useState("")
-
-// ==========================================================================
-// 3. 叫車車款原始數據庫 (已完美同步你剛才提供的 4 種精準車種數據！)
+// 叫車車款原始數據庫 (已完美同步你剛才提供的 4 種精準車種數據！)
 // ==========================================================================
 const rideOptions = ref([
   {
@@ -259,27 +398,31 @@ const rideOptions = ref([
     available: false,
     recommended: false,
   },
-])
+]);
 
 // 當前選中的車款 ID（對應原檔預設的 "taxi"）
-const selectedRideId = ref("taxi")
+const selectedRideId = ref("taxi");
 
 // ==========================================================================
 // 4. 計算屬性（動態獲取當前選中車款的中文名稱，用於叫車成功的彈窗提示）
 // ==========================================================================
 const currentSelectedRideName = computed(() => {
-  const target = rideOptions.value.find(o => o.id === selectedRideId.value)
-  return target ? target.name : "友善車輛"
-})
+  const target = rideOptions.value.find((o) => o.id === selectedRideId.value);
+  return target ? target.name : "友善車輛";
+});
 
 // ==========================================================================
 // 5. 點擊按鈕的叫車事件處理函式 (純 JavaScript 邏輯)
 // ==========================================================================
 function handleCallTaxi() {
-  alert(`🎉 叫車成功！\n系統已為您派遣【${currentSelectedRideName.value}】\n司機正在前往您的位置，預計 3 分鐘後抵達！\n特殊需求：${specialNotes.value || '無'}`)
+  alert(
+    `🎉 叫車成功！\n系統已為您派遣【${currentSelectedRideName.value}】\n司機正在前往您的位置，預計 3 分鐘後抵達！\n特殊需求：${specialNotes.value || "無"}`,
+  );
 }
 
 function handleCallClinic() {
-  alert(`📞 已複製並為您撥打【${selectedClinic.value.name}】的電話：02-2700-1234`)
+  alert(
+    `📞 已複製並為您撥打【${selectedClinic.value.name}】的電話：02-2700-1234`,
+  );
 }
 </script>

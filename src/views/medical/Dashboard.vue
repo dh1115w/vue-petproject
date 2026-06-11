@@ -100,7 +100,7 @@ const weightData = ref([
 // 原本的 React 元件圖示（icon: Activity）我們直接改成更直覺、不依賴套件的網頁 Emoji 圖標
 const quickActions = ref([
   {
-    label: "身體狀態追蹤",
+    label: "健康狀態追蹤",
     icon: "📈",
     path: "/medical/healthtracking",
     borderLeftColor: "#7BB3D4",

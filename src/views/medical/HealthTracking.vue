@@ -11,7 +11,7 @@
 
       <!-- 頁面頂部標頭 (絕對定位在圖片左上角) -->
       <header class="tracking-header">
-        <h1>身體狀態追蹤</h1>
+        <h1>健康狀態追蹤</h1>
         <p class="subtitle">記錄小福的每日健康數據，掌握長期趨勢變化</p>
       </header>
     </div>
@@ -451,6 +451,153 @@
                 <!-- 底部日期 -->
                 <div class="bar-x-label">{{ day.date }}</div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 歷史健康日誌 -->
+    <div class="history-log-card">
+      <h3>📜 歷史健康日誌</h3>
+
+      <!-- 輕量化蘋果風捲軸滾動區域 -->
+      <div class="history-log-scroll-area">
+        <div class="health-timeline">
+          <!-- 📌 紀錄 1：最新狀態（2026/04/22）- 數據指標全滿且正常 -->
+          <div class="health-timeline-item">
+            <div class="timeline-left-axis">
+              <div class="timeline-line"></div>
+              <div class="health-timeline-dot"></div>
+            </div>
+            <div class="health-timeline-info">
+              <div class="health-timeline-date">2026 / 04 / 22</div>
+
+              <div class="health-log-badges">
+                <span class="log-badge badge-weight">⚖️ 13.6 kg</span>
+                <span class="log-badge badge-water">💧 飲水 500 ml</span>
+                <span class="log-badge badge-food">🍖 進食 180 g</span>
+                <span class="log-badge badge-stool">💩 便便 1次 (正常)</span>
+              </div>
+              <div class="health-log-badges" style="margin-top: 2px">
+                <span class="log-badge badge-status">✨ 精神：非常好</span>
+                <span class="log-badge badge-activity"
+                  >⚡ 活動量：高 (散步1hr)</span
+                >
+              </div>
+
+              <p class="health-log-memo">
+                備註：今天小福下午有去公園跑跑，晚上散步回家喝水量很充足，胃口和食慾都非常好。
+              </p>
+            </div>
+          </div>
+
+          <!-- 📌 紀錄 2：腸域異常狀態（2026/04/21）- 觸發 status-alert 警告色 -->
+          <div class="health-timeline-item status-alert">
+            <div class="timeline-left-axis">
+              <div class="timeline-line"></div>
+              <div class="health-timeline-dot"></div>
+            </div>
+            <div class="health-timeline-info">
+              <div class="health-timeline-date">2026 / 04 / 21</div>
+
+              <div class="health-log-badges">
+                <span class="log-badge badge-weight">⚖️ 13.5 kg</span>
+                <span class="log-badge badge-water">💧 飲水 420 ml</span>
+                <span class="log-badge badge-food">🍖 進食 120 g</span>
+                <span class="log-badge badge-stool alert"
+                  >💩 便便 2次 (輕微軟便)</span
+                >
+              </div>
+              <div class="health-log-badges" style="margin-top: 2px">
+                <span class="log-badge badge-status">✨ 精神：輕微疲倦</span>
+                <span class="log-badge badge-activity">⚡ 活動量：中等</span>
+              </div>
+
+              <p class="health-log-memo">
+                備註：早上大便型態稍微偏軟，食慾稍降，可能跟昨晚新開的副食罐頭有關，先持續觀察精神狀態。
+              </p>
+            </div>
+          </div>
+
+          <!-- 📌 紀錄 3：脫水預警狀態（2026/04/20）- 飲水量偏低提示，觸發 status-alert -->
+          <div class="health-timeline-item status-alert">
+            <div class="timeline-left-axis">
+              <div class="timeline-line"></div>
+              <div class="health-timeline-dot"></div>
+            </div>
+            <div class="health-timeline-info">
+              <div class="health-timeline-date">2026 / 04 / 20</div>
+
+              <div class="health-log-badges">
+                <span class="log-badge badge-weight">⚖️ 13.4 kg</span>
+                <span class="log-badge badge-water alert">💧 飲水 310 ml</span>
+                <span class="log-badge badge-food">🍖 進食 170 g</span>
+                <span class="log-badge badge-stool">💩 便便 1次 (正常)</span>
+              </div>
+              <div class="health-log-badges" style="margin-top: 2px">
+                <span class="log-badge badge-status">✨ 精神：普通</span>
+                <span class="log-badge badge-activity">⚡ 活動量：偏低</span>
+              </div>
+
+              <p class="health-log-memo">
+                備註：今天喝水量明顯低於每日建議量（310ml），主人加班較晚回家，晚上有額外在乾乾裡加水強迫補充。
+              </p>
+            </div>
+          </div>
+
+          <!-- 📌 紀錄 4：週末出遊高峰（2026/04/19）- 運動量與排泄次數大增 -->
+          <div class="health-timeline-item">
+            <div class="timeline-left-axis">
+              <div class="timeline-line"></div>
+              <div class="health-timeline-dot"></div>
+            </div>
+            <div class="health-timeline-info">
+              <div class="health-timeline-date">2026 / 04 / 19</div>
+
+              <div class="health-log-badges">
+                <span class="log-badge badge-weight">⚖️ 13.6 kg</span>
+                <span class="log-badge badge-water">💧 飲水 650 ml</span>
+                <span class="log-badge badge-food">🍖 進食 200 g</span>
+                <span class="log-badge badge-stool">💩 便便 3次 (正常)</span>
+              </div>
+              <div class="health-log-badges" style="margin-top: 2px">
+                <span class="log-badge badge-status">✨ 精神：極度興奮</span>
+                <span class="log-badge badge-activity"
+                  >⚡ 活動量：極高 (寵物泳池)</span
+                >
+              </div>
+
+              <p class="health-log-memo">
+                備註：週末帶小福去苗栗寵物泳池玩水，活動量消耗極大，因此飲水量與排泄次數都比平時顯著增加，晚上秒入睡。
+              </p>
+            </div>
+          </div>
+
+          <!-- 📌 紀錄 5：醫院回診追蹤（2026/04/18）- 體重觀察正常 -->
+          <div class="health-timeline-item">
+            <div class="timeline-left-axis">
+              <div class="timeline-line"></div>
+              <div class="health-timeline-dot"></div>
+            </div>
+            <div class="health-timeline-info">
+              <div class="health-timeline-date">2026 / 04 / 18</div>
+
+              <div class="health-log-badges">
+                <span class="log-badge badge-weight">⚖️ 13.5 kg</span>
+                <span class="log-badge badge-water">💧 飲水 480 ml</span>
+                <span class="log-badge badge-food">🍖 進食 160 g</span>
+                <span class="log-badge badge-stool"
+                  >💩 便便 1次 (稍微偏硬)</span
+                >
+              </div>
+              <div class="health-log-badges" style="margin-top: 2px">
+                <span class="log-badge badge-status">✨ 精神：良好</span>
+                <span class="log-badge badge-activity">⚡ 活動量：正常</span>
+              </div>
+
+              <p class="health-log-memo">
+                備註：早上帶去快樂動物醫院進行皮膚科複診，醫生說傷口恢復得很好。回家後情緒穩定，下午進行了正常的例行性散步。
+              </p>
             </div>
           </div>
         </div>

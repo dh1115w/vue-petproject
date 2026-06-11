@@ -627,6 +627,182 @@
   display: block;
 }
 
+/*歷史健康日誌容器 */
+.history-log-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+
+  /* 💡 修正關鍵：往下方滾動時與上方圖表拉開距離 */
+  margin-top: 2rem;
+
+  /* 💡 終極對齊核心： */
+  /* 因為你上方的網格左右有設定 padding: 0 1.5rem; */
+  /* 這裡我們也要用 margin 讓這張大卡片左右各縮進去 1.5rem，就能跟上面完美對齊！ */
+  margin-left: 1.5rem; /* 左右縮進的寬度要跟上面 .tracking-main-grid 的 padding 一致 */
+  margin-right: 1.5rem;
+
+  /* 💡 確保計算寬度時，扣除掉我們剛剛加的左右外距 */
+  width: calc(100% - 3rem);
+  box-sizing: border-box;
+}
+
+/* 歷史日誌標題 */
+.history-log-card h3 {
+  font-size: 1.2rem;
+  color: #333333;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 滾動條軌道容器 
+   💡 核心設定：固定最大高度，並開啟輕量化捲軸機制 */
+.history-log-scroll-area {
+  max-height: 380px; /* 固定黃金高度，不破壞 Bento 佈局 */
+  overflow-y: auto; /* 僅允許垂直滾動 */
+  padding-right: 0.5rem; /* 為右側捲軸預留呼吸空間 */
+}
+
+/* ==========================================================================
+   👻 捲軸輕量化與隱藏式美化設計 (蘋果 Mac 風格)
+   ========================================================================== */
+/* 1. 調整捲軸寬度與精緻度 */
+.history-log-scroll-area::-webkit-scrollbar {
+  width: 5px; /* 限制寬度僅 5px，極致纖細不突兀 */
+}
+
+/* 2. 捲軸軌道背景：完全透明隱藏 */
+.history-log-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 3. 捲軸滑塊：淡淡的莫蘭迪柔和灰 */
+.history-log-scroll-area::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.08); /* 預設超淡透明灰，達成隱藏感 */
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+/* 4. 當滑鼠懸停在日誌區域上時，滑塊才稍微變深提示可滾動 */
+.history-log-scroll-area:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+/* ==========================================================================
+   ⏳ 移植自病歷紀錄頁：時間軸式日誌排版
+   ========================================================================== */
+.health-timeline {
+  position: relative;
+  padding-left: 20px;
+  margin-left: 10px;
+  border-left: 2px solid #eef2f5; /* 時間軸貫穿左側中軸線 */
+}
+
+.health-timeline-item {
+  position: relative;
+  margin-bottom: 1.8rem;
+}
+
+.health-timeline-item:last-child {
+  margin-bottom: 0; /* 最後一筆移除下邊距 */
+}
+
+/* 時間軸小圓點 */
+.health-timeline-dot {
+  position: absolute;
+  left: -26px; /* 精準置中對齊 border-left */
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #7bb3d4; /* 預設使用你追蹤頁的清新藍色調 */
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 2px rgba(123, 179, 212, 0.2);
+}
+
+/* 當天大便有異常(軟便/拉肚子)時，圓點可以動態變成警告橘色 */
+.health-timeline-item.status-alert .health-timeline-dot {
+  background-color: #e8a87a;
+  box-shadow: 0 0 0 2px rgba(232, 168, 122, 0.2);
+}
+
+/* 時間軸右側內容區 */
+.health-timeline-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 日期樣式 */
+.health-timeline-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #888888;
+}
+
+/* 健康數據膠囊標籤列 */
+.health-log-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 數據小膠囊基底樣式 */
+.log-badge {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 配合你原本 quickActions 的柔和粉色系，幫不同項目著色 */
+.badge-weight {
+  background-color: #f0f7fa;
+  color: #4a7b9d;
+} /* 藍 */
+.badge-water {
+  background-color: #f1f9f5;
+  color: #3c7a5a;
+} /* 綠 */
+.badge-stool {
+  background-color: #fcf6f0;
+  color: #b57c4a;
+} /* 咖/橘 */
+.badge-food {
+  background-color: #fdf6ec;
+  color: #b57c1e;
+} /* 暖橘黃 */
+.badge-status {
+  background-color: #f3f0fa;
+  color: #6b4c9a;
+} /* 淡淡紫 */
+.badge-activity {
+  background-color: #eef9f9;
+  color: #2c7a7b;
+} /* 湖水綠 */
+.badge-stool.alert {
+  background-color: #fdf2f5;
+  color: #b85a75;
+} /* 異常粉紅 */
+
+/* 飼主輸入的備註文字 */
+.health-log-memo {
+  font-size: 0.95rem;
+  color: #555555;
+  line-height: 1.5;
+  margin: 4px 0 0 0;
+  background-color: #f8fafc; /* 淡淡的底色區隔備註 */
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
 /* ==========================================================================
    RWD 響應式斷點排版
    ========================================================================== */

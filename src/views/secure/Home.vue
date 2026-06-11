@@ -45,14 +45,14 @@
 
        
 
-        <a href="#" class="service-card" @click.prevent>
+        <a href="#" class="service-card" @click.prevent="router.push('/grooming')">
           <span class="card-label">Grooming</span>
           <h3 class="card-title">寵物美容</h3>
           <p class="card-desc">專業造型師為您的毛孩打造完美造型</p>
           <span class="card-arrow">了解更多   →</span>
         </a>
 
-        <a href="#" class="service-card" @click.prevent>
+        <a href="#" class="service-card" @click.prevent="router.push('/medical')">
           <span class="card-label">Medical</span>
           <h3 class="card-title">寵物醫療</h3>
           <p class="card-desc">專業獸醫師提供完整健康照護</p>

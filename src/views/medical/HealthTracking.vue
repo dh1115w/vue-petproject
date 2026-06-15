@@ -1,22 +1,18 @@
 <template>
-  <!-- 最外層容器，自帶頁面淡入動畫 -->
+  <!-- 最外層容器 -->
   <div class="tracking-container page-container page-enter">
-    <!-- 健康追蹤 Banner (標題已移入下方) -->
+    <!-- 健康追蹤 Banner -->
     <div class="health-tracking-banner">
-      <img
-        src="@/images/health-tracking-banner.jpg"
-        alt="健康追蹤 Banner"
-        class="banner-image"
-      />
+      <img :src="healthBanner" alt="健康追蹤 Banner" class="banner-image" />
 
-      <!-- 頁面頂部標頭 (絕對定位在圖片左上角) -->
+      <!-- 頁面頂部標頭 -->
       <header class="tracking-header">
         <h1>健康狀態追蹤</h1>
-        <p class="subtitle">記錄小福的每日健康數據，掌握長期趨勢變化</p>
+        <p class="subtitle">記錄{{ name }} 的每日健康數據，掌握長期趨勢變化</p>
       </header>
     </div>
 
-    <!-- 主排版區：採用標準 Grid 網格佈局（左側輸入表單 + 右側圖表區） -->
+    <!-- 主排版區：左側輸入表單 + 右側圖表區 -->
     <div class="tracking-main-grid stagger-children">
       <!-- 【左側面板】：今日紀錄輸入表單 -->
       <div class="pawcare-card pawcare-card-accent-green">
@@ -34,7 +30,7 @@
             <input
               type="number"
               step="0.1"
-              v-model="formData.weight"
+              v-model="metricValueWeight"
               placeholder="例：13.6"
               class="form-input"
             />
@@ -45,11 +41,16 @@
             <label class="form-label">💧 飲水量（ml）</label>
             <input
               type="number"
-              v-model="formData.water"
+              v-model="metricValueWater"
               placeholder="例 : 480"
               class="form-input"
             />
-            <p class="input-tip-text">建議每日 600ml（體重 × 44ml）</p>
+            <p class="input-tip-text">
+              <span v-if="metricValueWeight > 0">
+                建議每日 {{ recommendedWater }}（體重 × 60ml）
+              </span>
+              <span v-else> 建議每日飲水量：體重 × 60ml </span>
+            </p>
           </div>
 
           <!-- 3. 進食量輸入框 -->
@@ -57,7 +58,7 @@
             <label class="form-label">🥣 進食量（g）</label>
             <input
               type="number"
-              v-model="formData.food"
+              v-model="metricValueFood"
               placeholder="例：250"
               class="form-input"
             />
@@ -72,15 +73,15 @@
                 :key="option"
                 type="button"
                 class="square-tab-btn"
-                :class="{ 'is-active': formData.poop === option }"
-                @click="formData.poop = option"
+                :class="{ 'is-active': metricValuePoop === option }"
+                @click="metricValuePoop = option"
               >
                 {{ option }}
               </button>
             </div>
           </div>
 
-          <!-- 4.5 便便狀態快捷按鈕區 -->
+          <!-- 5 便便狀態快捷按鈕區 -->
           <div class="form-group">
             <label class="form-label">💩 便便狀態</label>
             <div class="flex-buttons-row">
@@ -89,15 +90,15 @@
                 :key="status.label"
                 type="button"
                 class="mood-tab-btn"
-                :class="{ 'is-active': formData.poopStatus === status.label }"
-                @click="formData.poopStatus = status.label"
+                :class="{ 'is-active': statusNotePoop === status.label }"
+                @click="statusNotePoop = status.label"
               >
                 {{ status.emoji }} {{ status.label }}
               </button>
             </div>
           </div>
 
-          <!-- 5. 精神狀態快捷按鈕區 -->
+          <!-- 6. 精神狀態快捷按鈕區 -->
           <div class="form-group">
             <label class="form-label">✨ 今日精神狀態</label>
             <div class="flex-buttons-row">
@@ -106,15 +107,15 @@
                 :key="status.label"
                 type="button"
                 class="mood-tab-btn"
-                :class="{ 'is-active': formData.mood === status.label }"
-                @click="formData.mood = status.label"
+                :class="{ 'is-active': statusNoteMood === status.label }"
+                @click="statusNoteMood = status.label"
               >
                 {{ status.emoji }} {{ status.label }}
               </button>
             </div>
           </div>
 
-          <!-- 5.5 活動量快捷按鈕區 (新增豐富版面) -->
+          <!-- 7. 活動量快捷按鈕區 -->
           <div class="form-group">
             <label class="form-label">🏃 活動量</label>
             <div class="flex-buttons-row">
@@ -123,19 +124,19 @@
                 :key="act.label"
                 type="button"
                 class="square-tab-btn"
-                :class="{ 'is-active': formData.activity === act.label }"
-                @click="formData.activity = act.label"
+                :class="{ 'is-active': statusNoteActivity === act.label }"
+                @click="statusNoteActivity = act.label"
               >
                 {{ act.emoji }} {{ act.label }}
               </button>
             </div>
           </div>
 
-          <!-- 6. 備註說明  -->
+          <!-- 8. 備註說明 -->
           <div class="form-group" style="margin-bottom: 20px">
             <label class="form-label">📝 備註說明 (選填)</label>
             <textarea
-              v-model="formData.note"
+              v-model="statusNoteExtra"
               placeholder="例：今天便便有點軟，下午出門散步..."
               class="form-input"
               :class="{ 'is-focused': isNoteFocused }"
@@ -164,13 +165,14 @@
             儲存今日紀錄
           </button>
 
-          <p class="last-update-time">最後更新時間：{{ lastUpdateTime }}</p>
+          <p class="last-update-time">最後更新時間：{{ updatedAt }}</p>
         </div>
       </div>
 
       <!-- 【右側區塊】：數據摘要卡片 + 體重折線圖 + 飲食雙長條圖 -->
       <div class="right-charts-panel">
         <!-- 上方：三個數據摘要卡片並排 -->
+        <!--遍歷一個名為 healthStatsSummary 的陣列（裡面包含體重、飲水等資料物件）-->
         <div class="status-summary-cards-grid">
           <div
             v-for="stat in healthStatsSummary"
@@ -191,38 +193,43 @@
               <span
                 v-else-if="stat.trend === 'down'"
                 class="trend-indicator text-danger"
-                >📉</span
-              >
+              ></span>
               <span
                 v-else-if="stat.trend === 'neutral'"
                 class="trend-indicator text-muted"
               ></span>
               <span v-else class="trend-indicator text-success"></span>
             </div>
+            <!-- 顯示主要數值（如：13.6 kg、480 ml） -->
             <div class="summary-value" :style="{ color: stat.color }">
               {{ stat.value }}
             </div>
+            <!-- 顯示項目名稱（如：目前體重、今日飲水） -->
             <div class="summary-label">{{ stat.label }}</div>
+            <!-- 顯示補充說明（如：比昨天多 50ml、狀態正常） -->
             <div class="summary-subtext">{{ stat.sub }}</div>
           </div>
         </div>
 
-        <!-- 新增：警示與建議卡片和醫護提醒快訊區 -->
+        <!-- 警示與建議卡片和醫護提醒快訊區 -->
         <div class="insights-reminders-container">
           <!-- 左側：警示與建議卡片 -->
           <div class="insights-card">
-            <div class="insight-item warning">
-              <span class="insight-icon">⚠️</span>
+            <!-- 體重提醒（動態顯示） -->
+            <div class="insight-item" :class="weightInsight.type">
+              <span class="insight-icon">{{ weightInsight.icon }}</span>
               <div class="insight-content">
-                <h4>體重提醒</h4>
-                <p>發現本週體重波動超過 3%，建議觀察食慾。</p>
+                <h4>體重狀態</h4>
+                <p>{{ weightInsight.text }}</p>
               </div>
             </div>
-            <div class="insight-item tip">
-              <span class="insight-icon">💡</span>
+
+            <!-- 照護建議 / 飲水狀態（動態顯示） -->
+            <div class="insight-item" :class="waterInsight.type">
+              <span class="insight-icon">{{ waterInsight.icon }}</span>
               <div class="insight-content">
-                <h4>照護建議</h4>
-                <p>今日飲水量剛好達標，表現很棒！</p>
+                <h4>飲水狀態</h4>
+                <p>{{ waterInsight.text }}</p>
               </div>
             </div>
           </div>
@@ -264,7 +271,7 @@
             </div>
           </div>
 
-          <!-- 使用純 SVG 向量圖形畫出來的高質感體重折線圖 (100% 免套件) -->
+          <!-- 體重折線圖 -->
           <div class="chart-visual-wrapper">
             <svg class="line-chart-svg" viewBox="0 0 500 180">
               <!-- 背景參考虛線網格、偏瘦與過重臨界警示線 -->
@@ -303,7 +310,7 @@
                 stroke-dasharray="3 3"
               />
 
-              <!-- 體重趨勢主折線 (SVG Polyline) -->
+              <!-- 體重趨勢主折線  -->
               <polyline
                 fill="none"
                 stroke="var(--primary)"
@@ -370,6 +377,7 @@
                 stroke="#fff"
                 stroke-width="2"
               />
+              <!-- 最新體重節點（藍色強調） -->
               <circle
                 cx="470"
                 cy="70"
@@ -378,20 +386,10 @@
                 stroke="#fff"
                 stroke-width="2"
               />
-              <!-- 點中的最新體重節點 -->
 
               <!-- X 軸底部日期文字刻度 -->
               <text
-                v-for="(d, idx) in [
-                  '3/1',
-                  '3/8',
-                  '3/15',
-                  '3/22',
-                  '3/29',
-                  '4/5',
-                  '4/12',
-                  '4/19',
-                ]"
+                v-for="(d, idx) in currentChartData"
                 :key="idx"
                 :x="50 + idx * 60"
                 y="165"
@@ -399,7 +397,7 @@
                 font-size="11"
                 fill="#9c9e98"
               >
-                {{ d }}
+                {{ d.date }}
               </text>
             </svg>
           </div>
@@ -421,7 +419,7 @@
             </div>
           </div>
 
-          <!-- 使用純 HTML CSS Flexbox 直覺呈現的雙色極簡長條圖 (100% 免套件) -->
+          <!-- 雙色長條圖-->
           <div class="bar-chart-visual-wrapper">
             <div class="bar-chart-y-axis">
               <span>600</span><span>400</span><span>200</span><span>0</span>
@@ -458,147 +456,64 @@
         </div>
       </div>
     </div>
+
     <!-- 歷史健康日誌 -->
     <div class="history-log-card">
       <h3>📜 歷史健康日誌</h3>
 
-      <!-- 輕量化蘋果風捲軸滾動區域 -->
+      <!-- 捲軸滾動區域 -->
       <div class="history-log-scroll-area">
         <div class="health-timeline">
-          <!-- 📌 紀錄 1：最新狀態（2026/04/22）- 數據指標全滿且正常 -->
-          <div class="health-timeline-item">
+          <!-- 透過 v-for 迴圈動態渲染出 5 筆紀錄 + 用戶新增的紀錄 -->
+          <div
+            v-for="log in historyLogs"
+            :key="log.id"
+            class="health-timeline-item"
+            :class="{ 'status-alert': log.isAlert }"
+          >
             <div class="timeline-left-axis">
               <div class="timeline-line"></div>
               <div class="health-timeline-dot"></div>
             </div>
             <div class="health-timeline-info">
-              <div class="health-timeline-date">2026 / 04 / 22</div>
+              <div class="health-timeline-date">{{ log.date }}</div>
 
               <div class="health-log-badges">
-                <span class="log-badge badge-weight">⚖️ 13.6 kg</span>
-                <span class="log-badge badge-water">💧 飲水 500 ml</span>
-                <span class="log-badge badge-food">🍖 進食 180 g</span>
-                <span class="log-badge badge-stool">💩 便便 1次 (正常)</span>
+                <span class="log-badge badge-weight"
+                  >⚖️ {{ log.weight }} kg</span
+                >
+
+                <!-- 飲水標籤：若低於標準自動帶入 alert 樣式 -->
+                <span
+                  class="log-badge badge-water"
+                  :class="{ alert: log.isWaterAlert }"
+                >
+                  💧 飲水 {{ log.water }} ml
+                </span>
+
+                <span class="log-badge badge-food"
+                  >🍖 進食 {{ log.food }} g</span
+                >
+
+                <!-- 便便標籤：若狀態異常自動帶入 alert 樣式 -->
+                <span
+                  class="log-badge badge-stool"
+                  :class="{ alert: log.isPoopAlert }"
+                >
+                  💩 便便 {{ log.poopCount }}次 ({{ log.poopStatus }})
+                </span>
               </div>
+
               <div class="health-log-badges" style="margin-top: 2px">
-                <span class="log-badge badge-status">✨ 精神：非常好</span>
+                <span class="log-badge badge-status"
+                  >✨ 精神：{{ log.mood }}</span
+                >
                 <span class="log-badge badge-activity"
-                  >⚡ 活動量：高 (散步1hr)</span
+                  >⚡ 活動量：{{ log.activity }}</span
                 >
               </div>
-
               <p class="health-log-memo">
-                備註：今天小福下午有去公園跑跑，晚上散步回家喝水量很充足，胃口和食慾都非常好。
-              </p>
-            </div>
-          </div>
-
-          <!-- 📌 紀錄 2：腸域異常狀態（2026/04/21）- 觸發 status-alert 警告色 -->
-          <div class="health-timeline-item status-alert">
-            <div class="timeline-left-axis">
-              <div class="timeline-line"></div>
-              <div class="health-timeline-dot"></div>
-            </div>
-            <div class="health-timeline-info">
-              <div class="health-timeline-date">2026 / 04 / 21</div>
-
-              <div class="health-log-badges">
-                <span class="log-badge badge-weight">⚖️ 13.5 kg</span>
-                <span class="log-badge badge-water">💧 飲水 420 ml</span>
-                <span class="log-badge badge-food">🍖 進食 120 g</span>
-                <span class="log-badge badge-stool alert"
-                  >💩 便便 2次 (輕微軟便)</span
-                >
-              </div>
-              <div class="health-log-badges" style="margin-top: 2px">
-                <span class="log-badge badge-status">✨ 精神：輕微疲倦</span>
-                <span class="log-badge badge-activity">⚡ 活動量：中等</span>
-              </div>
-
-              <p class="health-log-memo">
-                備註：早上大便型態稍微偏軟，食慾稍降，可能跟昨晚新開的副食罐頭有關，先持續觀察精神狀態。
-              </p>
-            </div>
-          </div>
-
-          <!-- 📌 紀錄 3：脫水預警狀態（2026/04/20）- 飲水量偏低提示，觸發 status-alert -->
-          <div class="health-timeline-item status-alert">
-            <div class="timeline-left-axis">
-              <div class="timeline-line"></div>
-              <div class="health-timeline-dot"></div>
-            </div>
-            <div class="health-timeline-info">
-              <div class="health-timeline-date">2026 / 04 / 20</div>
-
-              <div class="health-log-badges">
-                <span class="log-badge badge-weight">⚖️ 13.4 kg</span>
-                <span class="log-badge badge-water alert">💧 飲水 310 ml</span>
-                <span class="log-badge badge-food">🍖 進食 170 g</span>
-                <span class="log-badge badge-stool">💩 便便 1次 (正常)</span>
-              </div>
-              <div class="health-log-badges" style="margin-top: 2px">
-                <span class="log-badge badge-status">✨ 精神：普通</span>
-                <span class="log-badge badge-activity">⚡ 活動量：偏低</span>
-              </div>
-
-              <p class="health-log-memo">
-                備註：今天喝水量明顯低於每日建議量（310ml），主人加班較晚回家，晚上有額外在乾乾裡加水強迫補充。
-              </p>
-            </div>
-          </div>
-
-          <!-- 📌 紀錄 4：週末出遊高峰（2026/04/19）- 運動量與排泄次數大增 -->
-          <div class="health-timeline-item">
-            <div class="timeline-left-axis">
-              <div class="timeline-line"></div>
-              <div class="health-timeline-dot"></div>
-            </div>
-            <div class="health-timeline-info">
-              <div class="health-timeline-date">2026 / 04 / 19</div>
-
-              <div class="health-log-badges">
-                <span class="log-badge badge-weight">⚖️ 13.6 kg</span>
-                <span class="log-badge badge-water">💧 飲水 650 ml</span>
-                <span class="log-badge badge-food">🍖 進食 200 g</span>
-                <span class="log-badge badge-stool">💩 便便 3次 (正常)</span>
-              </div>
-              <div class="health-log-badges" style="margin-top: 2px">
-                <span class="log-badge badge-status">✨ 精神：極度興奮</span>
-                <span class="log-badge badge-activity"
-                  >⚡ 活動量：極高 (寵物泳池)</span
-                >
-              </div>
-
-              <p class="health-log-memo">
-                備註：週末帶小福去苗栗寵物泳池玩水，活動量消耗極大，因此飲水量與排泄次數都比平時顯著增加，晚上秒入睡。
-              </p>
-            </div>
-          </div>
-
-          <!-- 📌 紀錄 5：醫院回診追蹤（2026/04/18）- 體重觀察正常 -->
-          <div class="health-timeline-item">
-            <div class="timeline-left-axis">
-              <div class="timeline-line"></div>
-              <div class="health-timeline-dot"></div>
-            </div>
-            <div class="health-timeline-info">
-              <div class="health-timeline-date">2026 / 04 / 18</div>
-
-              <div class="health-log-badges">
-                <span class="log-badge badge-weight">⚖️ 13.5 kg</span>
-                <span class="log-badge badge-water">💧 飲水 480 ml</span>
-                <span class="log-badge badge-food">🍖 進食 160 g</span>
-                <span class="log-badge badge-stool"
-                  >💩 便便 1次 (稍微偏硬)</span
-                >
-              </div>
-              <div class="health-log-badges" style="margin-top: 2px">
-                <span class="log-badge badge-status">✨ 精神：良好</span>
-                <span class="log-badge badge-activity">⚡ 活動量：正常</span>
-              </div>
-
-              <p class="health-log-memo">
-                備註：早上帶去快樂動物醫院進行皮膚科複診，醫生說傷口恢復得很好。回家後情緒穩定，下午進行了正常的例行性散步。
+                {{ log.memo }}
               </p>
             </div>
           </div>
@@ -611,55 +526,76 @@
 <script setup>
 import { ref, computed } from "vue";
 import "@/css/medical/medical-health-tracking.css";
+import healthBannerImg from "@/images/health-tracking-banner.jpg";
+
+// ── 圖片路徑 ────────────────────────────────────────────
+const healthBanner = ref(healthBannerImg);
+
+// ── 寵物基本資料（對應 Pet 表）──────────────────────────
+const name = ref("小福"); // Pet.name
+
+// ── 備註框 focus 狀態 ────────────────────────────────────
+const isNoteFocused = ref(false);
 
 // ==========================================================================
-// 1. 左側表單綁定數據物件（對應 v-model）
+// 1. 左側表單：各欄位獨立 ref（對應 PetHealthTracking 欄位）
 // ==========================================================================
-const formData = ref({
-  weight: "",
-  water: "",
-  food: "",
-  poop: "1", // 預設選中 1 次
-  poopStatus: "", // 便便狀態快捷選項的綁定值，預設為空（未選擇）
-  mood: "很好", // 預設精神狀態很好
-  activity: "中", // 新增：活動量快捷選項的綁定值，預設為「中」
-  note: "", // 新增：用來綁定多行文字框的備註內容
+
+const metricValueWeight = ref(""); // 體重（kg）   → PetHealthTracking.metricValue
+const metricValueWater = ref(""); // 飲水量（ml）  → PetHealthTracking.metricValue
+const metricValueFood = ref(""); // 進食量（g）   → PetHealthTracking.metricValue
+const metricValuePoop = ref("0"); // 排泄次數      → PetHealthTracking.metricValue（預設 1 次）
+const statusNotePoop = ref("正常"); // 便便狀態      → PetHealthTracking.statusNote
+const statusNoteMood = ref("很好"); // 精神狀態      → PetHealthTracking.statusNote（預設很好）
+const statusNoteActivity = ref("低"); // 活動量        → PetHealthTracking.statusNote（預設中）
+const statusNoteExtra = ref(""); // 備註說明      → PetHealthTracking.statusNote
+
+// ── 最後更新時間（對應 PetHealthTracking.updatedAt）──────
+const updatedAt = ref("2026/06/11 18:30");
+
+// ── 喝水建議量 ──────
+const recommendedWater = computed(() => {
+  const weight = parseFloat(metricValueWeight.value);
+  // 若未輸入或非數字，預設顯示 0
+  if (isNaN(weight) || weight <= 0) return 0;
+
+  // 計算體重 * 60，並四捨五入取到整數
+  return Math.round(weight * 60);
 });
 
-// 快捷按鈕的靜態選項配置
+// ── 快捷按鈕的靜態選項 ──────────────────────────────────
 const poopOptions = ["0", "1", "2", "3", "4+"];
-const statusOptions = [
-  { label: "很好", emoji: "😊" },
-  { label: "普通", emoji: "😐" },
-  { label: "不好", emoji: "😟" },
-];
-
-// 活動量快捷選項的靜態選項配置
-const activityOptions = [
-  { label: "低", emoji: "🛌" },
-  { label: "中", emoji: "🚶" },
-  { label: "高", emoji: "🏃" },
-];
-
-// 控制備註說明輸入框是否顯示的開關（預設隱藏）
-const showNote = ref(false);
 
 const poopStatusOptions = [
-  { label: "正常", emoji: "👍" },
-  { label: "軟便", emoji: "🟡" },
-  { label: "便秘", emoji: "🟠" },
-  { label: "拉肚子", emoji: "🔴" },
+  { label: "正常", emoji: "" },
+  { label: "軟便", emoji: "" },
+  { label: "便秘", emoji: "" },
+  { label: "拉肚子", emoji: "" },
 ];
 
-// 定義最後更新時間變數（Demo 展示時初始值可以寫一個模擬時間，或寫未紀錄）
-const lastUpdateTime = ref("2026/06/11 18:30");
-// 如果想預設寫未紀錄：const lastUpdateTime = ref("今日尚未紀錄");
+const statusOptions = [
+  { label: "很好", emoji: "" },
+  { label: "普通", emoji: "" },
+  { label: "不好", emoji: "" },
+];
 
-// 模擬點擊儲存按鈕的 function
-const saveDailyRecord = () => {
-  // ... 這裡執行你原本的 Axios 傳送給 Java 後端的邏輯 ...
+const activityOptions = [
+  { label: "低", emoji: "" },
+  { label: "中", emoji: "" },
+  { label: "高", emoji: "" },
+];
 
-  // 當 Java 回傳儲存成功後，前端自動抓取當前精確時間更新畫面
+// ==========================================================================
+// 2. 表單提交：儲存今日紀錄
+// ==========================================================================
+async function handleSubmitRecord() {
+  // 1. 取得輸入值，若未輸入則帶入預設值（維持原本的預設值）
+  const w = metricValueWeight.value || "13.6";
+  const wt = metricValueWater.value || "480";
+  const f = metricValueFood.value || "250";
+  const n = statusNoteExtra.value || "無";
+
+  // 2. 取得當下時間並格式化
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -667,20 +603,221 @@ const saveDailyRecord = () => {
   const hours = String(now.getHours()).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
 
-  // 全自動更新為最新時間！
-  lastUpdateTime.value = `${year}/${month}/${date} ${hours}:${minutes}`;
+  const formattedDate = `${year} / ${month} / ${date}`;
+  updatedAt.value = `${year}/${month}/${date} ${hours}:${minutes}`;
 
-  alert("今日健康數據儲存成功！");
-};
+  // 3. 判斷這筆資料是否需要觸發警告樣式（例如飲水過低、便便異常）
+  const waterAlarm = Number(wt) < 350;
+  const poopAlarm =
+    statusNotePoop.value === "偏軟" || statusNotePoop.value === "拉肚子";
+
+  // 4. 建立新日誌物件，並動態推入右側歷史紀錄的最前面
+  const newRecord = {
+    id: Date.now(), // 暫時用時間戳當作前端 key
+    date: formattedDate,
+    weight: w,
+    water: wt,
+    food: f,
+    poopCount: metricValuePoop.value || 0,
+    poopStatus: statusNotePoop.value || "正常",
+    mood: statusNoteMood.value || "非常好",
+    activity: statusNoteActivity.value || "一般",
+    memo: statusNoteExtra.value
+      ? `備註：${statusNoteExtra.value}`
+      : "無備註說明。",
+    isAlert: waterAlarm || poopAlarm,
+    isWaterAlert: waterAlarm,
+    isPoopAlert: poopAlarm,
+  };
+
+  // 立即在前端畫面更新日誌
+  historyLogs.value.unshift(newRecord);
+
+  // 5. 串接 Java 後端
+
+  try {
+    const postData = {
+      weight: parseFloat(w),
+      waterIntake: parseInt(wt),
+      foodIntake: parseInt(f),
+      poopCount: parseInt(metricValuePoop.value),
+      poopStatus: statusNotePoop.value,
+      moodStatus: statusNoteMood.value,
+      activityLevel: statusNoteActivity.value,
+      memo: statusNoteExtra.value,
+    };
+    // 呼叫Java 後端 API
+    // const response = await axios.post('/api/pet/health-tracking', postData);
+    // console.log('後端儲存成功:', response.data);
+  } catch (error) {
+    console.error("後端儲存失敗:", error);
+    alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
+  }
+
+  // 6. 彈出成功提示並清空備註欄
+  alert(
+    `今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`,
+  );
+  statusNoteExtra.value = "";
+}
+
+//顯示歷史資料
+const historyLogs = ref([
+  {
+    id: 1,
+    date: "2026 / 07 / 09",
+    weight: "13.6",
+    water: "500",
+    food: "180",
+    poopCount: "1",
+    poopStatus: "正常",
+    mood: "非常好",
+    activity: "高 (散步1hr)",
+    memo: "備註：今天小福下午有去公園跑跑，晚上散步回家喝水量很充足，胃口和食慾都非常好。",
+    isAlert: false,
+    isWaterAlert: false,
+    isPoopAlert: false,
+  },
+  {
+    id: 2,
+    date: "2026 / 07 / 08",
+    weight: "13.5",
+    water: "420",
+    food: "120",
+    poopCount: "2",
+    poopStatus: "輕微軟便",
+    mood: "輕微疲倦",
+    activity: "中等",
+    memo: "備註：早上大便型態稍微偏軟，食慾稍降，可能跟昨晚新開的副食罐頭有關，先持續觀察精神狀態。",
+    isAlert: true,
+    isWaterAlert: false,
+    isPoopAlert: true,
+  },
+  {
+    id: 3,
+    date: "2026 / 07 / 07",
+    weight: "13.4",
+    water: "310",
+    food: "170",
+    poopCount: "1",
+    poopStatus: "正常",
+    mood: "普通",
+    activity: "偏低",
+    memo: "備註：今天喝水量明顯低於每日建議量（310ml），主人加班較晚回家，晚上有額外在乾乾裡加水強迫補充。",
+    isAlert: true,
+    isWaterAlert: true,
+    isPoopAlert: false,
+  },
+  {
+    id: 4,
+    date: "2026 / 07 / 06",
+    weight: "13.6",
+    water: "650",
+    food: "200",
+    poopCount: "3",
+    poopStatus: "正常",
+    mood: "極度興奮",
+    activity: "極高 (寵物泳池)",
+    memo: "備註：週末帶小福去苗栗寵物泳池玩水，活動量消耗極大，因此飲水量與排泄次數都比平時顯著增加，晚上秒入睡。",
+    isAlert: false,
+    isWaterAlert: false,
+    isPoopAlert: false,
+  },
+  {
+    id: 5,
+    date: "2026 / 07 / 05",
+    weight: "13.5",
+    water: "480",
+    food: "160",
+    poopCount: "1",
+    poopStatus: "稍微偏硬",
+    mood: "良好",
+    activity: "正常",
+    memo: "備註：早上帶去快樂動物醫院進行皮膚科複診，醫生說傷口恢復得很好。回家後情緒穩定，下午進行了正常的例行性散步。",
+    isAlert: false,
+    isWaterAlert: false,
+    isPoopAlert: false,
+  },
+]);
 
 // ==========================================================================
-// 2. 圖表時間篩選狀態（預設為 'week'，可切換為 'month' 或 'year'）
+// 左側警示與建議卡片動態綁定資料
 // ==========================================================================
-const currentTimeRange = ref("week");
+
+// ── 體重動態提示邏輯 ──
+const weightInsight = computed(() => {
+  const weight = parseFloat(metricValueWeight.value);
+
+  // 1. 欄位為空或小於等於 0
+  if (isNaN(weight) || weight <= 0) {
+    return {
+      type: "tip",
+      icon: "💡",
+      text: `請輸入今日體重，系統將為您追蹤 ${name.value} 的健康趨勢。`,
+    };
+  }
+
+  // 2. 基準體重：直接採用handleSubmitRecord 定義的預設值 13.6
+  const baseWeight = 13.6;
+  const diffPercent = ((weight - baseWeight) / baseWeight) * 100;
+
+  // 3. 波動超過 3% 顯示警告
+  if (Math.abs(diffPercent) >= 3) {
+    return {
+      type: "warning",
+      icon: "⚠️",
+      text: `注意！與歷史體重 13.6kg 相比，今日波動 (${diffPercent > 0 ? "+" : ""}${diffPercent.toFixed(1)}%) 超過 3%，建議觀察食慾。`,
+    };
+  }
+
+  // 4. 正常穩定狀態
+  return {
+    type: "tip",
+    icon: "✅",
+    text: "目前體重維持在正常範圍內，請繼續保持。",
+  };
+});
+
+// ── 飲水量動態提示 ──
+const waterInsight = computed(() => {
+  const weight = parseFloat(metricValueWeight.value);
+  const water = parseFloat(metricValueWater.value);
+
+  // 1. 如果體重或飲水尚未填寫
+  if (isNaN(weight) || weight <= 0 || isNaN(water) || water <= 0) {
+    return {
+      type: "tip",
+      icon: "💡",
+      text: "請填寫體重與今日飲水量，系統將自動評估水分攝取是否達標。",
+    };
+  }
+
+  // 2. 使用上方已經算好的建議量 (weight * 60)
+  const targetWater = recommendedWater.value;
+
+  // 3. 判斷是否達標
+  if (water >= targetWater) {
+    return {
+      type: "tip",
+      icon: "🎉",
+      text: `今日飲水量達標 (${water}ml / 建議 ${targetWater}ml)，表現很棒！`,
+    };
+  } else {
+    const missing = targetWater - water;
+    return {
+      type: "warning",
+      icon: "⚠️",
+      text: `水分攝取不足！距離今日目標還差 ${missing}ml，建議適度引導寵物喝水。`,
+    };
+  }
+});
 
 // ==========================================================================
-// 3. 核心數據庫：週、月、年模擬歷史紀錄（完全同步你剛才提供的內容！）
+// 3. 右側圖表：時間範圍切換
 // ==========================================================================
+const currentTimeRange = ref("week"); // 預設顯示週視圖
+
+// ── 歷史模擬資料 ────────────────────────────────────────
 const weeklyData = [
   { date: "週一", weight: 13.4, water: 520, food: 250 },
   { date: "週二", weight: 13.5, water: 480, food: 240 },
@@ -717,91 +854,69 @@ const yearlyData = [
   { date: "12月", weight: 13.6 },
 ];
 
-// 雙色長條圖專用數據（固定取當週飲食）
+// 雙色長條圖專用（固定取當週飲食數據）
 const weeklyFoodWaterData = ref(weeklyData);
 
-// ==========================================================================
-// 4. 動態計算屬性（當時間範圍按鈕切換時，折線圖的點位會全自動即時重算重新繪製！）
-// ==========================================================================
+// 折線圖 X 軸日期：依時間範圍自動切換
 const currentChartData = computed(() => {
   if (currentTimeRange.value === "week") return weeklyData;
   if (currentTimeRange.value === "month") return monthlyData;
   return yearlyData;
 });
 
-// 依據原檔核心邏輯，自動幫你計算小福當前的體重狀態
-const currentWeight = 13.6;
+// ==========================================================================
+// 4. 體重狀態計算（對應 Pet.weight 理想區間判斷）
+// ==========================================================================
+const currentWeight = 13.6; // 實際串接時改為從 Pet API 取得的 weight
 const idealMin = 11;
 const idealMax = 16;
 
 const statusLabel = computed(() => {
-  return currentWeight < idealMin
-    ? "偏瘦"
-    : currentWeight > idealMax
-      ? "過重"
-      : "正常";
+  if (currentWeight < idealMin) return "偏瘦";
+  if (currentWeight > idealMax) return "過重";
+  return "正常";
 });
 
 const statusColor = computed(() => {
-  return currentWeight < idealMin
-    ? "#e29553"
-    : currentWeight > idealMax
-      ? "#df4733"
-      : "#6bae8a";
+  if (currentWeight < idealMin) return "#e29553";
+  if (currentWeight > idealMax) return "#df4733";
+  return "#6bae8a";
 });
 
 const statusBg = computed(() => {
-  return currentWeight < idealMin
-    ? "rgba(226, 149, 83, 0.15)"
-    : currentWeight > idealMax
-      ? "rgba(223, 71, 51, 0.15)"
-      : "rgba(107, 174, 138, 0.15)";
+  if (currentWeight < idealMin) return "rgba(226, 149, 83, 0.15)";
+  if (currentWeight > idealMax) return "rgba(223, 71, 51, 0.15)";
+  return "rgba(107, 174, 138, 0.15)";
 });
 
-// 右側上方：三大健康數據摘要小卡片的聯動資料
-const healthStatsSummary = computed(() => {
-  return [
-    {
-      label: "當前體重",
-      value: currentWeight + " kg",
-      sub: "上週 +0.1kg",
-      emoji: "⚖️",
-      color: "#7bb3d4",
-      bgColor: "rgba(123, 179, 212, 0.15)",
-      trend: "up",
-    },
-    {
-      label: "飲水達成率",
-      value: "80%",
-      sub: "480/600 ml",
-      emoji: "💧",
-      color: "#6bae8a",
-      bgColor: "rgba(107, 174, 138, 0.15)",
-      trend: "neutral",
-    },
-    {
-      label: "體重狀態",
-      value: statusLabel.value,
-      sub: "理想範圍內",
-      emoji: "🐕",
-      color: statusColor.value,
-      bgColor: statusBg.value,
-      trend: "ok",
-    },
-  ];
-});
-
-// ==========================================================================
-// 5. 表單提交儲存紀錄函式
-// ==========================================================================
-function handleSubmitRecord() {
-  const w = formData.value.weight || "13.6";
-  const wt = formData.value.water || "480";
-  const f = formData.value.food || "250";
-  const n = formData.value.note || "無"; //新增：獲取備註內容，若為空則預設顯示「無」
-
-  alert(
-    `今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`,
-  );
-}
+// 右側三大健康摘要小卡資料
+const healthStatsSummary = computed(() => [
+  {
+    label: "當前體重",
+    value: currentWeight + " kg",
+    sub: "上週 +0.1kg",
+    emoji: "⚖️",
+    color: "#7bb3d4",
+    bgColor: "rgba(123, 179, 212, 0.15)",
+    trend: "up",
+  },
+  {
+    label: "飲水達成率",
+    value: "80%",
+    sub: "480/600 ml",
+    emoji: "💧",
+    color: "#6bae8a",
+    bgColor: "rgba(107, 174, 138, 0.15)",
+    trend: "neutral",
+  },
+  {
+    label: "體重狀態",
+    value: statusLabel.value,
+    sub: "理想範圍內",
+    emoji: "🐕",
+    color: statusColor.value,
+    bgColor: statusBg.value,
+    trend: "ok",
+  },
+]);
 </script>

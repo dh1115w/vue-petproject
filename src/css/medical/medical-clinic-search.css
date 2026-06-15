@@ -116,6 +116,7 @@
   margin: 0 auto;
   padding: 0; /* 由 main-container 統一控制 */
   height: calc(100vh - 200px); /* 依據 header 高度動態計算 */
+  min-height: 720px;
   align-items: stretch;
   width: 100%;
   max-width: var(--content-max-width); /* 與 Banner 使用同一個變數 */
@@ -139,9 +140,12 @@
 
 /* 列表區域：自動延伸並開啟垂直滾動 */
 .scrollable-list {
+  max-height: 100%;
   flex-grow: 1;
   overflow-y: auto; /* 恢復垂直滾動條 */
   padding-right: 6px; /* 為滾動條留出呼吸空間 */
+  padding-bottom: 16px;
+  box-sizing: border-box;
 }
 
 .clinic-container .search-box-card {
@@ -469,9 +473,9 @@
   padding: 1.25rem !important;
   cursor: pointer;
   background-color: #ffffff;
-  padding: 1.25rem !important; /* 👈 調整與組員一致的內距 */
-  border-radius: 12px !important; /* 👈 調整與組員一致的圓角 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* 👈 修正：加重陰影 */
+  padding: 1.25rem !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

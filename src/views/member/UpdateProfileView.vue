@@ -2,7 +2,7 @@
   <div class="create-account-page">
 
     <div class="page-header">
-      <RouterLink to="/member/member" class="back-link">← 返回會員專區</RouterLink>
+      <RouterLink to="/grooming/member" class="back-link">← 返回會員專區</RouterLink>
     </div>
 
     <div class="form-container">

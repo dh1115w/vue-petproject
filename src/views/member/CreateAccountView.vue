@@ -409,7 +409,7 @@ function handleRegister() {
 }
 
 function toMember() {
-  router.push('/member/member')
+  router.push('/grooming/member')
 }
 </script>
 

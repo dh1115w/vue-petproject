@@ -1,6 +1,6 @@
 <template>
   <footer class="site-footer">
-    <p class="footer-brand">PetCare 毛孩照護平台</p>
+    <p class="footer-brand">PetCare 寵伴生活 毛孩照護平台</p>
     <p class="footer-copy">&copy; 2026 PetCare. All Rights Reserved.</p>
   </footer>
 </template>

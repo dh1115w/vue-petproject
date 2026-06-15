@@ -2,7 +2,7 @@
   <div class="fp-page">
 
     <div class="fp-header-bar">
-      <RouterLink to="/member/member" class="fp-back-link">← 返回會員專區</RouterLink>
+      <RouterLink to="/grooming/member" class="fp-back-link">← 返回會員專區</RouterLink>
     </div>
 
     <div class="fp-card">
@@ -187,7 +187,7 @@ function resetPassword() {
     timer: 1500,
     showConfirmButton: false
   })
-  router.push('/member/member')
+  router.push('/grooming/member')
 }
 
 // 返回會員專區（返回／取消都用這個）

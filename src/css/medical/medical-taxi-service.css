@@ -380,22 +380,69 @@
 }
 
 /* 寵物橫條資訊 */
+.pet-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 每一張卡片拉開 12px 呼吸間距 */
+  width: 100%;
+}
+
+/* 寵物簡介橫條 (完全保留你原本的 display 與背景，僅加上點擊小手與動畫過渡) */
 .pet-mini-profile-row {
   display: flex;
   align-items: center;
+  justify-content: space-between; /* 🌟 核心修正：把左邊資訊與右邊的勾勾推到最左與最右 */
   gap: 0.75rem;
-  background-color: #f3f0e8;
-  padding: 0.75rem;
+  background-color: #f3f0e8; /* 你的專屬米白底色 */
+  padding: 0.75rem 1.25rem; /* 左右稍微拉寬，讓右側的勾勾有漂亮的留白 */
   border-radius: 12px;
+
+  cursor: pointer; /* 🌟 核心修正：滑鼠移上去呈現點擊小手 👆 */
+  transition: all 0.25s ease; /* 讓卡片變色時有平滑、溫和的過渡感 */
+  width: 100%;
+  box-sizing: border-box;
 }
+
+/* 左側組合包容器 */
+.pet-meta-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* 🌟 核心修正：當卡片被 Vue 3 判定選中時，自動亮起與你下方綠色按鈕高度呼應的淡雅綠底色 */
+.pet-mini-profile-row.is-checked {
+  background-color: #eef5f1; /* 莫蘭迪柔和綠色背景 */
+  border: 1px solid rgba(123, 179, 150, 0.15); /* 極淡的綠色邊框 */
+}
+
+/* 右側打勾狀態圖示 */
+.verified-check-mark {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+/* 移上去時的超微幅懸浮，讓使用者知道這是可以點選的按鈕卡片 */
+.pet-mini-profile-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+}
+
 .driver-pet-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
+  background-color: #ffffff;
 }
 .driver-pet-text {
   flex: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .p-name {
   font-size: 0.875rem;

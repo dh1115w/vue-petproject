@@ -89,7 +89,8 @@ function handleLogin() {
   }
 
   // ===== 通過驗證，開始比對帳密 =====
-  if (account.value === testAccount && password.value === testPassword) {
+  // 用去過空白的值比對，跟上面驗證的標準一致（避免前後空白造成驗證過了卻登入失敗）
+  if (accountValue === testAccount && passwordValue === testPassword) {
     // ===== 以下假裝是後端登入成功後回傳的資料 =====
     // 之後接後端時，把這整段換成 axios 回傳的真實資料即可
     userStore.setToken('fake-token-12345')

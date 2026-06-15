@@ -34,7 +34,7 @@
               <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <img :src="selectedService.image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
                 <h4 style="margin: 0; color: var(--primary-color);">{{ selectedService.title }}</h4>
-                <span class="badge-duration">⏱ {{ selectedService.duration }} min</span>
+                <span class="badge-duration">⏱ {{ estimatedDuration || selectedService.duration }} min</span>
               </div>
               <ul style="padding-left: 20px; margin: 0; font-size: 0.85rem; color: #666; line-height: 1.6;">
                 <li v-for="feature in selectedService.features" :key="feature">✓ {{ feature }}</li>
@@ -70,6 +70,15 @@
             <select id="petSelect" v-model="form.pet_id" required> 
               <option value="">-- 請選擇毛孩 --</option>
               <option v-for="pet in pets" :key="pet.id" :value="pet.id">{{ pet.name }} ({{ pet.breed }}/{{ pet.age }}歲)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="petSize">毛孩體型 (Size)</label>
+            <select id="petSize" v-model="form.pet_size" required>
+              <option value="" disabled>-- 請選擇體型 --</option>
+              <option value="S">小型 (S) - 5kg 以下</option>
+              <option value="M">中型 (M) - 5-15kg</option>
+              <option value="L">大型 (L) - 15kg 以上</option>
             </select>
           </div>
           <div class="form-group">
@@ -117,6 +126,16 @@
           </div>
 
           <div class="form-group">
+            <label for="paymentMethod">訂金預付方式</label>
+            <select id="paymentMethod" v-model="form.payment_method" required>
+              <option value="credit_card">信用卡 / Google Pay</option>
+              <option value="line_pay">LINE Pay</option>
+              <option value="atm">虛擬帳號轉帳</option>
+              <option value="store_credit">儲值金扣款</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label for="couponCode">優惠碼 (Coupon Code)</label>
             <div style="display: flex; gap: 10px;">
               <input type="text" id="couponCode" v-model="form.coupon_code" placeholder="輸入折扣碼，例如 PET80" style="flex: 1; text-transform: uppercase;">
@@ -141,17 +160,25 @@
           <h3 class="modal-title">確認您的預約資訊</h3>
           <div class="modal-body">
             <p>毛孩：<strong>{{ selectedPetName }}</strong></p>
+            <p>體型：<strong>{{ form.pet_size === 'S' ? '小型' : form.pet_size === 'M' ? '中型' : '大型' }}</strong></p>
             <p>服務：<strong>{{ selectedService ? selectedService.title : '未選擇' }}</strong></p>
             <p>美容師：<strong>{{ selectedGroomerName }}</strong></p>
             <p>日期：<strong>{{ form.apt_date_date }}</strong></p>
             <p>時段：<strong>{{ form.timeSlot }}</strong></p>
+            <p v-if="estimatedDuration">預估時長：<strong>{{ estimatedDuration }} 分鐘</strong></p>
             <p v-if="form.notes">備註：<strong>{{ form.notes }}</strong></p>
             <p v-if="estimatedPrice">預估金額：<strong>NT$ {{ estimatedPrice }}</strong></p>
             <p v-if="appliedCoupon" style="color: #2ecc71;">已套用優惠：<strong>{{ appliedCoupon.label }}</strong></p>
-            <p v-if="finalPrice && appliedCoupon" style="font-size: 1.1rem; font-weight: bold; color: #e67e22;">最終金額：<strong>NT$ {{ finalPrice }}</strong></p>
+            <hr />
+            <p style="font-size: 1.1rem; color: #e67e22;">最終總計：<strong>NT$ {{ finalPrice }}</strong></p>
+            <p style="font-size: 1.2rem; color: #d32f2f; font-weight: bold;">線上應付訂金 (30%)：NT$ {{ depositAmount }}</p>
+            <p style="font-size: 0.9rem; color: #888;">到店支付尾款：NT$ {{ finalPrice - depositAmount }}</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">付款方式：<strong>{{ paymentMethodLabel }}</strong></p>
           </div>
           <div class="modal-actions">
-            <button type="button" @click="confirmBooking" class="btn btn-primary flex-1">確認預約</button>
+            <button type="button" @click="confirmBooking" class="btn btn-primary flex-1" :disabled="isProcessingPayment">
+              {{ isProcessingPayment ? '處理金流中...' : '前往付款' }}
+            </button>
             <button type="button" @click="isConfirmModalOpen = false" class="btn btn-cancel flex-1">取消</button>
           </div>
         </div>
@@ -180,19 +207,22 @@ export default {
       // 表單資料
       form: {
         member_id: 1, // 假設會員ID為1，實際應從登入狀態獲取
-        // pet_id, service_id, groomer_id, apt_date_date, timeSlot, notes
+        // pet_id, pet_size, service_id, groomer_id, apt_date_date, timeSlot, notes
         pet_id: '',
+        pet_size: '',
         service_id: '',
         groomer_id: '',
         apt_date_date: '',
         timeSlot: '',
         notes: '',
-        coupon_code: ''
+        coupon_code: '',
+        payment_method: 'credit_card'
       },
       isConfirmModalOpen: false, // 控制確認預約彈窗顯示
       showToast: false,          // 控制 Toast 顯示
       toastMessage: '',          // Toast 顯示文字
       toastType: 'success',      // Toast 類型 (success / error)
+      isProcessingPayment: false, // 模擬金流處理狀態
       coupons: [ // 模擬優惠券資料庫
         { code: 'PET80', discount: 0.8, type: 'percent', label: '新客首享 8 折' },
         { code: 'SAVE100', discount: 100, type: 'fixed', label: '滿額折 100 元' }
@@ -217,7 +247,8 @@ export default {
           features: ['溫和低敏洗毛精兩道清洗', '基礎修剪 (腳底毛、腹毛、肛門毛)', '清耳道、剪指甲、修腳圓'],
           allowedGroomers: [1, 2, 3, 4],
           allowedSpecies: ['dog', 'cat'],
-          priceMap: { S: 500, M: 700, L: 900 }
+          priceMap: { S: 500, M: 700, L: 900 },
+          durationMap: { S: 60, M: 90, L: 120 }
         },
         {
           id: 2,
@@ -228,7 +259,8 @@ export default {
           features: ['包含所有「基礎洗澡」內容', '職人手剪全身造型', '客製化造型溝通'],
           allowedGroomers: [1, 2],
           allowedSpecies: ['dog'],
-          priceMap: { S: 1200, M: 1800, L: 2500 }
+          priceMap: { S: 1200, M: 1800, L: 2500 },
+          durationMap: { S: 120, M: 180, L: 240 }
         },
         {
           id: 3,
@@ -239,7 +271,8 @@ export default {
           features: ['針對皮膚過敏、止癢、異味處理', '天然植物萃取藥劑', '恆溫微氣泡抗菌處理'],
           allowedGroomers: [3, 4],
           allowedSpecies: ['dog'],
-          priceMap: { S: 800, M: 1100, L: 1500 }
+          priceMap: { S: 800, M: 1100, L: 1500 },
+          durationMap: { S: 90, M: 120, L: 150 }
         },
         {
           id: 4,
@@ -250,7 +283,8 @@ export default {
           features: ['死海礦物泥深層吸附髒污', '舒壓按摩與熱敷', '讓毛髮重現光澤'],
           allowedGroomers: [4],
           allowedSpecies: ['dog'],
-          priceMap: { S: 1000, M: 1400, L: 1800 }
+          priceMap: { S: 1000, M: 1400, L: 1800 },
+          durationMap: { S: 90, M: 120, L: 150 }
         },
         {
           id: 5,
@@ -261,7 +295,8 @@ export default {
           features: ['專屬貓房獨立洗護', '低噪音低風速吹乾', '專業深層去油洗劑'],
           allowedGroomers: [2, 4],
           allowedSpecies: ['cat'],
-          priceMap: { S: 800, M: 1200 }
+          priceMap: { S: 800, M: 1200 },
+          durationMap: { S: 90, M: 120 }
         },
         {
           id: 6,
@@ -272,7 +307,8 @@ export default {
           features: ['深層去除底層廢毛', '專業不鏽鋼排梳技巧', '防止居家毛髮紛飛'],
           allowedGroomers: [2, 4],
           allowedSpecies: ['cat'],
-          priceMap: { S: 600, M: 1000 }
+          priceMap: { S: 600, M: 1000 },
+          durationMap: { S: 60, M: 90 }
         }
       ],
       availableTimeSlots: [], // 儲存可用的預約時段
@@ -315,11 +351,19 @@ export default {
     },
     // 新增：動態計算預估價格
     estimatedPrice() {
-      if (!this.form.pet_id || !this.form.service_id) return null;
-      const pet = this.pets.find(p => p.id == this.form.pet_id);
+      if (!this.form.pet_size || !this.form.service_id) return null;
       const service = this.services.find(s => s.id == this.form.service_id);
-      if (pet && service && service.priceMap) {
-        return service.priceMap[pet.size] || service.minPrice;
+      if (service && service.priceMap) {
+        return service.priceMap[this.form.pet_size] || service.minPrice;
+      }
+      return null;
+    },
+    // 新增：動態計算預估時長
+    estimatedDuration() {
+      if (!this.form.pet_size || !this.form.service_id) return null;
+      const service = this.services.find(s => s.id == this.form.service_id);
+      if (service && service.durationMap) {
+        return service.durationMap[this.form.pet_size] || service.duration;
       }
       return null;
     },
@@ -349,6 +393,20 @@ export default {
         return Math.max(0, basePrice - coupon.discount);
       }
       return basePrice;
+    },
+    // 新增：計算訂金 (假設為總額 30%)
+    depositAmount() {
+      return this.finalPrice ? Math.round(this.finalPrice * 0.3) : 0;
+    },
+    // 取得付款方式的中文顯示
+    paymentMethodLabel() {
+      const methods = {
+        credit_card: '信用卡 / Google Pay',
+        line_pay: 'LINE Pay',
+        atm: '虛擬帳號轉帳',
+        store_credit: '儲值金扣款'
+      };
+      return methods[this.form.payment_method] || '未選擇';
     }
   },
   watch: {
@@ -360,6 +418,9 @@ export default {
       const pet = this.pets.find(p => p.id == newPetId);
       // 只有當有選擇毛孩且之前有選服務時才檢查
       if (pet && this.form.service_id) {
+        // 自動根據毛孩檔案預填體型，但使用者仍可手動更改
+        this.form.pet_size = pet.size;
+
         const previouslySelectedService = this.services.find(s => s.id == this.form.service_id);
         if (previouslySelectedService && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
           this.incompatibleServiceWarning = `您選擇的毛孩 (${pet.name}) 不適用「${previouslySelectedService.title}」服務，請重新選擇。`;
@@ -465,6 +526,8 @@ export default {
       this.isConfirmModalOpen = true; // 驗證通過，打開確認彈窗
     },
     async confirmBooking() {
+      this.isProcessingPayment = true;
+      
       const appointmentData = {
         member_id: this.form.member_id,
         pet_id: parseInt(this.form.pet_id),
@@ -472,20 +535,25 @@ export default {
         groomer_id: parseInt(this.form.groomer_id),
         apt_date: `${this.form.apt_date_date} ${this.form.timeSlot}:00`,
         total_price: this.finalPrice || this.estimatedPrice,
+        deposit_paid: this.depositAmount,
+        payment_method: this.form.payment_method,
         coupon_used: this.form.coupon_code,
-        status: 0,
+        status: 1, // 假設 1 代表「已付訂金，待服務」
         notes: this.form.notes
       };
-      console.log('Submitted Appointment Data (模擬):', appointmentData);
+      
+      console.log('正在導向金流串接頁面...', appointmentData);
 
-      // 模擬 API 呼叫，實際應用中這裡會發送資料到後端
-      await new Promise(resolve => setTimeout(resolve, 800)); 
+      // 模擬金流轉址與驗證延遲
+      await new Promise(resolve => setTimeout(resolve, 2000)); 
+
+      this.isProcessingPayment = false;
 
       // 關閉確認彈窗
       this.isConfirmModalOpen = false;
 
       // 顯示 Toast 成功通知
-      this.triggerToast(`🎉 預約成功！毛孩: ${this.selectedPetName}，服務: ${this.selectedService.title}，金額: NT$ ${appointmentData.total_price}`, 'success');
+      this.triggerToast(`✅ 訂金 NT$ ${this.depositAmount} 支付成功！預約已確認。`, 'success');
 
       // 延遲跳轉頁面，讓使用者有時間看到 Toast 通知
       setTimeout(() => {

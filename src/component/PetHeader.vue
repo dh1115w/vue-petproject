@@ -16,6 +16,7 @@
             <RouterLink to="/grooming/booking" class="dropdown-item">線上預約</RouterLink>
             <RouterLink to="/grooming/appointments" class="dropdown-item">預約紀錄</RouterLink>
             <RouterLink to="/grooming/reviews" class="dropdown-item">評價專區</RouterLink>
+            <RouterLink to="/grooming/StaffDashboard" class="dropdown-item">員工後台</RouterLink>
           </div>
         </div>
 

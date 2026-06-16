@@ -271,14 +271,23 @@ export default {
   text-align: center; /* 讓內容與按鈕置中 */
 }
 
+.grooming-hero-inner p {
+  color: #ffffff;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.5); /* 增加陰影確保在背景圖上更易讀 */
+  margin-bottom: 20px;
+}
+
 .grooming-hero-inner h1 {
   text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .section-title {
-  letter-spacing: 0.4em; /* 增加字間距 */
-  text-indent: 0.4em;   /* 抵銷最後一個字的右側間距，確保視覺中心完全置中 */
-  font-weight: 700;     /* 加粗字體增加份量感 */
+  text-align: center;
+  letter-spacing: 0.4em; 
+  text-indent: 0.4em;   /* 抵銷最後一個字的右側間距，確保視覺完全置中 */
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #2c3e50;
 }
 
 .features-section, .services-section {

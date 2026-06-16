@@ -35,7 +35,7 @@
         <div v-else>
           <table class="custom-dashboard-table">
             <thead>
-              <tr><th>預約編號</th><th>預約毛孩</th><th>選擇項目</th><th>預約時間 (apt_date)</th><th>指定美容師</th><th>目前狀態 (status)</th></tr>
+              <tr><th>預約編號</th><th>預約毛孩</th><th>選擇項目</th><th>預約時間 (apt_date)</th><th>指定美容師</th><th>目前狀態 (status)</th><th>操作</th></tr>
             </thead>
             <tbody>
               <tr v-if="paginatedAppointments.length === 0">
@@ -58,6 +58,23 @@
                     @click="openCancelModal(apt)" 
                     class="mini-page-btn danger-border"
                   >取消</button>
+                  <button
+                    v-if="canReview(apt)" 
+                    @click="openReviewModal(apt)" 
+                    class="mini-page-btn"
+                    style="border-color: #f39c12; color: #f39c12;"
+                  >評價服務</button>
+                  <button 
+                    v-else-if="apt.status === 1 && apt.isReviewed" 
+                    @click="viewReview(apt)" 
+                    class="mini-page-btn"
+                    style="border-color: #9b59b6; color: #9b59b6;"
+                  >查看評價</button>
+                  <span 
+                    v-else-if="isReviewExpired(apt)" 
+                    class="badge badge-secondary"
+                    style="opacity: 0.6; cursor: not-allowed;"
+                  >評價已過期</span>
                 </td>
               </tr>
             </tbody>
@@ -81,6 +98,31 @@
       </div>
 
     </main>
+
+    <!-- 評價預約彈窗 (Modal) -->
+    <div v-if="isReviewModalOpen" class="modal-overlay" @click.self="closeReviewModal">
+      <div class="card modal-content">
+        <h3 class="modal-title">評價您的美容服務</h3>
+        <div class="modal-body">
+          <p class="text-center">毛孩：<strong>{{ appointmentToReview?.petName }}</strong></p>
+          <p class="text-center">服務：<strong>{{ appointmentToReview?.serviceName }}</strong></p>
+          <div class="modal-form-group">
+            <label>評分 (1-5 星)</label>
+            <select v-model="reviewRating" class="modal-select">
+              <option v-for="n in 5" :key="n" :value="n">{{ n }} 星</option>
+            </select>
+          </div>
+          <div class="modal-form-group">
+            <label>評價內容</label>
+            <textarea v-model="reviewComment" rows="3" class="modal-textarea" placeholder="分享您的美容心得..."></textarea>
+          </div>
+        </div>
+        <div class="modal-actions mt-20">
+          <button type="button" @click="submitReview" class="btn btn-primary flex-1">送出評價</button>
+          <button type="button" @click="closeReviewModal" class="btn btn-cancel flex-1">返回</button>
+        </div>
+      </div>
+    </div>
 
     <!-- 取消預約確認彈窗 (Modal) -->
     <div v-if="isCancelModalOpen" class="modal-overlay" @click.self="closeCancelModal">
@@ -223,6 +265,10 @@ export default {
       error: null, // 已修正：這裡原本漏了逗點
       isCancelModalOpen: false, // 控制取消預約彈窗顯示
       appointmentToCancel: null, // 儲存要取消的預約
+      isReviewModalOpen: false, // 控制評價彈窗
+      appointmentToReview: null, // 儲存要評價的預約
+      reviewRating: 5,
+      reviewComment: '',
       sortKey: 'date', // 預設排序欄位
       sortOrder: 'desc' // 預設降冪排序 (最新的在前)
     }
@@ -351,6 +397,68 @@ export default {
       } finally {
         this.closeCancelModal();
       }
+    },
+    openReviewModal(appointment) {
+      this.appointmentToReview = appointment;
+      this.isReviewModalOpen = true;
+    },
+    closeReviewModal() {
+      this.isReviewModalOpen = false;
+      this.appointmentToReview = null;
+      this.reviewComment = '';
+      this.reviewRating = 5;
+    },
+    async submitReview() {
+      try {
+        const targetApt = this.appointments.find(a => a.id === this.appointmentToReview.id);
+        if (targetApt) {
+          // 建立評價數據物件
+          const reviewData = {
+            appointmentId: targetApt.id,
+            groomerName: targetApt.groomer, // 關鍵：關聯美容師
+            rating: this.reviewRating,
+            comment: this.reviewComment,
+            date: new Date().toISOString()
+          };
+
+          // TODO: axios.post('/api/reviews', reviewData); 
+          console.log('提交評價到系統:', reviewData);
+
+          targetApt.isReviewed = true; // 標記為已評價
+          targetApt.reviewRating = this.reviewRating; // 暫存資料供查看
+          targetApt.reviewComment = this.reviewComment;
+        }
+        
+        alert('感謝您的評價！我們會繼續努力。');
+        this.closeReviewModal();
+      } catch (error) {
+        alert('評價提交失敗，請重試。');
+      }
+    },
+    canReview(apt) {
+      // 1. 狀態必須是「已完成」且「尚未評價」
+      if (apt.status !== 1 || apt.isReviewed) return false;
+
+      // 2. 計算時間差（毫秒轉天數）
+      const aptDate = new Date(apt.date);
+      const now = new Date();
+      const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
+
+      // 3. 限制在 0 到 7 天內（避免日期異常且符合 7 天限制）
+      return diffInDays >= 0 && diffInDays <= 7;
+    },
+    isReviewExpired(apt) {
+      // 1. 狀態必須是「已完成」且「尚未評價」
+      if (apt.status !== 1 || apt.isReviewed) return false;
+
+      const aptDate = new Date(apt.date);
+      const now = new Date();
+      const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
+      return diffInDays > 7;
+    },
+    viewReview(appointment) {
+      // 實作查看評價的邏輯，這裡先用 alert 示範
+      alert(`您的評價內容：\n評分：${appointment.reviewRating} 星\n評語：${appointment.reviewComment || '無'}`);
     }
   }
 }

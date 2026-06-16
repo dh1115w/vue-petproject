@@ -12,6 +12,10 @@
         <span class="stat-label">待處理訂單</span>
         <span class="stat-value">{{ orders.filter(o => o.status === '待處理').length }}</span>
       </div>
+      <div class="stat-card">
+        <span class="stat-label">平均服務評分</span>
+        <span class="stat-value" style="color: #f39c12;">★ {{ averageRating }}</span>
+      </div>
     </div>
 
     <!-- 頁籤切換 -->
@@ -51,7 +55,7 @@
             <th>時段</th>
             <th>美容師</th>
             <th>狀態</th>
-            <th>關聯預約 ID</th>
+            <th>預約詳情</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -65,12 +69,17 @@
                 {{ getSlotStatusText(slot) }}
               </span>
             </td>
-            <td>{{ slot.appointmentId || '—' }}</td>
             <td>
-              <button v-if="!slot.appointmentId" @click="toggleSlot(slot)" class="btn-sm">
+              <div v-if="slot.appointmentId" class="appointment-detail">
+                <span class="id-badge">#{{ slot.appointmentId }}</span>
+                <span class="pet-info">{{ getOrderById(slot.appointmentId)?.petName }} - {{ getOrderById(slot.appointmentId)?.service }}</span>
+              </div>
+              <span v-else>—</span>
+            </td>
+            <td>
+              <button @click="toggleSlot(slot)" class="btn-sm">
                 {{ slot.isOpen ? '關閉時段' : '開放預約' }}
               </button>
-              <span v-else>不可修改</span>
             </td>
           </tr>
         </tbody>
@@ -100,13 +109,25 @@
             :key="index" 
             class="calendar-day"
             :class="{ 'other-month': !item.date, 'is-today': item.date === todayStr }"
+            @dragover.prevent
+            @drop="item.date && handleDrop($event, item.date)"
             @click="item.date && jumpToDate(item.date)"
           >
             <div class="day-header">
               <span class="day-num" v-if="item.day">{{ item.day }}</span>
             </div>
-            <div v-if="item.count > 0" class="appointment-tag">
-              <span class="dot"></span> {{ item.count }} 筆預約
+            <!-- 顯示當日預約數 -->
+            <div v-if="item.count > 0" class="appointment-count-badge">
+              {{ item.count }} 預約
+            </div>
+            <!-- 顯示美容師排班縮影 -->
+            <div class="staff-status-list" v-if="item.date">
+              <span v-for="staff in item.staffStatus" :key="staff.name" 
+                    class="staff-status-dot" 
+                    draggable="true"
+                    @dragstart="handleDragStart($event, staff.name, item.date)"
+                    :class="staff.status"
+                    :title="staff.name + ': ' + staff.statusText"></span>
             </div>
           </div>
         </div>
@@ -114,6 +135,8 @@
         <div class="calendar-footer">
           <div class="legend-item"><span class="box today-box"></span> 今日</div>
           <div class="legend-item"><span class="box appointment-box"></span> 有預約項目</div>
+          <div class="legend-item"><span class="dot-sample pending"></span> 可預約</div>
+          <div class="legend-item"><span class="dot-sample closed"></span> 休假/關閉</div>
           <p class="calendar-hint">💡 點擊日期可跳轉至該日排班管理</p>
         </div>
       </div>
@@ -131,6 +154,7 @@
           <option value="待處理">待處理</option>
           <option value="進行中">進行中</option>
           <option value="已完成">已完成</option>
+          <option value="已取消">已取消</option>
         </select>
       </div>
 
@@ -153,6 +177,7 @@
             <td>{{ order.status }}</td>
             <td>
               <button v-if="order.status === '待處理'" @click="updateOrderStatus(order.id, '進行中')" class="btn-primary">開始</button>
+              <button v-if="order.status === '待處理'" @click="updateOrderStatus(order.id, '已取消')" class="btn-cancel">取消</button>
               <button v-if="order.status === '進行中'" @click="updateOrderStatus(order.id, '已完成')" class="btn-success">完成</button>
               <button class="btn-blacklist" @click="addToBlacklist(order.userId)">加入黑名單</button>
             </td>
@@ -228,9 +253,26 @@ const calendarDays = computed(() => {
   // 填充當月日期
   for (let d = 1; d <= totalDays; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    // 統計該日期在 schedule 中有 appointmentId 的數量
-    const count = schedule.value.filter(s => s.date === dateStr && s.appointmentId).length;
-    days.push({ day: d, date: dateStr, count });
+    const daySlots = schedule.value.filter(s => s.date === dateStr);
+    
+    // 統計預約數
+    const count = daySlots.filter(s => s.appointmentId).length;
+    
+    // 彙整美容師狀態摘要
+    const staffStatus = staffList.map(staff => {
+      const slots = daySlots.filter(s => s.staffName === staff.name);
+      const hasAppointment = slots.some(s => s.appointmentId);
+      const allClosed = slots.length > 0 && slots.every(s => !s.isOpen);
+      
+      let status = 'pending';
+      let statusText = '可預約';
+      if (hasAppointment) { status = 'booked'; statusText = '已有預約'; }
+      else if (allClosed) { status = 'closed'; statusText = '全日關閉'; }
+      
+      return { name: staff.name, status, statusText };
+    });
+
+    days.push({ day: d, date: dateStr, count, staffStatus });
   }
   return days;
 });
@@ -295,6 +337,20 @@ const orders = ref([
   { id: 1002, petName: '豆豆', service: '基礎洗澡', status: '待處理', userId: 'U002' },
 ]);
 
+// 模擬評價資料（實務上應從 API 取得）
+const reviews = ref([
+  { groomerName: 'Andy', rating: 5 },
+  { groomerName: 'Andy', rating: 4 },
+]);
+
+// 計算目前美容師的平均星等
+const averageRating = computed(() => {
+  const myReviews = reviews.value.filter(r => r.groomerName === quickActionStaff.value);
+  if (myReviews.length === 0) return '0.0';
+  const sum = myReviews.reduce((acc, cur) => acc + cur.rating, 0);
+  return (sum / myReviews.length).toFixed(1);
+});
+
 // 模擬黑名單
 const blacklist = ref([
   { userId: 'U999', reason: '多次預約未到' }
@@ -315,6 +371,11 @@ const paginatedOrders = computed(() => {
   return filteredOrders.value.slice(start, start + itemsPerPage);
 });
 
+// 透過 ID 取得訂單詳細資訊，建立排班與訂單的關聯
+const getOrderById = (id) => {
+  return orders.value.find(o => o.id === id);
+};
+
 const totalOrdersPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage) || 1);
 
 // 當搜尋或篩選條件改變時，自動回到第一頁
@@ -324,11 +385,39 @@ watch([searchQuery, statusFilter], () => {
 
 // 功能邏輯
 const updateOrderStatus = (id, newStatus) => {
+  if (newStatus === '已取消' && !confirm('確定要取消這筆預約嗎？這將會釋放排班時段供其他客戶預約。')) {
+    return;
+  }
+
   const order = orders.value.find(o => o.id === id);
-  if (order) order.status = newStatus;
+  if (order) {
+    order.status = newStatus;
+    
+    // 連動邏輯：當訂單狀態改為「已完成」時，尋找對應的排班時段並鎖定
+    if (newStatus === '已完成') {
+      const slot = schedule.value.find(s => s.appointmentId === id);
+      if (slot) {
+        slot.isOpen = false; // 確保時段已關閉，且不可再被切換
+      }
+    }
+
+    // 連動邏輯：當訂單狀態改為「已取消」時，釋放對應的排班時段
+    if (newStatus === '已取消') {
+      const slot = schedule.value.find(s => s.appointmentId === id);
+      if (slot) {
+        slot.appointmentId = null; // 移除預約 ID 關聯，釋放時段
+        slot.isOpen = true;        // 重新開放預約
+      }
+    }
+  }
 };
 
 const toggleSlot = (slot) => {
+  // 當準備將時段由「開啟」改為「關閉」時，檢查是否已有預約 ID
+  if (slot.isOpen && slot.appointmentId) {
+    alert(`無法關閉時段！\n此時段目前已被預約 (ID: #${slot.appointmentId})。若需調整排班，請先處理或取消該筆預約。`);
+    return;
+  }
   slot.isOpen = !slot.isOpen;
 };
 
@@ -342,16 +431,62 @@ const jumpToDate = (date) => {
   currentTab.value = 'schedule';
 };
 
+// 拖曳排班邏輯
+const handleDragStart = (event, staffName, sourceDate) => {
+  event.dataTransfer.effectAllowed = 'move';
+  // 儲存被拖曳的美容師名稱與來源日期
+  event.dataTransfer.setData('staffName', staffName);
+  event.dataTransfer.setData('sourceDate', sourceDate);
+};
+
+const handleDrop = (event, targetDate) => {
+  const staffName = event.dataTransfer.getData('staffName');
+  const sourceDate = event.dataTransfer.getData('sourceDate');
+
+  if (!staffName || !sourceDate || sourceDate === targetDate) return;
+
+  // 衝突檢測：檢查該美容師在目標日期是否已經有排班
+  const isAlreadyScheduled = schedule.value.some(s => s.date === targetDate && s.staffName === staffName);
+  if (isAlreadyScheduled) {
+    alert(`排班衝突：${staffName} 在 ${targetDate} 已經有排班紀錄，無法重複移動。`);
+    return;
+  }
+
+  // 找出該美容師在來源日期的所有時段
+  const movingSlots = schedule.value.filter(s => s.date === sourceDate && s.staffName === staffName);
+
+  // 安全檢查：如果該美容師當天已經有被預約 (appointmentId)，則不允許直接拖曳改期
+  if (movingSlots.some(s => s.appointmentId)) {
+    alert(`無法移動：${staffName} 在 ${sourceDate} 已有客戶預約，請先處理預約訂單。`);
+    return;
+  }
+
+  // 更新日期，觸發 computed 重新計算月曆
+  movingSlots.forEach(s => {
+    s.date = targetDate;
+  });
+};
+
 // 一鍵開啟/關閉特定美容師整天排班
 const setGroomerDayStatus = (isOpen) => {
-  const affectedSlots = schedule.value.filter(s => 
-    s.date === selectedDate.value && 
-    s.staffName === quickActionStaff.value && 
-    !s.appointmentId
+  const daySlots = schedule.value.filter(s => 
+    s.date === selectedDate.value && s.staffName === quickActionStaff.value
   );
 
+  // 當執行一鍵「關閉」且當天存在任何預約時，給予確認提示
+  if (!isOpen) {
+    const hasAppointments = daySlots.some(s => s.appointmentId);
+    if (hasAppointments) {
+      const proceed = confirm('提醒：此美容師當天已有預約。執行關閉操作將僅套用於「尚未被預約」的空閒時段，已預約時段將維持現狀。是否繼續？');
+      if (!proceed) return;
+    }
+  }
+
+  // 僅過濾出沒有預約的時段進行狀態變更
+  const affectedSlots = daySlots.filter(s => !s.appointmentId);
+
   if (affectedSlots.length === 0) {
-    alert('此美容師當日所有時段已被預約或無可修改時段。');
+    alert('操作完成：該美容師今日已無可變動的空閒時段。');
     return;
   }
 
@@ -360,12 +495,20 @@ const setGroomerDayStatus = (isOpen) => {
 };
 
 const getSlotStatusText = (slot) => {
-  if (slot.appointmentId) return '已預約';
+  if (slot.appointmentId) {
+    const order = getOrderById(slot.appointmentId);
+    return order?.status === '已完成' ? '服務完成' : '已預約';
+  }
   return slot.isOpen ? '可排班' : '維修/休息';
 };
 
 const getSlotStatusClass = (slot) => {
-  if (slot.appointmentId) return 'status-badge status-completed';
+  if (slot.appointmentId) {
+    const order = getOrderById(slot.appointmentId);
+    // 若已完成則顯示成功顏色（假設 CSS 有 status-success），否則顯示預約色
+    if (order?.status === '已完成') return 'status-badge status-success';
+    return 'status-badge status-completed';
+  }
   return slot.isOpen ? 'status-badge status-pending' : 'status-badge status-closed';
 };
 
@@ -447,7 +590,7 @@ const removeBlacklist = (index) => {
 
 .calendar-day {
   background: #fff;
-  min-height: 110px;
+  min-height: 125px;
   padding: 12px;
   cursor: pointer;
   transition: background 0.2s;
@@ -485,23 +628,43 @@ const removeBlacklist = (index) => {
   color: #444;
 }
 
-.appointment-tag {
-  margin-top: 10px;
-  background: #2a2522;
-  color: #fff;
+.appointment-count-badge {
+  margin-top: 5px;
   font-size: 0.7rem;
-  padding: 4px 8px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  color: #e67e22;
+  font-weight: bold;
 }
 
-.appointment-tag .dot {
-  width: 6px;
-  height: 6px;
-  background: #ffcc00;
+.staff-status-list {
+  margin-top: auto;
+  display: flex;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.staff-status-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  background: #eee;
+  cursor: grab;
+}
+
+.staff-status-dot.pending { background: #2ecc71; } /* 綠色: 可預約 */
+.staff-status-dot.booked { background: #3498db; }  /* 藍色: 有預約 */
+.staff-status-dot.closed { background: #e74c3c; }  /* 紅色: 休假/關閉 */
+
+.dot-sample {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-sample.pending { background: #2ecc71; }
+.dot-sample.closed { background: #e74c3c; }
+
+.appointment-box {
+  background: #2a2522;
 }
 
 .calendar-footer {
@@ -534,6 +697,34 @@ const removeBlacklist = (index) => {
   margin-left: auto;
   font-size: 0.85rem;
   color: #b0b0aa;
+}
+
+.appointment-detail {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.id-badge {
+  font-size: 0.7rem;
+  color: #999;
+}
+.pet-info {
+  font-weight: 500;
+  color: #2a2522;
+}
+
+.btn-cancel {
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: background 0.3s;
+}
+.btn-cancel:hover {
+  background-color: #7f8c8d;
 }
 </style>
 ```

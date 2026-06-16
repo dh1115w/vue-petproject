@@ -9,16 +9,20 @@
       </header>
 
       <!-- 提交評價表單 -->
-      <section v-if="isLoggedIn" class="review-form-section card">
+      <section v-if="isLoggedIn && hasCompletedService" class="review-form-section card">
         <h3>📝 分享您的美容體驗</h3>
         <p class="text-center mb-20">您目前以 <strong>{{ currentUserName }}</strong> 的身份登入。</p>
         <form @submit.prevent="submitReview">
           <div class="grid grid-2" style="gap: 20px;">
             <div class="form-group">
-              <label>選擇服務美容師</label>
-              <select v-model="newReview.groomer" required>
-                <option value="">-- 請選擇美容師 --</option>
-                <option v-for="staff in staffNames" :key="staff" :value="staff">{{ staff }}</option>
+              <label>選擇預約紀錄</label>
+              <select v-model="newReview.appointmentId" required @change="syncGroomer">
+                <option value="">-- 請選擇欲評價的服務 --</option>
+                <option 
+                  v-for="apt in unreviewedAppointments" 
+                  :key="apt.id" 
+                  :value="apt.id"
+                >{{ apt.date }} - {{ apt.serviceName }} ({{ apt.groomer }})</option>
               </select>
             </div>
             <div class="form-group">
@@ -55,11 +59,18 @@
           </div>
         </form>
       </section>
-      <section v-else class="review-form-section card text-center">
+      <section v-else-if="!isLoggedIn" class="review-form-section card text-center">
         <h3>您尚未登入</h3>
         <p class="mb-20">請登入會員後再分享您的美容體驗。</p>
         <button type="button" class="btn btn-primary" @click="toggleLoginStatus">
           <i class="fas fa-sign-in-alt"></i> 模擬登入
+        </button>
+      </section>
+      <section v-else class="review-form-section card text-center">
+        <h3>尚無可評價的服務</h3>
+        <p class="mb-20">您目前沒有已完成的美容紀錄。完成服務後，歡迎回來分享您的心得！</p>
+        <button type="button" class="btn btn-outline" @click="$router.push('/grooming/booking')">
+          <i class="fas fa-calendar-alt"></i> 立即預約美容
         </button>
       </section>
 
@@ -160,14 +171,21 @@ export default {
       currentUserName: '新用戶', // 模擬登入用戶名
       lightboxImage: null, // 儲存目前放大顯示的圖片
       newReview: {
+        appointmentId: '',
         groomer: '',
         rating: 5,
         comment: '',
         image: null
       },
+      // 模擬用戶的預約歷史 (實際應從 API 獲取)
+      userAppointments: [
+        { id: 101, status: 'completed', serviceName: '基礎洗澡', groomer: 'Emily', date: '2024-05-15' },
+        { id: 102, status: 'pending', serviceName: '精緻造型剪毛', groomer: 'Andy', date: '2024-06-20' }
+      ],
       reviews: [
         {
           id: 1,
+          appointmentId: 100, // 模擬已存在評價的預約 ID
           userName: '豆豆媽',
           groomerName: 'Emily',
           rating: 5,
@@ -177,6 +195,7 @@ export default {
         },
         {
           id: 2,
+          appointmentId: 99,
           userName: '阿強',
           groomerName: 'Andy',
           rating: 4,
@@ -199,6 +218,17 @@ export default {
     this.currentUserName = localStorage.getItem('currentUserName') || '新用戶'; // 載入用戶名
   },
   computed: {
+    // 取得所有「已完成」且「尚未評價過」的預約清單
+    unreviewedAppointments() {
+      if (!this.isLoggedIn) return [];
+      return this.userAppointments.filter(apt => 
+        apt.status === 'completed' && 
+        !this.reviews.some(review => review.appointmentId === apt.id)
+      );
+    },
+    hasCompletedService() {
+      return this.unreviewedAppointments.length > 0;
+    },
     sortedReviews() {
       let result = [...this.reviews];
 
@@ -236,6 +266,13 @@ export default {
     }
   },
   methods: {
+    // 當使用者選擇預約紀錄時，自動帶入該次預約的美容師名稱
+    syncGroomer() {
+      const apt = this.unreviewedAppointments.find(a => a.id === this.newReview.appointmentId);
+      if (apt) {
+        this.newReview.groomer = apt.groomer;
+      }
+    },
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
@@ -260,6 +297,7 @@ export default {
     submitReview() {
       const reviewToAdd = {
         id: Date.now(),
+        appointmentId: this.newReview.appointmentId,
         userName: '新用戶', // 實際應用應從會員登入資訊獲取
         groomerName: this.newReview.groomer,
         rating: this.newReview.rating,
@@ -273,7 +311,7 @@ export default {
       alert('感謝您的評價！');
       
       // 重置表單
-      this.newReview = { groomer: '', rating: 5, comment: '', image: null };
+      this.newReview = { appointmentId: '', groomer: '', rating: 5, comment: '', image: null };
       if (this.$refs.fileInput) {
         this.$refs.fileInput.value = ''; // 清空檔案選擇器
       }

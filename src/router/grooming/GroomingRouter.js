@@ -4,6 +4,7 @@ import StaffPage from '@/views/grooming/Staff.vue'
 import AppointmentsPage from '@/views/grooming/Appointments.vue'
 import ServicesPage from '@/views/grooming/Services.vue'
 import ReviewsPage from '@/views/grooming/Reviews.vue'
+import StaffDashboard from '@/views/grooming/StaffDashboard.vue';
 import GroomingMember from '@/views/grooming/Member.vue'   
 
 const groomingRoutes = [
@@ -13,7 +14,8 @@ const groomingRoutes = [
   { path: '/grooming/staff', name: 'Staff', component: StaffPage },
   { path: '/grooming/reviews', name: 'Reviews', component: ReviewsPage },
   { path: '/grooming/appointments', name: 'Appointments', component: AppointmentsPage },
-  { path: '/grooming/member', name: 'GroomingMember', component: GroomingMember },   
+  { path: '/grooming/StaffDashboard', name: 'StaffDashboard', component: StaffDashboard, meta: { title: '美容師後台' } },
+  { path: '/grooming/member', name: 'GroomingMember', component: GroomingMember }   
 ]
 
 

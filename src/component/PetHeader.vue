@@ -1,7 +1,6 @@
 <template>
   <header class="site-header">
     <div class="header-inner">
-
       <RouterLink to="/" class="brand">PetCare</RouterLink>
 
       <nav class="nav-links">
@@ -16,17 +15,28 @@
             <RouterLink to="/grooming/booking" class="dropdown-item">線上預約</RouterLink>
             <RouterLink to="/grooming/appointments" class="dropdown-item">預約紀錄</RouterLink>
             <RouterLink to="/grooming/reviews" class="dropdown-item">評價專區</RouterLink>
+            <RouterLink to="/grooming/StaffDashboard" class="dropdown-item">員工後台</RouterLink>
           </div>
         </div>
-
+        <!-- 醫療選單 -->
         <div class="nav-dropdown">
           <RouterLink to="/medical" class="nav-link">醫療</RouterLink>
           <div class="dropdown-menu">
-            <RouterLink to="/medical/healthtracking" class="dropdown-item">健康狀態追蹤</RouterLink>
-            <RouterLink to="/medical/clinicsearch" class="dropdown-item">搜尋附近動物醫院</RouterLink>
-            <RouterLink to="/medical/medicalrecords" class="dropdown-item">病歷紀錄</RouterLink>
-            <RouterLink to="/medical/calendarpage" class="dropdown-item">行事曆提醒</RouterLink>
-            <RouterLink to="/medical/taxiservice" class="dropdown-item">寵物接送服務</RouterLink>
+            <RouterLink to="/medical/healthtracking" class="dropdown-item"
+              >健康狀態追蹤</RouterLink
+            >
+            <RouterLink to="/medical/medicalrecords" class="dropdown-item"
+              >病歷紀錄</RouterLink
+            >
+            <RouterLink to="/medical/calendarpage" class="dropdown-item"
+              >行事曆提醒</RouterLink
+            >
+            <RouterLink to="/medical/clinicsearch" class="dropdown-item"
+              >附近診所搜尋</RouterLink
+            >
+            <RouterLink to="/medical/taxiservice" class="dropdown-item"
+              >寵物接送服務</RouterLink
+            >
           </div>
         </div>
 
@@ -39,13 +49,18 @@
         <div class="nav-dropdown" v-else>
           <div class="user-avatar">{{ userStore.memberInfo.account }}</div>
           <div class="dropdown-menu">
+            <RouterLink to="/grooming/member" class="dropdown-item"
+              >會員專區</RouterLink
+            >
+            <RouterLink to="/member/updateprofile" class="dropdown-item"
+              >修改個人資料</RouterLink
+            >
+            <a href="#" class="dropdown-item" @click.prevent="handleLogout"
+              >登出</a
+            >
 
-            <RouterLink to="/grooming/member" class="dropdown-item">會員專區</RouterLink>
-            <RouterLink to="/member/updateprofile" class="dropdown-item">修改個人資料</RouterLink>
-            <a href="#" class="dropdown-item" @click.prevent="handleLogout">登出</a>
-            
             <div class="dropdown-divider"></div>
-            
+
             <!-- 切換預設寵物：點哪隻，哪隻就變成全站的預設寵物 -->
             <p class="dropdown-title">切換預設寵物</p>
             <a
@@ -59,32 +74,29 @@
               <!-- 目前選到的那隻，後面打勾 -->
               <span v-if="pet.id === userStore.selectPetId">✓</span>
             </a>
-
-
           </div>
         </div>
       </nav>
-
     </div>
   </header>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import useUserStore from '@/stores/user.js'
+import { useRouter } from "vue-router";
+import useUserStore from "@/stores/user.js";
 
-const router = useRouter()
-const userStore = useUserStore()
+const router = useRouter();
+const userStore = useUserStore();
 
 function handleLogout() {
-  userStore.logout()      // 清空 token及個人資訊
-  router.push('/')        // 回首頁
+  userStore.logout(); // 清空 token及個人資訊
+  router.push("/"); // 回首頁
 }
 
 // 切換「預設寵物」：把點到的那隻寵物 id 存進 store
 // 存進去之後，整個專案（美容、醫療…）只要讀 userStore.selectPetId 就知道是哪一隻
 function choosePet(id) {
-  userStore.setSelectPetId(id)
+  userStore.setSelectPetId(id);
 }
 </script>
 
@@ -177,7 +189,7 @@ function choosePet(id) {
 
 /* 透明橋接區，避免滑鼠移到選單途中下拉收合 */
 .dropdown-menu::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 100%;
   left: 0;

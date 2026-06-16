@@ -1,11 +1,12 @@
 <template>
   <div class="dashboard-container page-enter">
-    
     <!-- 頁面頂部標頭 -->
     <header class="dashboard-header">
       <div class="header-left">
-        <h1>早安，王小明 👋</h1>
-        <p class="subtitle">今天是 2026 年 4 月 23 日，小福的健康狀況良好</p>
+        <h1>早安，{{ member.name }} 👋</h1>
+        <p class="subtitle">
+          今天是 {{ formattedTodayDate }}，{{ pet.name }}的健康狀況良好
+        </p>
       </div>
       <div class="header-right">
         <div class="status-badge normal">
@@ -14,42 +15,43 @@
       </div>
     </header>
 
-    <!-- Bento Grid 大網格外殼 -->
+    <!-- 大網格外殼 -->
     <div class="bento-grid">
-      
-      <!-- 🟢 左側直向資訊通道 (由上往下堆疊) -->
+      <!-- 左側由上往下堆疊 -->
       <div class="bento-left-column">
-        <!-- 1. 小福直立卡片 -->
+        <!-- 1. 寵物直立卡片 -->
         <div class="bento-card-pet">
           <div class="avatar-container-vertical">
-            <img src="@/images/dog.jpg" alt="小福" class="pet-avatar-vertical" />
-            <!--<div class="heart-badge-vertical">❤️</div>-->
+            <img :src="petAvatar" :alt="pet.name" class="pet-avatar-vertical" />
           </div>
           <div class="pet-info-vertical">
             <div class="pet-name-row-vertical">
-              <h2>小福</h2>
+              <h2>{{ pet.name }}</h2>
               <span class="status-tag">健康良好</span>
             </div>
             <div class="pet-details-vertical">
-              <p>🦮 黃金獵犬 · 公</p>
-              <p>🎂 2023/01/15 生日 (3歲)</p>
-              <p>⚖️ 目前體重：13.6 kg</p>
+              <p>🦮 {{ pet.breed }} · {{ pet.gender }}</p>
+              <p>🎂 {{ pet.birth }} 生日 ({{ pet.age }}歲)</p>
+              <p>⚖️ 目前體重：{{ pet.weight }} kg</p>
             </div>
           </div>
         </div>
 
-        <!-- 2. 今日寵物摘要 (移至左側) -->
+        <!-- 2. 今日寵物摘要 -->
         <div class="bento-card-summary">
           <h3>🐾 今日寵物摘要</h3>
-          <p>小福今天精神很好，早上有按時吃藥。建議下午可以去公園散步 30 分鐘。</p>
+          <p>
+            {{ pet.name }}今天精神很好，早上有按時吃藥。建議下午可以去公園散步
+            30 分鐘。
+          </p>
         </div>
       </div>
 
-      <!-- 🟢 右側功能快捷通道 (寬敞條列式) -->
+      <!-- 右側功能 -->
       <div class="bento-right-column">
-        <div 
-          v-for="action in quickActions" 
-          :key="action.label" 
+        <div
+          v-for="action in quickActions"
+          :key="action.label"
           class="bento-card-action"
           :style="{ borderLeft: '4px solid ' + action.borderLeftColor }"
           @click="$router.push(action.path)"
@@ -62,61 +64,110 @@
           <span class="action-arrow">→</span>
         </div>
       </div>
-
     </div>
   </div>
 </template>
 
-
 <script setup>
-// 100% 純 JavaScript，目前不需要複雜邏輯
-console.log("首頁主控台已成功載入！");
+import { ref, computed } from "vue";
+import "@/css/medical/medical-dashboard.css";
+import defaultDogImage from "@/images/dog.jpg";
 
+// ── 會員資料 (對應 Member 資料表) ──────────────────────────────
+const member = ref({
+  id: 1,
+  name: "王小明",
+});
 
-import { ref } from 'vue'
-import '@/css/medical/medical-dashboard.css'
+// ── 寵物資料 (對應 Pet 資料表) ────────────────────────────────
+const pet = ref({
+  id: 1,
+  name: "小福",
+  breed: "黃金獵犬",
+  gender: "公",
+  birth: "2023/01/15",
+  age: 3,
+  weight: 13.6,
+  isNeutered: true,
+  // 頭貼網址：空字串時自動顯示預設圖
+  avatarUrl: "",
+});
 
-// 寵物底部的狀態列表數據（對應 Vue 的 v-for）
-const petStatusList = ref([
-  { label: "疫苗", value: "最新", ok: true },
-  { label: "晶片", value: "已登記", ok: true },
-  { label: "絕育", value: "已結紮", ok: true }
-])
+// 頭貼：有設定就用，沒有就用預設圖
+const petAvatar = computed(() => pet.value.avatarUrl || defaultDogImage);
 
-// 2. 體重圖表數據（之後可以用來畫折線圖）
-const weightData = ref([
-  { date: "3/1", weight: 12.8 },
-  { date: "3/8", weight: 13.1 },
-  { date: "3/15", weight: 13.0 },
-  { date: "3/22", weight: 13.3 },
-  { date: "3/29", weight: 13.2 },
-  { date: "4/5", weight: 13.5 },
-  { date: "4/12", weight: 13.4 },
-  { date: "4/19", weight: 13.6 },
-])
+// ── 今天日期 ────────────────────────────────────────────────────
+const formattedTodayDate = computed(() => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const date = today.getDate();
+  return `${year} 年 ${month} 月 ${date} 日`;
+});
 
-// 3. 快捷鍵功能清單
-// 原本的 React 元件圖示（icon: Activity）我們直接改成更直覺、不依賴套件的網頁 Emoji 圖標
-const quickActions = ref([
-  { label: "身體狀態追蹤", icon: "📈", path: "/medical/healthtracking", borderLeftColor: "#7BB3D4", desc: "記錄今日體重飲食" },
-  { label: "附近診所搜尋", icon: "📍", path: "/medical/clinicsearch", borderLeftColor: "#E8A87A", desc: "找尋附近動物醫院" },
-  { label: "病歷紀錄", icon: "📁", path: "/medical/medicalrecords", borderLeftColor: "#B59BD4", desc: "查看與上傳病歷" },
-  //{ label: "醫療費用", icon: "💰", path: "/expenses", borderLeftColor: "#D4B86A", desc: "費用統計與紀錄" },
-  { label: "行事曆提醒", icon: "📅", path: "/medical/calendarpage", borderLeftColor: "#E87A9A", desc: "疫苗與回診提醒" },
-  { label: "寵物接送服務", icon: "🚗", path: "/medical/taxiservice", borderLeftColor: "#6BAE8A", desc: "寵物友善叫車服務" },
-])
+// ── 健康追蹤即時數據 (對應 PetHealthTracking 資料表) ───────────
+// 這裡先用 ref 存放「顯示用的彙總數字」，未來可從 API 撈回真實 metricValue
+const healthTracking = ref({
+  waterIntake: "480/600 ml (80%)", // metricValue (飲水量)
+  currentWeight: "13.6 kg", // metricValue (體重)
+});
 
-// 4. 即將到來的提醒事件
-const upcomingEvents = ref([
-  { date: "4/25", title: "狂犬病疫苗", type: "vaccine", urgent: true },
-  { date: "5/3", title: "年度健康檢查", type: "checkup", urgent: false },
-  { date: "5/15", title: "心絲蟲預防藥", type: "medicine", urgent: false },
-])
+// ── 最近一筆醫療紀錄 (對應 MedicalRecords 資料表) ──────────────
+const latestMedicalRecord = ref({
+  recordId: 1,
+  recordDate: "04/10",
+  diagnosis: "年度健康檢查報告",
+  status: "正常",
+});
 
-// 5. 最近病歷紀錄
-const recentRecords = ref([
-  { date: "2026/04/10", title: "年度健康檢查", clinic: "台北動物醫院", status: "正常" },
-  { date: "2026/03/22", title: "皮膚炎回診", clinic: "愛寵動物診所", status: "追蹤中" },
-  { date: "2026/03/05", title: "疫苗施打", clinic: "台北動物醫院", status: "完成" },
-])
+// ── 最近提醒事件 (對應 ReminderEvents 資料表) ──────────────────
+const upcomingReminder = ref({
+  reminderId: 1,
+  eventTitle: "狂犬病疫苗",
+  targetDate: "04/25",
+  description: "2天後",
+});
+
+// ── 快捷功能清單 ────────────────────────────────────────────────
+// desc 整合上方即時數據，讓卡片內容隨資料自動更新
+const quickActions = computed(() => [
+  {
+    label: "健康狀態追蹤",
+    icon: "📈",
+    path: "/medical/healthtracking",
+    borderLeftColor: "#7BB3D4",
+    desc: `今日飲水 ${healthTracking.value.waterIntake} · 體重 ${healthTracking.value.currentWeight}`,
+  },
+  {
+    label: "病歷紀錄",
+    icon: "📁",
+    path: "/medical/medicalrecords",
+    borderLeftColor: "#B59BD4",
+    desc: `最新紀錄：${latestMedicalRecord.value.recordDate} ${latestMedicalRecord.value.diagnosis} (${latestMedicalRecord.value.status})`,
+  },
+  {
+    label: "行事曆提醒",
+    icon: "📅",
+    path: "/medical/calendarpage",
+    borderLeftColor: "#E87A9A",
+    desc: `最近提醒：${upcomingReminder.value.targetDate} ${upcomingReminder.value.eventTitle} (${upcomingReminder.value.description})`,
+  },
+  {
+    label: "附近診所搜尋",
+    icon: "📍",
+    path: "/medical/clinicsearch",
+    borderLeftColor: "#E8A87A",
+    desc: "找尋附近動物醫院",
+  },
+  {
+    label: "寵物接送服務",
+    icon: "🚗",
+    path: "/medical/taxiservice",
+    borderLeftColor: "#6BAE8A",
+    // 若有疫苗提醒，提示提早預約
+    desc: upcomingReminder.value.eventTitle.includes("疫苗")
+      ? "有疫苗接種行程，建議提早預約寵物友善專車"
+      : "寵物友善叫車服務與專車媒合",
+  },
+]);
 </script>

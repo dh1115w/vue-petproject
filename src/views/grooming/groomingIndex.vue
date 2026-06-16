@@ -2,8 +2,8 @@
   <div>
     <NavBar />
 
-    <header class="hero">
-      <div class="hero-content">
+    <header class="grooming-hero-section">
+      <div class="grooming-hero-inner">
         <h1>給毛孩最頂級的呵護</h1>
         <p>專業美容師團隊，透明化價格，提供最安心的洗剪洗藥浴服務</p>
         <router-link to="/grooming/booking" class="btn btn-primary">立即預約服務</router-link>
@@ -248,7 +248,7 @@ export default {
 @import '@/css/grooming/index.css';
 
 /* 將內聯樣式整理至此 */
-.hero {
+.grooming-hero-section {
   /* 換成寵物照片，並加入半透明遮罩確保文字易讀 */
   background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
               url('https://images.unsplash.com/photo-1581888227599-779811939961?w=1200&h=450&fit=crop');
@@ -266,11 +266,12 @@ export default {
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
 
-.hero-content {
+.grooming-hero-inner {
   color: #fff;
+  text-align: center; /* 讓內容與按鈕置中 */
 }
 
-.hero-content h1 {
+.grooming-hero-inner h1 {
   text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 

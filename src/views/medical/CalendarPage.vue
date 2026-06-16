@@ -449,9 +449,11 @@ const typeConfig = {
 
 // ==========================================================================
 // 3. 提醒事件核心資料（對應 ReminderEvents 表）
-//    欄位：reminderId, petId, categoryId, eventTitle, targetDate,
-//          isCompleted, isUrgent（前端顯示用）,
-//          eventTime, clinicName（顯示用，來自 Clinics.clinicName）
+//    ⚠️ categoryId：DB 是 TINYINT 數字，此處暫用字串 key（vaccine/checkup/medicine）
+//       → 接後端前需跟組員確認數字代碼對應，並建立轉換對照表
+//    ⚠️ eventTime：DB 無此欄，targetDate 是 DATETIME2（含日期+時間）
+//       → 送後端時需合併：`${targetDate}T${eventTime}:00`
+//    ⚠️ isUrgent / clinicName：前端顯示用，不在 DB
 // ==========================================================================
 const reminderEventsList = ref([
   {
@@ -670,16 +672,19 @@ function handleCreateEvent() {
   }
 
   // TODO：改成 Axios 呼叫 Java 後端，傳送 ReminderEvents 資料
+  // 送後端前需做兩件事：
+  //   1. categoryId 從字串 key 轉成 TINYINT 數字（等組員確認後填入 categoryIdMap）
+  //   2. 合併 targetDate + eventTime → "2026-04-25T10:00:00" 格式
   reminderEventsList.value.push({
     reminderId: Date.now(), // 實際串接時由後端產生
     petId: 1,
-    categoryId: newReminder.value.categoryId,
+    categoryId: newReminder.value.categoryId,   // ⚠️ 接後端時需轉成 TINYINT
     eventTitle: newReminder.value.eventTitle,
-    targetDate: newReminder.value.targetDate,
-    eventTime: newReminder.value.eventTime,
-    clinicName: newReminder.value.clinicName,
+    targetDate: newReminder.value.targetDate,   // ⚠️ 送後端時需合併 eventTime
+    eventTime: newReminder.value.eventTime,     // 前端顯示用，不送 DB
+    clinicName: newReminder.value.clinicName,   // 前端顯示用，不送 DB
     isCompleted: false,
-    isUrgent: false,
+    isUrgent: false,                            // 前端顯示用，不送 DB
   });
 
   alert("🎉 提醒已成功新增！");

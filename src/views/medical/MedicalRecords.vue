@@ -286,10 +286,14 @@ const filterTabsList = computed(() => {
 
 // ==========================================================================
 // 3. 醫療紀錄核心資料（對應 MedicalRecords 表）
-//    欄位：recordId, petId, recordDate, diagnosis, filePath,
-//          fileSize, fileType, exportCount, status, medicalHistory,
-//          clinicName（顯示用，實際串接時從 Clinics 表 JOIN）,
-//          tags（顯示用關鍵字）
+//    欄位：recordId, petId, recordDate, diagnosis, exportCount, status
+//    ⚠️ fileType：DB 原意是副檔名（pdf/jpg），此處當作類別 key 使用（語意不同）
+//       → 接後端前需新增 categoryType TINYINT 欄位，fileType 保留存副檔名
+//    ⚠️ status：DB 是 TINYINT 數字代碼，此處暫用中文字串，需跟後端確認對應
+//    ⚠️ clinicName / doctor / tags / medicalHistory：DB 無此欄，純前端顯示用
+//       → clinicName 實際串接時從 Clinics 表 JOIN 取得
+//       → doctor 需確認是否在 MedicalRecords 新增 doctorName 欄位
+//       → medicalHistory 是就診備註（非 Pet.medicalHistory），需確認是否新增欄位
 // ==========================================================================
 const medicalRecordsList = ref([
   {
@@ -299,11 +303,11 @@ const medicalRecordsList = ref([
     diagnosis: "年度健康檢查報告", // MedicalRecords.diagnosis
     clinicName: "台北動物醫院", // 顯示用（來自 Clinics.clinicName）
     doctor: "陳獸醫師",
-    fileType: "checkup", // MedicalRecords.fileType（對應 typeConfig key）
-    exportCount: 3, // MedicalRecords.exportCount（顯示檔案數）
-    tags: ["血液檢查", "X光", "心電圖"],
-    status: "正常", // MedicalRecords.status
-    medicalHistory: "整體健康狀況良好，建議半年後追蹤血液指數。", // Pet.medicalHistory
+    fileType: "checkup", // ⚠️ 暫用類別 key（待新增 categoryType 欄位後調整）
+    exportCount: 3, // MedicalRecords.exportCount
+    tags: ["血液檢查", "X光", "心電圖"], // 前端顯示用，不在 DB
+    status: "正常", // ⚠️ DB 是 TINYINT，暫用字串，需跟後端確認數字代碼
+    medicalHistory: "整體健康狀況良好，建議半年後追蹤血液指數。", // 就診備註（非 Pet.medicalHistory），DB 無此欄
   },
   {
     recordId: 2,

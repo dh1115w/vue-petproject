@@ -636,18 +636,17 @@ async function handleSubmitRecord() {
   // 5. 串接 Java 後端
 
   try {
-    const postData = {
-      weight: parseFloat(w),
-      waterIntake: parseInt(wt),
-      foodIntake: parseInt(f),
-      poopCount: parseInt(metricValuePoop.value),
-      poopStatus: statusNotePoop.value,
-      moodStatus: statusNoteMood.value,
-      activityLevel: statusNoteActivity.value,
-      memo: statusNoteExtra.value,
-    };
-    // 呼叫Java 後端 API
-    // const response = await axios.post('/api/pet/health-tracking', postData);
+    // PetHealthTracking 每種指標各存一列，搭配 typeId 區分
+    // typeId 實際數字需跟後端確認 HealthMetricTypes 資料表內容
+    const postData = [
+      { petId: 1, typeId: 1, metricValue: parseFloat(w),                    statusNote: "" },
+      { petId: 1, typeId: 2, metricValue: parseInt(wt),                     statusNote: "" },
+      { petId: 1, typeId: 3, metricValue: parseInt(f),                      statusNote: "" },
+      { petId: 1, typeId: 4, metricValue: parseInt(metricValuePoop.value),  statusNote: `${statusNotePoop.value}|${statusNoteMood.value}|${statusNoteActivity.value}` },
+      { petId: 1, typeId: 5, metricValue: 0,                                statusNote: statusNoteExtra.value },
+    ];
+    // 呼叫 Java 後端 API（typeId 數字接後端前需確認）
+    // const response = await axios.post('/api/medical/health-tracking', postData);
     // console.log('後端儲存成功:', response.data);
   } catch (error) {
     console.error("後端儲存失敗:", error);

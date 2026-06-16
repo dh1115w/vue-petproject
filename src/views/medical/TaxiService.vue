@@ -313,29 +313,29 @@ const selectedClinic = ref(favoriteClinics[0]);
 // ==========================================================================
 
 // 目前全域主寵物的 Pet.id（實際串接時從全域狀態或路由取得）
-const currentPetId = ref("pet_01");
+const currentPetId = ref(1);
 
 // 用戶名下所有寵物（對應 Pet 表）
 const petList = ref([
   {
-    id: "pet_01", // Pet.id
+    id: 1, // Pet.id
     name: "小福", // Pet.name
     breed: "黃金獵犬", // Pet.breed
-    weight: "13.6", // Pet.weight
+    weight: 13.6, // Pet.weight DECIMAL(6,2)，數字非字串
     avatar: "",
   },
   {
-    id: "pet_02",
+    id: 2,
     name: "Mimi",
     breed: "美國短毛貓",
-    weight: "4.2",
+    weight: 4.2,
     avatar: "",
   },
   {
-    id: "pet_03",
+    id: 3,
     name: "巧克力",
     breed: "柴犬",
-    weight: "10.2",
+    weight: 10.2,
     avatar: "",
   },
 ]);
@@ -375,7 +375,7 @@ const description = ref(""); // 特殊需求備註（對應 ReminderEvents.descr
 // ==========================================================================
 const taxiProvidersList = ref([
   {
-    providerId: "taxi", // TaxiServiceProviders.providerId
+    providerId: 1, // TaxiServiceProviders.providerId
     providerName: "寵物友善計程車", // TaxiServiceProviders.providerName
     isPetFriendly: true, // TaxiServiceProviders.isPetFriendly
     isActive: true, // TaxiServiceProviders.isActive
@@ -387,7 +387,7 @@ const taxiProvidersList = ref([
     features: ["寵物友善", "大型車廂", "司機有養寵物"],
   },
   {
-    providerId: "uber",
+    providerId: 2,
     providerName: "Uber Pet",
     isPetFriendly: true,
     isActive: true,
@@ -399,7 +399,7 @@ const taxiProvidersList = ref([
     features: ["寵物友善", "GPS 追蹤", "線上付款"],
   },
   {
-    providerId: "van",
+    providerId: 3,
     providerName: "寵物專車",
     isPetFriendly: true,
     isActive: true,
@@ -411,7 +411,7 @@ const taxiProvidersList = ref([
     features: ["專業寵物運輸", "籠架固定", "急救設備"],
   },
   {
-    providerId: "ambulance",
+    providerId: 4,
     providerName: "寵物救護車",
     isPetFriendly: true,
     isActive: false, // 目前不可用
@@ -424,8 +424,8 @@ const taxiProvidersList = ref([
   },
 ]);
 
-// 目前選中的服務商 providerId（預設 "taxi"）
-const selectedProviderId = ref("taxi");
+// 目前選中的服務商 providerId（預設第一筆）
+const selectedProviderId = ref(1);
 
 // 取得當前選中服務商名稱（用於叫車成功彈窗）
 const currentProviderName = computed(() => {

@@ -30,8 +30,8 @@
               <span class="status-tag">健康良好</span>
             </div>
             <div class="pet-details-vertical">
-              <p>🦮 {{ pet.breed }} · {{ pet.gender }}</p>
-              <p>🎂 {{ pet.birth }} 生日 ({{ pet.age }}歲)</p>
+              <p>🦮 {{ pet.breed }} · {{ petGenderText }}</p>
+              <p>🎂 {{ pet.birthday }} 生日 ({{ pet.age }}歲)</p>
               <p>⚖️ 目前體重：{{ pet.weight }} kg</p>
             </div>
           </div>
@@ -84,17 +84,31 @@ const pet = ref({
   id: 1,
   name: "小福",
   breed: "黃金獵犬",
-  gender: "公",
-  birth: "2023/01/15",
+  gender: "male",           // store 格式：'male'/'female'（DB BIT 1/0，LoginView 轉換）
+  birthday: "2023/01/15",   // store 欄位名為 birthday（DB 欄位名是 birth）
   age: 3,
   weight: 13.6,
-  isNeutered: true,
-  // 頭貼網址：空字串時自動顯示預設圖
+  isNeutered: "isNeutered", // store 格式：'isNeutered'/'unNeutered'（非布林，LoginView 轉換）
   avatarUrl: "",
 });
 
 // 頭貼：有設定就用，沒有就用預設圖
 const petAvatar = computed(() => pet.value.avatarUrl || defaultDogImage);
+
+// 性別顯示：store 存 'male'/'female'，顯示時轉中文
+const petGenderText = computed(() => pet.value.gender === "male" ? "公" : "母");
+
+// 提醒倒數天數（前端計算，不是 ReminderEvents.description）
+const upcomingCountdown = computed(() => {
+  const target = new Date(upcomingReminder.value.targetDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return "今天";
+  if (diff === 1) return "明天";
+  if (diff < 0) return "已過期";
+  return `${diff} 天後`;
+});
 
 // ── 今天日期 ────────────────────────────────────────────────────
 const formattedTodayDate = computed(() => {
@@ -124,8 +138,8 @@ const latestMedicalRecord = ref({
 const upcomingReminder = ref({
   reminderId: 1,
   eventTitle: "狂犬病疫苗",
-  targetDate: "04/25",
-  description: "2天後",
+  targetDate: "2026-04-25",               // DB DATETIME2，完整日期格式（用於計算倒數）
+  description: "每年定期接種，請攜帶寵物手冊", // ReminderEvents.description（事件說明，非倒數天數）
 });
 
 // ── 快捷功能清單 ────────────────────────────────────────────────
@@ -150,7 +164,7 @@ const quickActions = computed(() => [
     icon: "📅",
     path: "/medical/calendarpage",
     borderLeftColor: "#E87A9A",
-    desc: `最近提醒：${upcomingReminder.value.targetDate} ${upcomingReminder.value.eventTitle} (${upcomingReminder.value.description})`,
+    desc: `最近提醒：${upcomingReminder.value.targetDate} ${upcomingReminder.value.eventTitle} (${upcomingCountdown.value})`,
   },
   {
     label: "附近診所搜尋",

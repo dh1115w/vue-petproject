@@ -47,7 +47,8 @@
 
         <!-- 已登入：顯示圓形頭像 + 名字 -->
         <div class="nav-dropdown" v-else>
-          <div class="user-avatar">{{ userStore.memberInfo.account }}</div>
+          <!-- slice(0, 4)：只取帳號前四個字，避免太長超出圓形頭像 -->
+          <div class="user-avatar">{{ userStore.memberInfo.account.slice(0, 4) }}</div>
           <div class="dropdown-menu">
             <RouterLink to="/grooming/member" class="dropdown-item"
               >會員專區</RouterLink
@@ -155,15 +156,15 @@ function choosePet(id) {
 
 /* 已登入的圓形頭像 */
 .user-avatar {
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background-color: #2a2522;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 1px;
   cursor: pointer;

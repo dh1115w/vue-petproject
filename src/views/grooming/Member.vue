@@ -36,7 +36,7 @@
             <button @click="openAddPetModal" class="btn btn-primary btn-add-pet-sm">+ 新增毛孩</button>
           </div>
 
-          <div v-for="pet in paginatedPets" :key="pet.name" class="pet-mini-card">
+          <div v-for="pet in paginatedPets" :key="pet.id" class="pet-mini-card">
             <div class="pet-info">
               <h4 class="pet-name">🐾 {{ pet.name }}
                 <span class="role-badge" :class="pet.gender === 'male' ? 'role-badge--male' : 'role-badge--female'">
@@ -52,7 +52,7 @@
               <span v-if="pet.neutered === 'isNeutered'" class="badge badge-success pet-neutered-badge">已結紮</span>
               <div class="pet-action-btns">
                 <button @click="openEditPetModal(pet)" class="edit-pet-btn" title="編輯毛孩">✏️</button>
-                <button @click="deletePet(pet.name)" class="delete-pet-btn" title="刪除毛孩">🗑️</button>
+                <button @click="deletePet(pet)" class="delete-pet-btn" title="刪除毛孩">🗑️</button>
               </div>
             </div>
           </div>
@@ -196,6 +196,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import useUserStore from '@/stores/user.js'
 import Swal from 'sweetalert2'
+import api from '@/plugins/axios.js'   // 共用 axios：會自動帶 token、指向後端網址
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -294,11 +295,25 @@ function checkPet(pet) {
   return true   // 全部通過
 }
 
-// 確認新增：先驗證，通過才把表單資料加進寵物清單
-function saveNewPet() {
+// 確認新增：先驗證 → 打後端新增 → 成功才把「後端回傳的寵物（含 id）」加進清單
+async function saveNewPet() {
   if (!checkPet(newPet.value)) return
-  pets.push(newPet.value)
-  isAddPetModalOpen.value = false
+  try {
+    // 對後端 POST /api/member/secure/pet，body 就是這隻寵物的資料
+    // token 由 axios 自動帶上，後端從 token 認出飼主是誰
+    const response = await api.post('/api/member/secure/pet', newPet.value)
+
+    // ⚠️ 加進清單的是 response.data（後端回的，帶有資料庫產生的 id）
+    //    不是 newPet.value（那份沒有 id），這樣之後編輯/刪除才有 id 可用
+    pets.push(response.data)
+
+    isAddPetModalOpen.value = false
+    Swal.fire({ icon: 'success', title: '新增成功', timer: 1000, showConfirmButton: false })
+  } catch (error) {
+    // 後端驗證不過或超過 5 隻時會回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '新增失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '新增失敗', text: msg })
+  }
 }
 
 
@@ -314,33 +329,56 @@ function openEditPetModal(pet) {
   isEditPetModalOpen.value = true
 }
 
-// 儲存變更：先驗證，通過才把編輯後的資料寫回原本那隻寵物
-function updatePet() {
+// 儲存變更：先驗證 → 打後端更新 → 成功才把「後端回傳的最新資料」寫回原本那隻
+async function updatePet() {
   if (!checkPet(editingPet.value)) return
-  Object.assign(editTarget, editingPet.value)
-  isEditPetModalOpen.value = false
+  try {
+    // 對後端 PUT /api/member/secure/pet/{id}，網址帶這隻的 id，body 是新資料
+    const response = await api.put('/api/member/secure/pet/' + editingPet.value.id, editingPet.value)
+
+    // 用後端回傳的最新資料，覆蓋清單裡原本那隻（editTarget 記著是哪一隻）
+    Object.assign(editTarget, response.data)
+
+    isEditPetModalOpen.value = false
+    Swal.fire({ icon: 'success', title: '更新成功', timer: 1000, showConfirmButton: false })
+  } catch (error) {
+    // 後端驗證不過、或「不是你的寵物」時會回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '更新失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '更新失敗', text: msg })
+  }
 }
 
 
 // ===== 6. 刪除寵物 =====
-function deletePet(name) {
-  // 用 Swal 跳確認視窗（非同步，要用 .then 等使用者按完按鈕）
-  Swal.fire({
+// 收整隻 pet：pet.id 給後端用、pet.name 給確認訊息用
+async function deletePet(pet) {
+  // 先跳確認視窗，等使用者按「刪除」或「取消」
+  const result = await Swal.fire({
     icon: 'warning',
-    title: '確定要刪除「' + name + '」嗎？',
+    title: '確定要刪除「' + pet.name + '」嗎？',
     showCancelButton: true,   // 顯示「取消」按鈕
     confirmButtonText: '刪除',
     cancelButtonText: '取消'
-  }).then(function (result) {
-    // 使用者按了「刪除」才真的移除
-    if (result.isConfirmed) {
-      // 找到這隻寵物的位置，再把它移除
-      const index = pets.findIndex(function (p) {
-        return p.name === name
-      })
-      if (index !== -1) pets.splice(index, 1)
-    }
   })
+  // 按「取消」就直接結束，不刪
+  if (!result.isConfirmed) return
+
+  try {
+    // 對後端 DELETE /api/member/secure/pet/{id}，網址帶這隻的 id
+    await api.delete('/api/member/secure/pet/' + pet.id)
+
+    // 後端刪成功 → 找到這隻在清單的位置（用 id 比對），把它移除
+    const index = pets.findIndex(function (p) {
+      return p.id === pet.id
+    })
+    if (index !== -1) pets.splice(index, 1)
+
+    Swal.fire({ icon: 'success', title: '刪除成功', timer: 1000, showConfirmButton: false })
+  } catch (error) {
+    // 「不是你的寵物」「查無此寵物」時後端會回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '刪除失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '刪除失敗', text: msg })
+  }
 }
 
 

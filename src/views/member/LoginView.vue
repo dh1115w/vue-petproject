@@ -14,7 +14,10 @@
         </div>
         <div class="form-group">
           <label for="password">密碼</label>
-          <input id="password" type="password" name="password" v-model="password" placeholder="請輸入密碼" />
+          <!-- :type 動態綁定：showPassword 為 true 顯示 text（看得到），false 顯示 password（圓點） -->
+          <input id="password" :type="showPassword ? 'text' : 'password'" name="password" v-model="password" placeholder="請輸入密碼" />
+          <!-- 勾選框：v-model 綁 showPassword，打勾就把開關變 true -->
+          <label><input type="checkbox" v-model="showPassword" />顯示密碼</label>
         </div>
         <div class="login-actions">
           <button type="submit" class="btn-primary">登入</button>
@@ -37,17 +40,17 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import useUserStore from '@/stores/user.js'
+import api from '@/plugins/axios.js'   // 共用 axios：會自動帶 token、指向後端網址
 
 const router = useRouter()
 const userStore = useUserStore()
 const account = ref('')
 const password = ref('')
+// 密碼是否顯示成明碼：false=圓點（預設）、true=看得到文字
+const showPassword = ref(false)
 
-// 沒有後端時，先寫死一組測試帳密（之後接後端再換成 axios 驗證）
-const testAccount= 'test'
-const testPassword = 'test1234'
-
-function handleLogin() {
+// async：因為裡面要「等」後端回應（await），函式前面要加 async
+async function handleLogin() {
   // ===== 前端驗證：通過後才比對帳密 =====
   // 規則用的正規表達式：帳號只能英數；密碼只能英數加常用符號
   const accountRule = /^[A-Za-z0-9]+$/
@@ -88,43 +91,39 @@ function handleLogin() {
     return
   }
 
-  // ===== 通過驗證，開始比對帳密 =====
-  // 用去過空白的值比對，跟上面驗證的標準一致（避免前後空白造成驗證過了卻登入失敗）
-  if (accountValue === testAccount && passwordValue === testPassword) {
-    // ===== 以下假裝是後端登入成功後回傳的資料 =====
-    // 之後接後端時，把這整段換成 axios 回傳的真實資料即可
-    userStore.setToken('fake-token-12345')
-
-    // 會員資料
-    userStore.setMemberInfo({
-      name: '王小明',
-      account: account.value,
-      email: 'test@gmail.com',
-      phone: '0912-345-678',
-      address: '台南市大內區1號',
-      createDate: '2026-01-15',
-      birthday: '1998-05-10',
-      idNumber: 'A123456789',
-      gender: 'male'
+  // ===== 通過驗證，呼叫後端登入 API =====
+  // 用去過空白的值送出，跟上面驗證的標準一致
+  try {
+    // 對後端 POST /api/member/login，body 是 { account, password }
+    // await：等後端回應回來，才往下跑
+    const response = await api.post('/api/member/login', {
+      account: accountValue,
+      password: passwordValue
     })
 
-    // 寵物清單
-    userStore.setPets([
-      { id: 1, name: '巧克力', birthday: '2021-05-10', age: 3, gender: 'male', weight: 5.2, species: '狗', breed: '貴賓狗', size: 'small', neutered: 'isNeutered', health: '健康良好', personality: '親人但怕生' },
-      { id: 2, name: 'Mimi', birthday: '2022-03-15', age: 2, gender: 'female', weight: 4.1, species: '貓', breed: '波斯貓', size: 'small', neutered: 'isNeutered', health: '健康良好', personality: '愛撒嬌' }
-    ])
+    // 後端登入成功回傳：{ token, memberInfo, pets }
+    // 後端欄位名稱已和前端一致，直接塞進 store，不用轉換
+    userStore.setToken(response.data.token)
+    userStore.setMemberInfo(response.data.memberInfo)
+    userStore.setPets(response.data.pets)
 
-    // 預設選第一隻寵物
-    userStore.setSelectPetId(1)
+    // 預設選第一隻寵物（這位會員有養寵物才設）
+    if (response.data.pets && response.data.pets.length > 0) {
+      userStore.setSelectPetId(response.data.pets[0].id)
+    }
 
-    Swal.fire({ 
-      icon: 'success', 
-      title: '登入成功', 
-      timer: 1000, 
+    Swal.fire({
+      icon: 'success',
+      title: '登入成功',
+      timer: 1000,
       showConfirmButton: false })
     router.push('/')
-  } else {
-    Swal.fire({ icon: 'error', title: '登入失敗', text: '帳號或密碼錯誤' })
+
+  } catch (error) {
+    // 登入失敗：後端會回 HTTP 400 + { message: '帳號或密碼錯誤' }
+    // 有後端訊息就顯示後端的，沒有（例如連不到後端）就顯示預設句
+    const msg = error.response?.data?.message || '帳號或密碼錯誤，或無法連線後端'
+    Swal.fire({ icon: 'error', title: '登入失敗', text: msg })
   }
 }
 function toHome(){

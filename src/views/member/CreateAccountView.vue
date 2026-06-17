@@ -63,8 +63,11 @@
               <input type="text" v-model="account" placeholder="請設定帳號" />
             </div>
             <div class="form-group">
-              <label>密碼（必填，8～80 字，限英數與符號）</label>
-              <input type="password" v-model="password" placeholder="請設定密碼" />
+              <label>密碼（必填，8～80 字，限英數與@#$%^&*()_-）</label>
+              <!-- :type 動態綁定：showPassword 為 true 顯示 text（看得到），false 顯示 password（圓點） -->
+              <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="請設定密碼" />
+              <!-- 勾選框：v-model 綁 showPassword，打勾就把開關變 true -->
+              <label class="radio-label"><input type="checkbox" v-model="showPassword" />顯示密碼</label>
             </div>
           </div>
 
@@ -115,7 +118,8 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>體重 kg（必填，需大於 0）</label>
-                  <input type="number" v-model="pet.weight" placeholder="kg" />
+                  <!-- step="0.01"：允許小數（到小數點後兩位），對應資料庫 DECIMAL(6,2) -->
+                  <input type="number" step="0.01" v-model="pet.weight" placeholder="kg" />
                 </div>
                 <div class="form-group">
                   <label>物種（選填）</label>
@@ -179,6 +183,7 @@ import '@/css/member/create-account.css'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
+import api from '@/plugins/axios.js'   // 共用 axios：指向後端網址
 
 const router = useRouter()
 const name = ref('')
@@ -191,6 +196,8 @@ const email = ref('')
 const account = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+// 密碼是否顯示成明碼：false=圓點（預設）、true=看得到文字
+const showPassword = ref(false)
 const pets = ref([
   { name: '', birthday: '', age: '', gender: '', weight: '', size: '', species: '', breed: '', neutered: '', health: '', personality: '' }
 ])
@@ -207,7 +214,8 @@ function removePet(index) {
 }
 
 // ===== 創建帳號：先驗證個人資料，全部通過才送出 =====
-function handleRegister() {
+// async：裡面要「等」後端回應（await），函式前面要加 async
+async function handleRegister() {
   // 規則用的正規表達式
   const idRule = /^[A-Za-z][12][0-9]{8}$/    // 身分證：1 英文 + (1或2) + 8 數字
   const phoneRule = /^09[0-9]{8}$/           // 電話：09 開頭共 10 碼
@@ -404,8 +412,45 @@ function handleRegister() {
   }
 
   // ===== 全部通過（個人資料 + 寵物）=====
-  // TODO：接後端送出
-  Swal.fire({ icon: 'success', title: '驗證通過', timer: 1000, showConfirmButton: false })
+  // 只送「有填的」寵物：完全空白的卡片不送給後端
+  const petsToSend = []
+  for (let i = 0; i < pets.value.length; i++) {
+    const pet = pets.value[i]
+    const isEmpty =
+      pet.name === '' && pet.birthday === '' && pet.age === '' &&
+      pet.gender === '' && pet.weight === '' && pet.size === '' &&
+      pet.species === '' && pet.breed === '' && pet.neutered === '' &&
+      pet.health === '' && pet.personality === ''
+    if (!isEmpty) {
+      petsToSend.push(pet)   // 有填東西才放進要送出的清單
+    }
+  }
+
+  // ===== 送出註冊：POST /api/member/register =====
+  try {
+    // body 的 key 要對應後端 MemberRegisterDto 的欄位名稱
+    await api.post('/api/member/register', {
+      name: nameValue,
+      birthday: birthday.value,
+      idNumber: idValue,
+      gender: gender.value,
+      address: addressValue,
+      phone: phoneValue,
+      email: emailValue,
+      account: accountValue,
+      password: passwordValue,
+      pets: petsToSend
+    })
+
+    // 註冊成功：註冊不會自動登入，導去登入頁讓使用者登入
+    Swal.fire({ icon: 'success', title: '註冊成功', text: '請使用新帳號登入', timer: 1500, showConfirmButton: false })
+    router.push('/member/login')
+
+  } catch (error) {
+    // 註冊失敗：後端會回 HTTP 400 + { message: '此帳號已被使用' } 之類
+    const msg = error.response?.data?.message || '註冊失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '註冊失敗', text: msg })
+  }
 }
 
 function toMember() {

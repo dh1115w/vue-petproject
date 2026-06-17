@@ -107,6 +107,10 @@
             <div>
               <label for="aptDate">預約日期</label>
               <input type="date" id="aptDate" v-model="form.apt_date_date" :min="minDate" required>
+              <!-- 新增：店休公告 -->
+              <div v-if="isDateHoliday" class="holiday-announcement">
+                ⚠️ 很抱歉，當日為店休日，暫不提供美容服務。
+              </div>
             </div>
             <div>
               <label for="timeSlot">可用時段</label>
@@ -137,9 +141,22 @@
 
           <div class="form-group">
             <label for="couponCode">優惠碼 (Coupon Code)</label>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
               <input type="text" id="couponCode" v-model="form.coupon_code" placeholder="輸入折扣碼，例如 PET80" style="flex: 1; text-transform: uppercase;">
+              <!-- 清空按鈕：僅在有輸入內容時顯示 -->
+              <button 
+                v-if="form.coupon_code" 
+                type="button" 
+                @click="form.coupon_code = ''" 
+                class="btn-clear-coupon"
+                title="清空優惠碼"
+              >
+                清空
+              </button>
               <span v-if="appliedCoupon" style="color: #2ecc71; align-self: center; font-weight: bold;">✓ 已套用</span>
+            </div>
+            <div v-if="couponError" class="coupon-error-message">
+              {{ couponError }}
             </div>
           </div>
 
@@ -198,6 +215,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
+import { getAvailableTimeSlots, createAppointment, getAllServices, validateCoupon } from './groomingApi'
 
 export default {
   name: 'BookingPage',
@@ -223,10 +241,9 @@ export default {
       toastMessage: '',          // Toast 顯示文字
       toastType: 'success',      // Toast 類型 (success / error)
       isProcessingPayment: false, // 模擬金流處理狀態
-      coupons: [ // 模擬優惠券資料庫
-        { code: 'PET80', discount: 0.8, type: 'percent', label: '新客首享 8 折' },
-        { code: 'SAVE100', discount: 100, type: 'fixed', label: '滿額折 100 元' }
-      ],
+      apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
+      couponTimer: null,         // 用於 debounce 請求 (防抖)
+      couponError: null,         // 新增：儲存優惠碼錯誤訊息
       pets: [ // Mock pet data
         { id: 1, name: '巧克力', breed: '貴賓', age: 3, type: 'dog', size: 'S' },
         { id: 2, name: 'Mimi', breed: '波斯貓', age: 2, type: 'cat', size: 'S' }
@@ -237,88 +254,20 @@ export default {
         { id: 3, name: 'Jason (皮膚藥浴專家)' },
         { id: 4, name: 'Sophie (SPA/貓咪專家)' }
       ],
-      services: [
-        {
-          id: 1,
-          title: '基礎洗澡 (Basic Bath)',
-          image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&h=300&fit=crop',
-          minPrice: 500,
-          duration: 60,
-          features: ['溫和低敏洗毛精兩道清洗', '基礎修剪 (腳底毛、腹毛、肛門毛)', '清耳道、剪指甲、修腳圓'],
-          allowedGroomers: [1, 2, 3, 4],
-          allowedSpecies: ['dog', 'cat'],
-          priceMap: { S: 500, M: 700, L: 900 },
-          durationMap: { S: 60, M: 90, L: 120 }
-        },
-        {
-          id: 2,
-          title: '精緻造型剪毛 (Full Grooming)',
-          image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=300&fit=crop',
-          minPrice: 1200,
-          duration: 120,
-          features: ['包含所有「基礎洗澡」內容', '職人手剪全身造型', '客製化造型溝通'],
-          allowedGroomers: [1, 2],
-          allowedSpecies: ['dog'],
-          priceMap: { S: 1200, M: 1800, L: 2500 },
-          durationMap: { S: 120, M: 180, L: 240 }
-        },
-        {
-          id: 3,
-          title: '草本舒緩藥浴 (Medicated Bath)',
-          image: 'https://images.unsplash.com/photo-1598133894008-61f7fdb8cc3a?w=500&h=300&fit=crop',
-          minPrice: 800,
-          duration: 90,
-          features: ['針對皮膚過敏、止癢、異味處理', '天然植物萃取藥劑', '恆溫微氣泡抗菌處理'],
-          allowedGroomers: [3, 4],
-          allowedSpecies: ['dog'],
-          priceMap: { S: 800, M: 1100, L: 1500 },
-          durationMap: { S: 90, M: 120, L: 150 }
-        },
-        {
-          id: 4,
-          title: '深層芳療泥浴 (Mud Spa)',
-          image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=500&h=300&fit=crop',
-          minPrice: 1000,
-          duration: 90,
-          features: ['死海礦物泥深層吸附髒污', '舒壓按摩與熱敷', '讓毛髮重現光澤'],
-          allowedGroomers: [4],
-          allowedSpecies: ['dog'],
-          priceMap: { S: 1000, M: 1400, L: 1800 },
-          durationMap: { S: 90, M: 120, L: 150 }
-        },
-        {
-          id: 5,
-          title: '貓咪舒壓洗護 (Cat Relaxation Wash)',
-          image: 'https://images.unsplash.com/photo-1548546738-8509cb246ed3?w=500&h=300&fit=crop',
-          minPrice: 800,
-          duration: 90,
-          features: ['專屬貓房獨立洗護', '低噪音低風速吹乾', '專業深層去油洗劑'],
-          allowedGroomers: [2, 4],
-          allowedSpecies: ['cat'],
-          priceMap: { S: 800, M: 1200 },
-          durationMap: { S: 90, M: 120 }
-        },
-        {
-          id: 6,
-          title: '貓咪廢毛梳理 (Cat De-shedding)',
-          image: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=500&h=300&fit=crop',
-          minPrice: 600,
-          duration: 60,
-          features: ['深層去除底層廢毛', '專業不鏽鋼排梳技巧', '防止居家毛髮紛飛'],
-          allowedGroomers: [2, 4],
-          allowedSpecies: ['cat'],
-          priceMap: { S: 600, M: 1000 },
-          durationMap: { S: 60, M: 90 }
-        }
-      ],
+      services: [],
       availableTimeSlots: [], // 儲存可用的預約時段
       isLoadingTimeSlots: false, // 載入時段的狀態
       timeSlotsError: null, // 載入時段的錯誤訊息
       incompatibleServiceWarning: '', // 儲存不相容服務的提示訊息
+      // 對應後端 app.js 的店休設定
+      shopHolidays: ['2024-06-20', '2024-12-25', '2024-01-01'],
+      fixedWeeklyOffDay: 1, // 週一公休
       minDate: new Date().toLocaleDateString('sv-SE') // 取得 YYYY-MM-DD 格式的今天日期
     }
   },
-  mounted() {
+  async mounted() {
+    await this.fetchServices();
+
     // 檢查網址是否有傳遞 petId 參數，如果有則自動選取該毛孩
     if (this.$route.query.petId) {
       this.form.pet_id = this.$route.query.petId;
@@ -376,8 +325,7 @@ export default {
     },
     // 新增：尋找目前輸入的優惠券
     appliedCoupon() {
-      if (!this.form.coupon_code) return null;
-      return this.coupons.find(c => c.code.toUpperCase() === this.form.coupon_code.trim().toUpperCase());
+      return this.apiCoupon;
     },
     // 新增：計算最終折扣後價格
     finalPrice() {
@@ -407,6 +355,16 @@ export default {
         store_credit: '儲值金扣款'
       };
       return methods[this.form.payment_method] || '未選擇';
+    }
+    // 新增：根據選定日期判斷是否為店休
+    ,isDateHoliday() {
+      if (!this.form.apt_date_date) return false;
+      
+      // 解析日期（使用 replace 確保相容性）
+      const date = new Date(this.form.apt_date_date.replace(/-/g, '/'));
+      const day = date.getDay();
+      
+      return day === this.fixedWeeklyOffDay || this.shopHolidays.includes(this.form.apt_date_date);
     }
   },
   watch: {
@@ -439,9 +397,69 @@ export default {
       if (service && service.allowedGroomers && !service.allowedGroomers.includes(this.form.groomer_id)) {
         this.form.groomer_id = '';
       }
+    },
+    // 新增：監控優惠碼輸入，自動呼叫 API 驗證
+    'form.coupon_code'(newCode) {
+      clearTimeout(this.couponTimer);
+      this.couponError = null; // 清除之前的錯誤訊息
+      if (!newCode) {
+        this.apiCoupon = null;
+        this.couponError = null; // 清空時也清除錯誤
+        return;
+      }
+      // 設定 500ms 延遲，避免打字時頻繁發送請求
+      this.couponTimer = setTimeout(() => {
+        this.verifyCoupon(newCode);
+      }, 500);
     }
   },
   methods: {
+    async fetchServices() {
+      try {
+        const response = await getAllServices();
+        this.services = response.data;
+      } catch (error) {
+        console.error('Failed to fetch services:', error);
+      }
+    },
+    async fetchPets() {
+      try {
+        const response = await getPets({ member_id: this.form.member_id });
+        this.pets = response.data;
+      } catch (error) {
+        console.error('Failed to fetch pets:', error);
+      }
+    },
+    async fetchGroomers() {
+      try {
+        const response = await getGroomers();
+        this.groomers = response.data;
+      } catch (error) {
+        console.error('Failed to fetch groomers:', error);
+      }
+    },
+    // 新增：呼叫 API 驗證優惠碼
+    async verifyCoupon(code) {
+      this.couponError = null; // 每次驗證前先清除錯誤訊息
+      try {
+        const response = await validateCoupon(code);
+        if (response.data.success) {
+          this.apiCoupon = response.data.data;
+          this.couponError = null; // 成功驗證則清除錯誤
+        } else {
+          // 如果後端回傳 success: false 但狀態碼不是 400
+          this.apiCoupon = null;
+          this.couponError = response.data.message || '優惠碼驗證失敗';
+        }
+      } catch (error) {
+        this.apiCoupon = null; // 驗證失敗 (如 400 錯誤) 則清除套用狀態
+        if (error.response && error.response.data && error.response.data.message) {
+          this.couponError = error.response.data.message; // 顯示後端傳來的錯誤訊息
+        } else {
+          this.couponError = '優惠碼驗證失敗，請檢查網路或稍後再試。'; // 通用錯誤訊息
+        }
+      }
+    },
     async fetchAvailableTimeSlots() {
       const { apt_date_date, groomer_id } = this.form;
 
@@ -454,48 +472,14 @@ export default {
 
       this.isLoadingTimeSlots = true;
       this.timeSlotsError = null;
-      this.availableTimeSlots = []; 
 
       try {
-        // 1. 定義店內所有的預約時段範本
-        const allPossibleSlots = [
-          { value: '10:00', label: '10:00 - 12:00' },
-          { value: '13:00', label: '13:00 - 15:00' },
-          { value: '15:30', label: '15:30 - 17:30' },
-          { value: '18:00', label: '18:00 - 20:00' }
-        ];
+        const response = await getAvailableTimeSlots({ 
+          date: apt_date_date, 
+          groomer_id 
+        });
+        this.availableTimeSlots = response.data;
 
-        // 2. 模擬從資料庫取得的「已預約/排班」資料
-        // 格式：{ '日期': { 美容師ID: [已佔用時段] } }
-        const mockBookedSchedule = {
-          '2024-06-10': {
-            1: ['10:00', '13:00'], // Andy 這天早上跟中午沒空
-            2: ['15:30']           // Emily 這天下午沒空
-          },
-          '2024-06-11': {
-            1: ['10:00', '13:00', '15:30', '18:00'], // Andy 全滿
-            3: ['10:00']                             // Jason 只有早上沒空
-          },
-          '2024-06-15': {
-            // 假設這天是店休或該美容師全天不排班，可以在這處理
-            1: [], 2: [], 3: [], 4: [] 
-          }
-        };
-
-        // 實際應用中，這裡會改用 API 獲取資料：
-        // const response = await axios.get('/api/available-slots', { params: { date: apt_date_date, groomer_id } });
-        // let slots = response.data;
-
-        await new Promise(resolve => setTimeout(resolve, 500)); // 模擬 API 延遲
-
-        // 3. 根據選定的日期與美容師，找出已被佔用的時段
-        const daySchedule = mockBookedSchedule[apt_date_date] || {};
-        const occupiedSlots = daySchedule[groomer_id] || [];
-
-        // 4. 自動過濾：只留下未被佔用的時段
-        this.availableTimeSlots = allPossibleSlots.filter(slot => !occupiedSlots.includes(slot.value));
-
-        // 5. 如果過濾後完全沒有時段，可以給予提示（由 template 中的 v-else-if 處理）
         if (this.availableTimeSlots.length === 0) {
            console.log('當天該美容師已無可用時段');
         }
@@ -507,6 +491,13 @@ export default {
       }
     },
     handleDateOrGroomerChange() {
+      // 如果已選擇日期且該日期為店休/週一公休
+      if (this.form.apt_date_date && this.isDateHoliday) {
+        this.triggerToast('⚠️ 此日期為店休日（週一公休或國定假日），請選擇其他日期。', 'error');
+        this.form.apt_date_date = ''; // 強制清空已選日期
+        this.form.timeSlot = '';      // 同時清空時段
+        return;
+      }
       this.form.timeSlot = ''; // 清空已選時段
       this.fetchAvailableTimeSlots();
     },
@@ -520,6 +511,11 @@ export default {
       // 二次檢查防止過去日期
       if (this.form.apt_date_date < this.minDate) {
         alert('不可預約過去的日期！');
+        return;
+      }
+      
+      if (this.isDateHoliday) {
+        alert('當日為店休日，請重新選擇預約日期。');
         return;
       }
 
@@ -542,10 +538,12 @@ export default {
         notes: this.form.notes
       };
       
-      console.log('正在導向金流串接頁面...', appointmentData);
-
-      // 模擬金流轉址與驗證延遲
-      await new Promise(resolve => setTimeout(resolve, 2000)); 
+      try {
+        // 呼叫 API 建立預約
+        await createAppointment(appointmentData);
+      } catch (error) {
+        console.error('預約提交失敗:', error);
+      }
 
       this.isProcessingPayment = false;
 
@@ -876,5 +874,43 @@ textarea {
 .toast-fade-enter-from, .toast-fade-leave-to {
   opacity: 0;
   transform: translate(-50%, 30px);
+}
+
+/* 店休公告樣式 */
+.holiday-announcement {
+  color: #d32f2f;
+  background-color: #fdf2f2;
+  border: 1px solid #fabebe;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  animation: slideIn 0.3s ease-out;
+}
+
+/* 清空按鈕樣式 */
+.btn-clear-coupon {
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-clear-coupon:hover {
+  background-color: #eee;
+  border-color: #ccc;
+}
+
+/* 新增：優惠碼錯誤訊息樣式 */
+.coupon-error-message {
+  color: #d32f2f; /* 醒目的紅色 */
+  font-size: 0.85rem;
+  margin-top: 5px;
+  font-weight: bold;
 }
 </style>

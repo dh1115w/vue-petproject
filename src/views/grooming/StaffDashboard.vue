@@ -6,15 +6,15 @@
     <div class="stats-container">
       <div class="stat-card">
         <span class="stat-label">今日預約</span>
-        <span class="stat-value">{{ schedule.filter(s => s.appointmentId).length }}</span>
+        <span class="stat-value">{{ stats.todayAppts }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">待處理訂單</span>
-        <span class="stat-value">{{ orders.filter(o => o.status === '待處理').length }}</span>
+        <span class="stat-value">{{ stats.pendingOrders }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">平均服務評分</span>
-        <span class="stat-value" style="color: #f39c12;">★ {{ averageRating }}</span>
+        <span class="stat-value" style="color: #f39c12;">★ {{ stats.avgRating }}</span>
       </div>
     </div>
 
@@ -34,6 +34,10 @@
           <label>選擇日期：</label>
           <input v-model="selectedDate" type="date" class="date-input" />
         </div>
+        <!-- 新增匯出按鈕 -->
+        <button @click="handleExport" class="btn-sm" style="background-color: #2c3e50; color: white; border: none; margin-right: 15px;">
+          📥 匯出今日清單 (CSV)
+        </button>
         <!-- 新增快速操作區塊 -->
         <div class="filter-group">
           <label>快速操作：</label>
@@ -220,6 +224,16 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import '@/css/grooming/StaffDashboard.css';
+import { 
+  getAdminStats, 
+  getAdminSchedule, 
+  getAdminOrders, 
+  updateAdminOrder, 
+  getBlacklist, 
+  addToBlacklist as apiAddToBlacklist,
+  updateAppointmentStatus,
+  exportTodayAppointments
+} from './groomingApi';
 
 // 頁籤狀態
 const currentTab = ref('schedule');
@@ -231,6 +245,9 @@ const statusFilter = ref('all');
 // 排班日期選擇 (預設顯示今日)
 const selectedDate = ref(new Date().toISOString().split('T')[0]);
 const todayStr = new Date().toISOString().split('T')[0];
+
+// 數據概覽
+const stats = ref({ todayAppts: 0, pendingOrders: 0, avgRating: '0.0' });
 
 // 月曆視圖邏輯
 const viewDate = ref(new Date()); // 當前查看的月份
@@ -295,66 +312,50 @@ const staffList = [
 
 // 模擬排班資料 (關聯預約)
 const schedule = ref([]);
+const orders = ref([]);
+const blacklist = ref([]);
 
-// 初始化模擬整個月的排班資料
-onMounted(() => {
-  const today = new Date();
-  const tempSchedule = [];
-  let idCounter = 1;
-
-  // 自動產生未來 30 天的資料
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
-
-    staffList.forEach(staff => {
-      // 為每位美容師每天分配兩個時段
-      const shifts = ['09:00 - 13:00', '14:00 - 18:00'];
-      shifts.forEach(time => {
-        tempSchedule.push({
-          id: idCounter++,
-          date: dateStr,
-          time: time,
-          staffName: staff.name,
-          appointmentId: (i === 0 && staff.name === 'Andy' && time.startsWith('09')) ? 1001 : null,
-          isOpen: true
-        });
-      });
-    });
+// 初始化資料載入
+const fetchData = async () => {
+  try {
+    const [statsRes, scheduleRes, ordersRes, blacklistRes] = await Promise.all([
+      getAdminStats(),
+      getAdminSchedule(),
+      getAdminOrders(),
+      getBlacklist()
+    ]);
+    stats.value = statsRes.data;
+    
+    // 格式化 schedule (將預約紀錄映射到時段)
+    schedule.value = scheduleRes.data.map(apt => ({
+      id: apt.id,
+      date: apt.date.split(' ')[0],
+      time: apt.date.split(' ')[1],
+      staffName: apt.groomer,
+      appointmentId: apt.id,
+      isOpen: false
+    }));
+    
+    // 格式化 orders (將 status 轉為中文顯示)
+    const statusTextMap = { 0: '待處理', 1: '已完成', 2: '已取消', 3: '進行中' };
+    orders.value = ordersRes.data.map(o => ({
+      ...o,
+      status: statusTextMap[o.status] || '未知',
+      service: o.serviceName
+    }));
+    
+    blacklist.value = blacklistRes.data;
+  } catch (err) {
+    console.error('Failed to load dashboard data:', err);
   }
-  schedule.value = tempSchedule;
-});
+};
+
+onMounted(fetchData);
 
 // 根據選擇日期篩選排班列表
 const filteredSchedule = computed(() => {
   return schedule.value.filter(s => s.date === selectedDate.value);
 });
-
-// 模擬訂單資料
-const orders = ref([
-  { id: 1001, petName: '阿福', service: '全套美容', status: '進行中', userId: 'U001' },
-  { id: 1002, petName: '豆豆', service: '基礎洗澡', status: '待處理', userId: 'U002' },
-]);
-
-// 模擬評價資料（實務上應從 API 取得）
-const reviews = ref([
-  { groomerName: 'Andy', rating: 5 },
-  { groomerName: 'Andy', rating: 4 },
-]);
-
-// 計算目前美容師的平均星等
-const averageRating = computed(() => {
-  const myReviews = reviews.value.filter(r => r.groomerName === quickActionStaff.value);
-  if (myReviews.length === 0) return '0.0';
-  const sum = myReviews.reduce((acc, cur) => acc + cur.rating, 0);
-  return (sum / myReviews.length).toFixed(1);
-});
-
-// 模擬黑名單
-const blacklist = ref([
-  { userId: 'U999', reason: '多次預約未到' }
-]);
 
 // 篩選後的訂單列表
 const filteredOrders = computed(() => {
@@ -384,31 +385,33 @@ watch([searchQuery, statusFilter], () => {
 });
 
 // 功能邏輯
-const updateOrderStatus = (id, newStatus) => {
+const updateOrderStatus = async (id, newStatus) => {
   if (newStatus === '已取消' && !confirm('確定要取消這筆預約嗎？這將會釋放排班時段供其他客戶預約。')) {
     return;
   }
 
-  const order = orders.value.find(o => o.id === id);
-  if (order) {
-    order.status = newStatus;
-    
-    // 連動邏輯：當訂單狀態改為「已完成」時，尋找對應的排班時段並鎖定
-    if (newStatus === '已完成') {
-      const slot = schedule.value.find(s => s.appointmentId === id);
-      if (slot) {
-        slot.isOpen = false; // 確保時段已關閉，且不可再被切換
-      }
-    }
+  try {
+    await updateAdminOrder(id, newStatus);
+    await fetchData(); // 重新整理資料
+  } catch (err) {
+    alert('更新訂單失敗');
+  }
+};
 
-    // 連動邏輯：當訂單狀態改為「已取消」時，釋放對應的排班時段
-    if (newStatus === '已取消') {
-      const slot = schedule.value.find(s => s.appointmentId === id);
-      if (slot) {
-        slot.appointmentId = null; // 移除預約 ID 關聯，釋放時段
-        slot.isOpen = true;        // 重新開放預約
-      }
-    }
+// 匯出今日預約清單邏輯
+const handleExport = async () => {
+  try {
+    const response = await exportTodayAppointments();
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const today = new Date().toLocaleDateString('sv-SE');
+    link.setAttribute('download', `美容預約清單-${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    alert('匯出清單失敗，請稍後再試');
   }
 };
 
@@ -515,11 +518,12 @@ const getSlotStatusClass = (slot) => {
 // 樣式類別補充 (假設在 CSS 中定義)
 // status-closed { background-color: #999; color: white; }
 
-const addToBlacklist = (userId) => {
+const addToBlacklist = async (userId) => {
   const reason = prompt('請輸入加入黑名單的原因：');
   if (reason) {
-    blacklist.value.push({ userId, reason });
+    await apiAddToBlacklist({ userId, reason });
     alert(`用戶 ${userId} 已加入黑名單`);
+    await fetchData();
   }
 };
 

@@ -58,6 +58,19 @@
                     @click="openCancelModal(apt)" 
                     class="mini-page-btn danger-border"
                   >取消</button>
+                  <button 
+                    v-if="apt.status === 0" 
+                    @click="updateStatus(apt.id, 3)" 
+                    class="mini-page-btn"
+                    style="border-color: #f39c12; color: #f39c12; margin-left: 5px;"
+                  >開始美容</button>
+                  <button 
+                    v-if="apt.status === 3" 
+                    @click="updateStatus(apt.id, 1)" 
+                    class="mini-page-btn"
+                    style="border-color: #27ae60; color: #27ae60;"
+                  >完成美容</button>
+
                   <button
                     v-if="canReview(apt)" 
                     @click="openReviewModal(apt)" 
@@ -244,7 +257,7 @@
 
 <script>
 import NavBar from './NavBar.vue'; // 假設 NavBar 路徑正確
-import axios from 'axios'; // 引入 axios
+import { getAppointments, cancelAppointment, submitGroomingReview, updateAppointmentStatus } from './groomingApi';
 
 export default {
   name: 'Appointments',
@@ -330,15 +343,10 @@ export default {
       this.isLoading = true; // 開始載入，設定載入狀態為 true
       this.error = null; // 清除之前的錯誤訊息
       try {
-        // 根據篩選狀態構建查詢參數
         const params = {};
-        if (this.filterStatus !== 'all') {
-          params.status = this.filterStatus;
-        }
+        if (this.filterStatus !== 'all') params.status = this.filterStatus;
 
-        // 替換成您的實際 API 端點
-        // 假設您的後端 API 在 /api/appointments，並且可以接受 status 參數進行篩選
-        const response = await axios.get('/api/appointments', { params });
+        const response = await getAppointments(params);
         let remoteData = response.data;
 
         // 檢查路由 state 中是否有剛產生的預約
@@ -384,11 +392,7 @@ export default {
       if (!this.appointmentToCancel) return;
 
       try {
-        // 模擬 API 呼叫，實際應用中請替換為您的後端取消預約 API
-        // 例如：await axios.post(`/api/appointments/${this.appointmentToCancel.id}/cancel`);
-        await new Promise(resolve => setTimeout(resolve, 500)); // 模擬網路延遲
-
-        // 假設取消成功，更新預約狀態為「已取消」
+        await cancelAppointment(this.appointmentToCancel.id);
         alert(`預約編號 ${this.appointmentToCancel.id} 已成功取消！`);
         this.fetchAppointments(); // 重新載入列表以確保資料最新
       } catch (error) {
@@ -396,6 +400,17 @@ export default {
         alert('取消預約失敗，請稍後再試。');
       } finally {
         this.closeCancelModal();
+      }
+    },
+    async updateStatus(id, newStatus) {
+      try {
+        const actionName = newStatus === 3 ? '開始美容' : '完成美容';
+        await updateAppointmentStatus(id, newStatus);
+        alert(`預約編號 ${id} 已切換至 ${actionName}！`);
+        this.fetchAppointments(); // 重新載入列表以確保畫面同步
+      } catch (error) {
+        console.error('更新狀態失敗:', error);
+        alert('狀態更新失敗，請稍後再試。');
       }
     },
     openReviewModal(appointment) {
@@ -420,11 +435,10 @@ export default {
             comment: this.reviewComment,
             date: new Date().toISOString()
           };
-
-          // TODO: axios.post('/api/reviews', reviewData); 
-          console.log('提交評價到系統:', reviewData);
-
-          targetApt.isReviewed = true; // 標記為已評價
+          
+          await submitGroomingReview(reviewData);
+          
+          targetApt.isReviewed = true;
           targetApt.reviewRating = this.reviewRating; // 暫存資料供查看
           targetApt.reviewComment = this.reviewComment;
         }

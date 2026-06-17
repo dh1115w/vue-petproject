@@ -6,6 +6,18 @@
       <header class="page-header">
         <h2 class="section-title">全方位美容服務</h2>
         <p class="section-subtitle">我們提供多樣化的美容護理，讓您的毛孩煥然一新</p>
+        
+        <!-- 新增過濾切換按鈕 -->
+        <div class="category-filter">
+          <button 
+            v-for="cat in ['all', 'dog', 'cat']" 
+            :key="cat"
+            @click="filterType = cat"
+            :class="['filter-btn', { active: filterType === cat }]"
+          >
+            {{ cat === 'all' ? '全部' : cat === 'dog' ? '狗狗服務' : '貓咪服務' }}
+          </button>
+        </div>
       </header>
 
       <div class="service-grid">
@@ -66,120 +78,15 @@
 
 <script>
 import NavBar from './NavBar.vue'
+import { getAllServices } from './groomingApi'
 
 export default {
   name: 'ServicesPage',
   components: { NavBar },
   data() {
     return {
-      services: [
-        {
-          id: 1,
-          title: '基礎洗澡 (Basic Bath)',
-          image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&h=300&fit=crop',
-          prices: [
-            { type: '小型犬 (5kg以下)', price: 500 },
-            { type: '中型犬 (5-15kg)', price: 700 },
-            { type: '大型犬 (15kg以上)', price: 900 }
-          ],
-          features: [
-            '溫和低敏洗毛精兩道清洗',
-            '基礎修剪 (腳底毛、腹毛、肛門毛)',
-            '清耳道、剪指甲、修腳圓',
-            '擠肛門腺、專業吹整毛髮'
-          ],
-          buttonText: '預約洗澡',
-          highlight: false
-        },
-        {
-          id: 2,
-          title: '精緻造型剪毛 (Full Grooming)',
-          image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=300&fit=crop',
-          prices: [
-            { type: '小型犬 (5kg以下)', price: 1200 },
-            { type: '中型犬 (5-15kg)', price: 1800 },
-            { type: '大型犬 (15kg以上)', price: 2500 }
-          ],
-          features: [
-            '包含所有「基礎洗澡」內容',
-            '職人手剪全身造型、打薄修飾',
-            '客製化造型溝通 (如圓頭、貴賓裝)',
-            '蓬鬆毛髮結構處理'
-          ],
-          buttonText: '預約造型',
-          highlight: false
-        },
-        {
-          id: 3,
-          title: '草本舒緩藥浴 (Medicated Bath)',
-          image: 'https://images.unsplash.com/photo-1598133894008-61f7fdb8cc3a?w=500&h=300&fit=crop',
-          prices: [
-            { type: '小型犬 (5kg以下)', price: 800 },
-            { type: '中型犬 (5-15kg)', price: 1100 },
-            { type: '大型犬 (15kg以上)', price: 1500 }
-          ],
-          features: [
-            '針對皮膚過敏、止癢、異味處理',
-            '天然植物萃取藥劑，不傷毛質',
-            '恆溫微氣泡抗菌處理',
-            '舒緩紅腫、改善皮膚防禦力'
-          ],
-          buttonText: '預約藥浴',
-          highlight: false
-        },
-        {
-          id: 4,
-          title: '深層芳療泥浴 (Mud Spa)',
-          image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=500&h=300&fit=crop',
-          prices: [
-            { type: '小型犬 (5kg以下)', price: 1000 },
-            { type: '中型犬 (5-15kg)', price: 1400 },
-            { type: '大型犬 (15kg以上)', price: 1800 }
-          ],
-          features: [
-            '死海礦物泥深層吸附皮脂髒污',
-            '改善乾澀、除臭效果持久',
-            '舒壓按摩與熱敷',
-            '讓毛髮重現光澤與彈性'
-          ],
-          buttonText: '預約 SPA',
-          highlight: false
-        },
-        {
-          id: 5,
-          title: '貓咪舒壓洗護 (Cat Relaxation Wash)',
-          image: 'https://images.unsplash.com/photo-1548546738-8509cb246ed3?w=500&h=300&fit=crop',
-          prices: [
-            { type: '短毛貓 (如美短、英短)', price: 800 },
-            { type: '長毛貓 (如波斯、緬因)', price: 1200 }
-          ],
-          features: [
-            '專屬貓房獨立洗護，減少環境壓力',
-            '低噪音低風速吹乾設備',
-            '專業深層去油洗劑',
-            '包含修剪指甲、清耳、剪腳底毛'
-          ],
-          buttonText: '預約貓咪洗澡',
-          highlight: false
-        },
-        {
-          id: 6,
-          title: '貓咪廢毛梳理 (Cat De-shedding)',
-          image: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=500&h=300&fit=crop',
-          prices: [
-            { type: '短毛貓 (廢毛處理)', price: 600 },
-            { type: '長毛貓 (拆結、深層梳理)', price: 1000 }
-          ],
-          features: [
-            '深層去除底層廢毛，減少毛球症',
-            '專業不鏽鋼排梳技巧，不傷皮膚',
-            '增進皮膚血液循環與油脂平衡',
-            '毛髮滑順、防止居家毛髮紛飛'
-          ],
-          buttonText: '預約梳毛',
-          highlight: false
-        }
-      ],
+      services: [],
+      filterType: 'all',
       faqs: [
         {
           question: '預約後可以取消或更改時間嗎？',
@@ -199,12 +106,72 @@ export default {
         }
       ]
     }
+  },
+  watch: {
+    // 當過濾條件改變時，重新獲取資料
+    filterType: {
+      handler: 'fetchServices',
+      immediate: true
+    }
+  },
+  methods: {
+    async fetchServices() {
+      try {
+        const params = this.filterType === 'all' ? {} : { type: this.filterType };
+        const response = await getAllServices(params);
+        
+        // 轉換後端 priceMap 到前端表格需要的格式
+        this.services = response.data.map(service => ({
+          ...service,
+          // 如果後端沒給按鈕文字或高亮，設定預設值
+          buttonText: service.buttonText || (this.filterType === 'cat' ? '預約貓咪服務' : '立即預約'),
+          highlight: service.id === 2, // 模擬：精緻造型預設高亮
+          prices: this.formatPriceMap(service.priceMap, service.allowedSpecies)
+        }));
+      } catch (error) {
+        console.error('Failed to load services:', error);
+      }
+    },
+    formatPriceMap(priceMap, allowedSpecies) {
+      if (!priceMap) return [];
+      
+      const isCatOnly = allowedSpecies.length === 1 && allowedSpecies[0] === 'cat';
+      const labels = isCatOnly 
+        ? { S: '短毛貓', M: '長毛貓' }
+        : { S: '小型犬 (5kg以下)', M: '中型犬 (5-15kg)', L: '大型犬 (15kg以上)' };
+
+      return Object.entries(priceMap).map(([key, price]) => ({
+        type: labels[key] || key,
+        price
+      }));
+    }
   }
 }
 </script>
 
 <style scoped>
 @import '@/css/grooming/index.css';
+
+/* 新增過濾按鈕樣式 */
+.category-filter {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+.filter-btn {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.filter-btn.active {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
 
 .page-header {
   text-align: center;

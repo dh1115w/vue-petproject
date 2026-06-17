@@ -156,6 +156,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
+import { getReviews, getUnreviewedAppointments, submitGroomingReview } from '@/api/groomingApi';
 
 export default {
   name: 'ReviewsPage',
@@ -177,36 +178,15 @@ export default {
         comment: '',
         image: null
       },
-      // 模擬用戶的預約歷史 (實際應從 API 獲取)
-      userAppointments: [
-        { id: 101, status: 'completed', serviceName: '基礎洗澡', groomer: 'Emily', date: '2024-05-15' },
-        { id: 102, status: 'pending', serviceName: '精緻造型剪毛', groomer: 'Andy', date: '2024-06-20' }
-      ],
-      reviews: [
-        {
-          id: 1,
-          appointmentId: 100, // 模擬已存在評價的預約 ID
-          userName: '豆豆媽',
-          groomerName: 'Emily',
-          rating: 5,
-          comment: 'Emily 真的很專業，我們家貓咪平常很怕生，但這次竟然乖乖洗完，修剪得非常圓潤可愛！',
-          image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=300&fit=crop',
-          date: '2024-05-15'
-        },
-        {
-          id: 2,
-          appointmentId: 99,
-          userName: '阿強',
-          groomerName: 'Andy',
-          rating: 4,
-          comment: 'Andy 處理大型犬很有經驗，哈士奇洗完後毛髮非常蓬鬆，也沒什麼異味了。',
-          image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=300&fit=crop',
-          date: '2024-05-10'
-        }
-      ]
+      userAppointments: [],
+      reviews: []
     }
   },
-  mounted() {
+  async mounted() {
+    await this.fetchReviews();
+    if (this.isLoggedIn) {
+      await this.fetchUserAppointments();
+    }
     // 檢查網址是否有傳遞 groomer 參數，如果有則自動選取該美容師
     if (this.$route.query.groomer) {
       this.newReview.groomer = this.$route.query.groomer;
@@ -220,11 +200,7 @@ export default {
   computed: {
     // 取得所有「已完成」且「尚未評價過」的預約清單
     unreviewedAppointments() {
-      if (!this.isLoggedIn) return [];
-      return this.userAppointments.filter(apt => 
-        apt.status === 'completed' && 
-        !this.reviews.some(review => review.appointmentId === apt.id)
-      );
+      return this.userAppointments;
     },
     hasCompletedService() {
       return this.unreviewedAppointments.length > 0;
@@ -257,15 +233,31 @@ export default {
   },
   watch: {
     // 當排序方式改變時，回到第一頁
-    sortBy() {
-      this.currentPage = 1;
-    },
+    sortBy: 'fetchReviews',
     // 當篩選條件改變時，回到第一頁
-    filterGroomer() {
-      this.currentPage = 1;
-    }
+    filterGroomer: 'fetchReviews'
   },
   methods: {
+    async fetchReviews() {
+      try {
+        const response = await getReviews({
+          groomer: this.filterGroomer,
+          sort: this.sortBy
+        });
+        this.reviews = response.data;
+        this.currentPage = 1;
+      } catch (error) {
+        console.error('獲取評論失敗:', error);
+      }
+    },
+    async fetchUserAppointments() {
+      try {
+        const response = await getUnreviewedAppointments();
+        this.userAppointments = response.data;
+      } catch (error) {
+        console.error('獲取可評價預約失敗:', error);
+      }
+    },
     // 當使用者選擇預約紀錄時，自動帶入該次預約的美容師名稱
     syncGroomer() {
       const apt = this.unreviewedAppointments.find(a => a.id === this.newReview.appointmentId);
@@ -294,26 +286,23 @@ export default {
       this.lightboxImage = null;
       document.body.style.overflow = ''; // 恢復背景捲動
     },
-    submitReview() {
-      const reviewToAdd = {
-        id: Date.now(),
-        appointmentId: this.newReview.appointmentId,
-        userName: '新用戶', // 實際應用應從會員登入資訊獲取
-        groomerName: this.newReview.groomer,
-        rating: this.newReview.rating,
-        comment: this.newReview.comment,
-        image: this.newReview.image || 'https://via.placeholder.com/400x300?text=No+Photo',
-        date: new Date().toISOString().split('T')[0]
-      };
-      
-      this.reviews.unshift(reviewToAdd);
-      this.currentPage = 1; // 送出後回到第一頁看到自己的評價
-      alert('感謝您的評價！');
-      
-      // 重置表單
-      this.newReview = { appointmentId: '', groomer: '', rating: 5, comment: '', image: null };
-      if (this.$refs.fileInput) {
-        this.$refs.fileInput.value = ''; // 清空檔案選擇器
+    async submitReview() {
+      try {
+        const formData = new FormData();
+        formData.append('appointmentId', this.newReview.appointmentId);
+        formData.append('groomerName', this.newReview.groomer);
+        formData.append('rating', this.newReview.rating);
+        formData.append('comment', this.newReview.comment);
+        // 這裡暫時處理圖片
+
+        await submitGroomingReview(formData);
+        
+        alert('感謝您的評價！');
+        this.newReview = { appointmentId: '', groomer: '', rating: 5, comment: '', image: null };
+        await this.fetchReviews();
+        await this.fetchUserAppointments();
+      } catch (error) {
+        alert('提交評價失敗');
       }
     },
     changePage(page) {

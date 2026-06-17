@@ -22,6 +22,16 @@
             <img :src="staff.image" :alt="staff.name" class="staff-img" />
           </div>
           <h3>{{ staff.name }}</h3>
+          <div class="duty-status-badge" :class="staff.isOnDuty ? 'on-duty' : 'off-duty'">
+            {{ staff.isOnDuty ? '● 今日在店' : '○ 今日休假' }}
+          </div>
+
+          <div class="staff-rating" v-if="staff.rating">
+            <div class="stars">
+              <span v-for="s in 5" :key="s" :class="{ 'star-filled': s <= Math.round(staff.rating) }">★</span>
+            </div>
+            <span class="rating-text">{{ staff.rating }}</span>
+          </div>
           <p class="staff-specialty">專長：{{ staff.specialty }}</p>
           <div class="staff-intro">
             <p class="staff-desc">{{ staff.desc }}</p>
@@ -37,18 +47,27 @@
 
 <script>
 import NavBar from './NavBar.vue'
+import { getGroomers } from './groomingApi'
 
 export default {
   name: 'StaffPage',
   components: { NavBar },
   data() {
     return {
-      staffList: [
-        { name: 'Andy', image: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&h=200&fit=crop', specialty: '大型犬剪毛、造型設計', desc: '擁有10年資深美容經驗，擅長依據毛孩骨架設計最適合的職人造型。', experience: '曾榮獲全國寵物美容大賽優等獎，精通各類犬種標準賽級修剪。' },
-        { name: 'Emily', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop', specialty: '貓咪美容、草本藥浴', desc: '細心耐心的個性，專門處理高敏感貓咪，讓洗澡變成一種享受。', experience: '持有ISCC國際貓犬美容師認證，深耕貓咪行為學與草本皮毛調理。' },
-        { name: 'Jason', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop', specialty: '專業手剪、皮毛護理', desc: '專注於細節的手剪技巧，細心觀察每隻毛孩的皮膚狀況給予建議。', experience: '擁有豐富的皮毛生理學知識，致力於推廣「低壓力」的健康美容流程。' },
-        { name: 'Sophie', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop', specialty: '幼犬減壓美容', desc: '專門負責第一次美容的幼犬，用溫柔引導方式讓毛孩從此愛上美容。', experience: '擅長幼犬社交化美容，讓毛孩在幼年期建立對美容環境的信任與安全感。' }
-      ]
+      staffList: []
+    }
+  },
+  async mounted() {
+    await this.fetchStaff();
+  },
+  methods: {
+    async fetchStaff() {
+      try {
+        const response = await getGroomers();
+        this.staffList = response.data;
+      } catch (error) {
+        console.error('獲取美容師團隊資料失敗:', error);
+      }
     }
   }
 }
@@ -155,6 +174,46 @@ export default {
 .staff-card h3 {
   margin-bottom: 10px;
   color: #333;
+}
+
+.staff-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.stars {
+  color: #ddd;
+  font-size: 1.1rem;
+}
+
+.star-filled {
+  color: #f1c40f;
+}
+
+.rating-text {
+  font-weight: bold;
+  color: #f39c12;
+  font-size: 1rem;
+}
+
+.duty-status-badge {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+
+.on-duty {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.off-duty {
+  background-color: #f5f5f5;
+  color: #9e9e9e;
 }
 
 .staff-specialty {

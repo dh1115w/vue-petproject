@@ -525,6 +525,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import instance from "@/plugins/axiso.js";
 import "@/css/medical/medical-health-tracking.css";
 import healthBannerImg from "@/images/health-tracking-banner.jpg";
 
@@ -638,16 +639,23 @@ async function handleSubmitRecord() {
   try {
     // PetHealthTracking 每種指標各存一列，搭配 typeId 區分
     // typeId 實際數字需跟後端確認 HealthMetricTypes 資料表內容
-    const postData = [
-      { petId: 1, typeId: 1, metricValue: parseFloat(w),                    statusNote: "" },
-      { petId: 1, typeId: 2, metricValue: parseInt(wt),                     statusNote: "" },
-      { petId: 1, typeId: 3, metricValue: parseInt(f),                      statusNote: "" },
-      { petId: 1, typeId: 4, metricValue: parseInt(metricValuePoop.value),  statusNote: `${statusNotePoop.value}|${statusNoteMood.value}|${statusNoteActivity.value}` },
-      { petId: 1, typeId: 5, metricValue: 0,                                statusNote: statusNoteExtra.value },
-    ];
+    const postData = {
+      petId: 1,
+      weight: parseFloat(w),
+      waterIntake: parseInt(wt),
+      foodIntake: parseInt(f),
+      excretionCount: metricValuePoop.value, // "0","1","2","3","4+"
+      stoolStatus: statusNotePoop.value, // "正常","軟便"...
+      mentalStatus: statusNoteMood.value, // "很好","普通","不好"
+      activityLevel: statusNoteActivity.value, // "低","中","高"
+      statusNote: statusNoteExtra.value,
+    };
     // 呼叫 Java 後端 API（typeId 數字接後端前需確認）
-    // const response = await axios.post('/api/medical/health-tracking', postData);
-    // console.log('後端儲存成功:', response.data);
+    const response = await axios.post(
+      "/api/medical/health-tracking/daily-log",
+      postData,
+    );
+    console.log("後端儲存成功:", response.data);
   } catch (error) {
     console.error("後端儲存失敗:", error);
     alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");

@@ -31,34 +31,14 @@
     <section class="services-section container">
       <h2 class="section-title">熱門服務項目</h2>
       <div class="grid grid-3">
-        <div class="card service-card">
+        <div v-for="service in featuredServices" :key="service.id" class="card service-card">
           <div class="card-body">
             <h3 class="service-title-link">
-              <router-link :to="{ path: '/grooming/booking', query: { serviceId: 1 } }" style="color: inherit; text-decoration: none;">基礎洗澡</router-link>
+              <router-link :to="{ path: '/grooming/booking', query: { serviceId: service.id } }" style="color: inherit; text-decoration: none;">{{ service.title }}</router-link>
             </h3>
-            <p class="price">NT$ 500 起</p>
-            <p class="duration">⏱ 時長：60 分鐘</p>
-            <p class="desc">包含剪指甲、清耳朵、擠肛門腺、溫和洗毛精清潔。</p>
-          </div>
-        </div>
-        <div class="card service-card">
-          <div class="card-body"> 
-            <h3 class="service-title-link">
-              <router-link :to="{ path: '/grooming/booking', query: { serviceId: 2 } }" style="color: inherit; text-decoration: none;">精緻造型剪毛</router-link>
-            </h3>
-            <p class="price">NT$ 1,200 起</p>
-            <p class="duration">⏱ 時長：120 分鐘</p>
-            <p class="desc">職人手剪、客製化造型溝通、全身毛髮蓬鬆打理。</p>
-          </div>
-        </div>
-        <div class="card service-card">
-          <div class="card-body"> 
-            <h3 class="service-title-link">
-              <router-link :to="{ path: '/grooming/booking', query: { serviceId: 3 } }" style="color: inherit; text-decoration: none;">草本舒緩藥浴</router-link>
-            </h3>
-            <p class="price">NT$ 800 起</p>
-            <p class="duration">⏱ 時長：90 分鐘</p>
-            <p class="desc">針對敏感肌毛孩，使用天然草本配方，改善皮膚問題。</p>
+            <p class="price">NT$ {{ service.price }} 起</p>
+            <p class="duration">⏱ 時長：{{ service.duration }} 分鐘</p>
+            <p class="desc">{{ service.desc }}</p>
           </div>
         </div>
       </div>
@@ -70,14 +50,14 @@
     <!-- 優惠促銷區塊 -->
     <section v-if="isPromoActive" ref="promoSection" class="promo-section container">
       <div class="promo-content">
-        <div class="promo-tag">LIMITED OFFER</div>
-        <h2>夏日清爽大作戰！新客首享 8 折</h2>
+        <div class="promo-tag">{{ promoData.tag }}</div>
+        <h2>{{ promoData.title }}</h2>
         <p>
-          即日起至本月底，首次預約「全套美容服務」，結帳輸入專屬代碼 
+          {{ promoData.description }}
           <span 
             class="promo-code" 
-            @click="copyCode('PET80')" 
-            @keyup.enter="copyCode('PET80')"
+            @click="copyCode(promoData.promoCode)" 
+            @keyup.enter="copyCode(promoData.promoCode)"
             tabindex="0"
             role="button"
             title="點擊複製代碼"
@@ -150,6 +130,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
+import { getFeaturedServices, getActivePromotion } from '@/api/groomingApi';
 
 export default {
   name: 'GroomingIndex',
@@ -166,10 +147,20 @@ export default {
       showToast: false,    // 控制 Toast 顯示
       toastMessage: '',    // Toast 顯示文字
       toastType: 'success', // 新增：Toast 類型 (success / error)
-      timerInterval: null
+      timerInterval: null,
+      featuredServices: [], // 從 API 獲取的服務
+      promoData: {
+        promoCode: '',
+        endDate: '',
+        title: '',
+        description: '',
+        tag: ''
+      }
     }
   },
-  mounted() {
+  async mounted() {
+    await this.fetchInitialData();
+
     // 建立觀察器：偵測元素是否進入畫面
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -182,19 +173,32 @@ export default {
     if (this.$refs.promoSection) {
       this.observer.observe(this.$refs.promoSection);
     }
-
-    // 啟動倒數計時
-    this.startCountdown();
   },
   beforeUnmount() {
     if (this.observer) this.observer.disconnect();
     if (this.timerInterval) clearInterval(this.timerInterval);
   },
   methods: {
-    startCountdown() {
-      // 設定目標時間：本月最後一天 23:59:59
-      const now = new Date();
-      const targetDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    async fetchInitialData() {
+      try {
+        const [servicesRes, promoRes] = await Promise.all([
+          getFeaturedServices(),
+          getActivePromotion()
+        ]);
+        
+        this.featuredServices = servicesRes.data;
+        this.promoData = promoRes.data;
+        this.isPromoActive = promoRes.data.isActive;
+
+        if (this.isPromoActive && this.promoData.endDate) {
+          this.startCountdown(this.promoData.endDate);
+        }
+      } catch (error) {
+        console.error('獲取首頁資料失敗:', error);
+      }
+    },
+    startCountdown(endDateStr) {
+      const targetDate = new Date(endDateStr);
       
       const update = () => {
         const currentTime = new Date().getTime();

@@ -156,7 +156,9 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getReviews, getUnreviewedAppointments, submitGroomingReview } from '@/api/groomingApi';
+// ⚠️【合併前要還原】組員原寫法路徑 @/api/groomingApi 在本專案不存在，先註解掉
+// import { getReviews, getUnreviewedAppointments, submitGroomingReview } from '@/api/groomingApi';
+import { getReviews, getUnreviewedAppointments, submitGroomingReview } from './groomingApi'; // 暫時改成同資料夾的相對路徑
 
 export default {
   name: 'ReviewsPage',

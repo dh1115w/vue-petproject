@@ -525,7 +525,9 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import instance from "@/plugins/axiso.js";
+// ⚠️【合併前要還原】組員用舊檔名 axiso.js（少一個 a），本專案已改名為 axios.js，先註解掉
+// import instance from "@/plugins/axiso.js";
+import instance from "@/plugins/axios.js"; // 暫時改成正確檔名，讓程式跑得動
 import "@/css/medical/medical-health-tracking.css";
 import healthBannerImg from "@/images/health-tracking-banner.jpg";
 

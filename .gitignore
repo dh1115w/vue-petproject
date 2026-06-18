@@ -41,4 +41,5 @@ __screenshots__/
 # Claude Code 個人設定檔（不上傳 GitHub）
 CLAUDE.md
 CLAUDE grooming.md
+.claude/
 

@@ -77,6 +77,7 @@ import '@/css/member/forget-password.css'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
+import api from '@/plugins/axios.js'   // 共用 axios：會自動帶 token、指向後端網址
 
 const router = useRouter()
 
@@ -89,15 +90,13 @@ const accountOrEmail = ref('')
 // 使用者在第二步輸入的驗證碼
 const inputCode = ref('')
 
-// 模擬「寄出去」的那組驗證碼（之後接後端就刪掉，改由後端管理）
-const sentCode = ref('')
-
 // 第三步：新密碼、確認新密碼
 const newPassword = ref('')
 const confirmPassword = ref('')
 
 // 第一步：按「寄送驗證碼」會執行這個
-function sendCode() {
+// async：裡面要 await 等後端回應
+async function sendCode() {
   // 防呆：沒填就不要送
   if (accountOrEmail.value === '') {
     Swal.fire({ icon: 'warning', title: '請先輸入帳號或電子信箱' })
@@ -113,24 +112,24 @@ function sendCode() {
     return
   }
 
-  // ===== 之後接後端時，把這段換成 axios 呼叫後端寄驗證碼 =====
-  // 例如：axios.post('/api/member/send-reset-code', { accountOrEmail: accountOrEmail.value })
-  // 後端負責：找出這個帳號/email、產生驗證碼、寄到信箱
-  // 現在沒有後端，所以前端先亂數產生一組 6 位數來模擬
-  // Math.random() 會給 0~1 的小數，乘開後取整數，湊出 100000~999999
-  sentCode.value = String(Math.floor(100000 + Math.random() * 900000))
+  // ===== 呼叫後端：找出這位會員、產生驗證碼、寄到他的 email =====
+  try {
+    // 後端 POST /api/member/send-reset-code，body 只要 { accountOrEmail }
+    await api.post('/api/member/send-reset-code', { accountOrEmail: value })
 
-  Swal.fire({
-    icon: 'success',
-    title: '驗證碼已寄出',
-    // 測試用：把驗證碼顯示出來，方便你測第二步（接後端後要刪掉這行）
-    text: '測試用驗證碼：' + sentCode.value,
-  })
-  step.value = 2
+    Swal.fire({ icon: 'success', title: '驗證碼已寄出', text: '請至信箱查看 6 位數驗證碼' })
+    step.value = 2   // 進到第二步：輸入驗證碼
+
+  } catch (error) {
+    // 查無帳號/email、或寄信失敗時，後端回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '寄送失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '寄送失敗', text: msg })
+  }
 }
 
 // 第二步：按「驗證」會執行這個
-function verifyCode() {
+// async：裡面要 await 等後端回應
+async function verifyCode() {
   // 防呆：沒填就不要驗
   if (inputCode.value === '') {
     Swal.fire({ icon: 'warning', title: '請輸入驗證碼' })
@@ -143,19 +142,26 @@ function verifyCode() {
     return
   }
 
-  // ===== 之後接後端時，把這段換成 axios 請後端比對驗證碼 =====
-  // 例如：axios.post('/api/member/verify-reset-code', { code: inputCode.value })
-  // 現在沒有後端，先自己比對前端產生的那組
-  if (inputCode.value === sentCode.value) {
-    // 對了 → 進到第三步（設定新密碼）
-    step.value = 3
-  } else {
-    Swal.fire({ icon: 'error', title: '驗證碼錯誤', text: '請再確認一次' })
+  // ===== 呼叫後端比對驗證碼（要連同帳號/email 一起送，後端才知道是比對誰的碼）=====
+  try {
+    // 後端 POST /api/member/verify-reset-code，body 是 { accountOrEmail, code }
+    await api.post('/api/member/verify-reset-code', {
+      accountOrEmail: accountOrEmail.value.trim(),
+      code: inputCode.value.trim()
+    })
+
+    step.value = 3   // 驗證碼正確 → 進到第三步：設定新密碼
+
+  } catch (error) {
+    // 碼錯/過期/不符時，後端回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '驗證碼錯誤，請再確認一次'
+    Swal.fire({ icon: 'error', title: '驗證失敗', text: msg })
   }
 }
 
 // 第三步：按「確認修改」會執行這個
-function resetPassword() {
+// async：裡面要 await 等後端回應
+async function resetPassword() {
   // 防呆 1：兩個欄位都要填
   if (newPassword.value === '' || confirmPassword.value === '') {
     Swal.fire({ icon: 'warning', title: '請填寫新密碼與確認密碼' })
@@ -177,18 +183,29 @@ function resetPassword() {
     return
   }
 
-  // ===== 之後接後端時，把這段換成 axios 請後端更新密碼 =====
-  // 例如：axios.post('/api/member/reset-password', { accountOrEmail: accountOrEmail.value, newPassword: newPassword.value })
-  // 後端負責：把資料庫裡這位會員的密碼換成新的
-  // 現在沒有後端，先假裝改成功，提示後回登入頁
-  Swal.fire({
-    icon: 'success',
-    title: '密碼修改成功',
-    text: '請用新密碼重新登入',
-    timer: 1500,
-    showConfirmButton: false
-  })
-  router.push('/member/login')
+  // ===== 呼叫後端更新密碼（後端會再驗一次碼，確認沒過期、是本人）=====
+  try {
+    // 後端 POST /api/member/reset-password，body 是 { accountOrEmail, code, newPassword }
+    await api.post('/api/member/reset-password', {
+      accountOrEmail: accountOrEmail.value.trim(),
+      code: inputCode.value.trim(),
+      newPassword: newPassword.value
+    })
+
+    Swal.fire({
+      icon: 'success',
+      title: '密碼修改成功',
+      text: '請用新密碼重新登入',
+      timer: 1500,
+      showConfirmButton: false
+    })
+    router.push('/member/login')   // 回登入頁
+
+  } catch (error) {
+    // 碼錯/過期、新密碼格式錯、查無會員時，後端回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '密碼重設失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '重設失敗', text: msg })
+  }
 }
 
 function toLogin() {

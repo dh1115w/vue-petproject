@@ -65,6 +65,38 @@
           </div>
         </div>
       </div>
+
+      <!-- 登入紀錄卡片：顯示這個會員最近的登入/登出紀錄 -->
+      <div class="card login-log-card" style="margin-top: 25px;">
+        <h3>登入紀錄 (LoginLog)</h3>
+        <table class="custom-dashboard-table">
+          <thead>
+            <tr>
+              <th>登入時間</th>
+              <th>登出時間</th>
+              <th>來源 IP</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 一筆一列，用 index 當 key（後端沒回 id，用順序即可） -->
+            <tr v-for="(log, index) in loginLogs" :key="index">
+              <td>{{ log.loginTime }}</td>
+              <!-- logoutTime 是 null 代表還沒登出 → 顯示「使用中」 -->
+              <td>{{ log.logoutTime || '使用中' }}</td>
+              <td><code>{{ log.ip }}</code></td>
+              <td>
+                <span v-if="log.online" class="badge badge-success">🟢 上線</span>
+                <span v-else class="badge badge-info">⚪ 離線</span>
+              </td>
+            </tr>
+            <!-- 完全沒有紀錄時顯示一列提示 -->
+            <tr v-if="loginLogs.length === 0">
+              <td colspan="4" style="text-align: center;">目前沒有登入紀錄</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </main>
 
    <!-- 編輯毛孩彈窗 (Modal) -->
@@ -192,7 +224,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import useUserStore from '@/stores/user.js'
 import Swal from 'sweetalert2'
@@ -386,6 +418,29 @@ async function deletePet(pet) {
 function goToUpdateProfile() {
   router.push('/member/updateprofile')
 }
+
+
+// ===== 8. 登入紀錄 =====
+// loginLogs：存後端回傳的登入紀錄陣列（已照新到舊排好）
+// 每筆欄位：loginTime / logoutTime(可能 null) / ip / online(true=上線)
+const loginLogs = ref([])
+
+// 向後端拿這個會員的登入紀錄
+async function loadLoginLogs() {
+  try {
+    // GET /api/member/secure/login-logs，token 由 axios 自動帶上
+    // 後端從 token 認出是哪個會員，只回傳他自己的紀錄
+    const response = await api.get('/api/member/secure/login-logs')
+    loginLogs.value = response.data
+  } catch (error) {
+    // 拿不到資料就用 Swal 提示
+    const msg = error.response?.data?.message || '無法載入登入紀錄，請稍後再試'
+    Swal.fire({ icon: 'error', title: '載入失敗', text: msg })
+  }
+}
+
+// 頁面一載入就去拿登入紀錄
+onMounted(loadLoginLogs)
 </script>
 
 <style>

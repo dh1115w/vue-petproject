@@ -85,11 +85,23 @@
 <script setup>
 import { useRouter } from "vue-router";
 import useUserStore from "@/stores/user.js";
+import Swal from "sweetalert2";
+import api from "@/plugins/axios.js"; // 共用 axios：會自動帶 token
 
 const router = useRouter();
 const userStore = useUserStore();
 
-function handleLogout() {
+// 登出：先呼叫後端把這次登入標記成已登出，再清掉前端 store
+async function handleLogout() {
+  try {
+    // 先打後端 /api/member/secure/logout（token 由 axios 自動帶上）
+    // 後端才會更新這次登入紀錄的 logoutTime 和狀態
+    await api.post("/api/member/secure/logout");
+  } catch (error) {
+    // 後端登出失敗也提示一下，但仍會往下清掉前端登入狀態
+    const msg = error.response?.data?.message || "登出時發生錯誤";
+    Swal.fire({ icon: "error", title: "登出失敗", text: msg });
+  }
   userStore.logout(); // 清空 token及個人資訊
   router.push("/"); // 回首頁
 }

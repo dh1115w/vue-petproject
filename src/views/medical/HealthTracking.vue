@@ -254,7 +254,6 @@
           <div class="chart-header-row">
             <div>
               <h3 class="chart-box-title">體重變化趨勢</h3>
-              <p class="chart-box-subtitle">理想範圍：11 ~ 16 kg</p>
             </div>
 
             <!-- 週/月/年 時間篩選器切換 -->
@@ -271,135 +270,12 @@
             </div>
           </div>
 
-          <!-- 體重折線圖 -->
-          <div class="chart-visual-wrapper">
-            <svg class="line-chart-svg" viewBox="0 0 500 180">
-              <!-- 背景參考虛線網格、偏瘦與過重臨界警示線 -->
-              <line
-                x1="40"
-                y1="30"
-                x2="480"
-                y2="30"
-                stroke="#df4733"
-                stroke-dasharray="4 4"
-                opacity="0.4"
-              />
-              <text x="485" y="34" font-size="10" fill="#df4733">
-                過重(16kg)
-              </text>
-
-              <line
-                x1="40"
-                y1="130"
-                x2="480"
-                y2="130"
-                stroke="#e29553"
-                stroke-dasharray="4 4"
-                opacity="0.4"
-              />
-              <text x="485" y="134" font-size="10" fill="#e29553">
-                偏瘦(11kg)
-              </text>
-
-              <line
-                x1="40"
-                y1="80"
-                x2="480"
-                y2="80"
-                stroke="#e6e3da"
-                stroke-dasharray="3 3"
-              />
-
-              <!-- 體重趨勢主折線  -->
-              <polyline
-                fill="none"
-                stroke="var(--primary)"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                points="50,110 110,95 170,100 230,85 290,90 350,75 410,80 470,70"
-              />
-
-              <!-- 折線上的動態數據核心圓點群 -->
-              <circle
-                cx="50"
-                cy="110"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="110"
-                cy="95"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="170"
-                cy="100"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="230"
-                cy="85"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="290"
-                cy="90"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="350"
-                cy="75"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="410"
-                cy="80"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <!-- 最新體重節點（藍色強調） -->
-              <circle
-                cx="470"
-                cy="70"
-                r="5"
-                fill="#7bb3d4"
-                stroke="#fff"
-                stroke-width="2"
-              />
-
-              <!-- X 軸底部日期文字刻度 -->
-              <text
-                v-for="(d, idx) in currentChartData"
-                :key="idx"
-                :x="50 + idx * 60"
-                y="165"
-                text-anchor="middle"
-                font-size="11"
-                fill="#9c9e98"
-              >
-                {{ d.date }}
-              </text>
-            </svg>
+          <!-- 體重折線圖（Chart.js） -->
+          <div
+            class="chart-visual-wrapper"
+            style="position: relative; height: 220px"
+          >
+            <canvas ref="weightChartCanvas"></canvas>
           </div>
         </div>
 
@@ -524,9 +400,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import instance from "@/plugins/axios.js";
 import useUserStore from "@/stores/user.js";
+import Chart from "chart.js/auto";
 import "@/css/medical/medical-health-tracking.css";
 import healthBannerImg from "@/images/health-tracking-banner.jpg";
 
@@ -886,80 +763,176 @@ const waterInsight = computed(() => {
 });
 
 // ==========================================================================
-// 3. 右側圖表：時間範圍切換
+// 3. 右側圖表：體重變化趨勢（Chart.js + 後端真實資料）
 // ==========================================================================
 const currentTimeRange = ref("week"); // 預設顯示週視圖
 
-// ── 歷史模擬資料 ────────────────────────────────────────
-const weeklyData = [
-  { date: "週一", weight: 13.4, water: 520, food: 250 },
-  { date: "週二", weight: 13.5, water: 480, food: 240 },
-  { date: "週三", weight: 13.5, water: 600, food: 260 },
-  { date: "週四", weight: 13.6, water: 550, food: 250 },
-  { date: "週五", weight: 13.6, water: 480, food: 250 },
-  { date: "週六", weight: 13.7, water: 620, food: 270 },
-  { date: "週日", weight: 13.6, water: 480, food: 250 },
-];
+// canvas 元素的 template ref，Chart.js 需要綁定在真實 DOM 上
+const weightChartCanvas = ref(null);
+// 保存目前的 Chart.js 實例，之後切換時間範圍要先銷毀舊圖表再畫新的，避免疊圖
+let weightChartInstance = null;
 
-const monthlyData = [
-  { date: "3/1", weight: 12.8 },
-  { date: "3/8", weight: 13.1 },
-  { date: "3/15", weight: 13.0 },
-  { date: "3/22", weight: 13.3 },
-  { date: "3/29", weight: 13.2 },
-  { date: "4/5", weight: 13.5 },
-  { date: "4/12", weight: 13.4 },
-  { date: "4/19", weight: 13.6 },
-];
+// 體重趨勢方向（給「體重狀態」摘要卡片用）："up" | "down" | "flat" | "insufficient"
+const weightTrend = ref("insufficient");
 
-const yearlyData = [
-  { date: "1月", weight: 11.2 },
-  { date: "2月", weight: 11.8 },
-  { date: "3月", weight: 12.3 },
-  { date: "4月", weight: 12.8 },
-  { date: "5月", weight: 13.1 },
-  { date: "6月", weight: 13.0 },
-  { date: "7月", weight: 13.2 },
-  { date: "8月", weight: 13.4 },
-  { date: "9月", weight: 13.3 },
-  { date: "10月", weight: 13.5 },
-  { date: "11月", weight: 13.6 },
-  { date: "12月", weight: 13.6 },
-];
+/**
+ * 向後端查詢體重變化趨勢資料，並重新繪製 Chart.js 圖表
+ */
+async function fetchWeightChart() {
+  if (!currentPetId.value || !weightChartCanvas.value) return;
 
-// 雙色長條圖專用（固定取當週飲食數據）
-const weeklyFoodWaterData = ref(weeklyData);
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}/weight-chart`,
+      { params: { range: currentTimeRange.value } },
+    );
 
-// 折線圖 X 軸日期：依時間範圍自動切換
-const currentChartData = computed(() => {
-  if (currentTimeRange.value === "week") return weeklyData;
-  if (currentTimeRange.value === "month") return monthlyData;
-  return yearlyData;
+    const points = response.data; // [{ label, weight }, ...]
+    const labels = points.map((p) => p.label);
+    const weights = points.map((p) => p.weight); // null 的部分 Chart.js 會自動斷線
+
+    renderWeightChart(labels, weights);
+  } catch (error) {
+    console.error("查詢體重變化趨勢失敗:", error);
+  }
+}
+
+/**
+ * 獨立查詢「最近兩筆有效體重紀錄」，用來判斷體重狀態卡片的趨勢方向（上升/下降/持平）
+ * 固定查過去 30 天（不受使用者切換 週/月/年 影響），確保「上次紀錄」是真的最近一次，
+ * 而不是被使用者目前選的時間範圍意外影響到比較基準
+ */
+async function fetchWeightTrend() {
+  if (!currentPetId.value) {
+    weightTrend.value = "insufficient";
+    return;
+  }
+
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}/weight-chart`,
+      { params: { range: "month" } },
+    );
+
+    // 篩掉沒紀錄的日期（weight 為 null），只保留真正有填寫的資料點
+    const validPoints = response.data.filter(
+      (p) => p.weight !== null && p.weight !== undefined,
+    );
+
+    if (validPoints.length < 2) {
+      weightTrend.value = "insufficient"; // 資料不到兩筆，無法比較
+      return;
+    }
+
+    // validPoints 依時間由舊到新排序，所以最後兩筆就是「最新一筆」與「上一筆」
+    const latest = Number(validPoints[validPoints.length - 1].weight);
+    const previous = Number(validPoints[validPoints.length - 2].weight);
+
+    if (latest > previous) {
+      weightTrend.value = "up";
+    } else if (latest < previous) {
+      weightTrend.value = "down";
+    } else {
+      weightTrend.value = "flat";
+    }
+  } catch (error) {
+    console.error("查詢體重趨勢失敗:", error);
+    weightTrend.value = "insufficient";
+  }
+}
+
+/**
+ * 用 Chart.js 畫出（或重新畫出）體重趨勢折線圖
+ */
+function renderWeightChart(labels, weights) {
+  // 切換時間範圍時，先銷毀舊圖表實例，避免畫面疊加殘影
+  if (weightChartInstance) {
+    weightChartInstance.destroy();
+  }
+
+  weightChartInstance = new Chart(weightChartCanvas.value, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "體重 (kg)",
+          data: weights,
+          borderColor: "#7bb3d4",
+          backgroundColor: "#7bb3d4",
+          spanGaps: false, // 關鍵設定：遇到 null 值時折線斷開，不連接前後兩點
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: "#7bb3d4",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        y: {
+          beginAtZero: false, // 不強制從 0 開始，讓 Chart.js 依實際資料自動決定合適的範圍
+        },
+      },
+    },
+  });
+}
+
+// ── 本週飲食紀錄長條圖專用假資料（這次體重圖改接後端，但飲食長條圖暫不在本次調整範圍內，先維持原樣）─────
+const weeklyFoodWaterData = ref([
+  { date: "週一", water: 520, food: 250 },
+  { date: "週二", water: 480, food: 240 },
+  { date: "週三", water: 600, food: 260 },
+  { date: "週四", water: 550, food: 250 },
+  { date: "週五", water: 480, food: 250 },
+  { date: "週六", water: 620, food: 270 },
+  { date: "週日", water: 480, food: 250 },
+]);
+
+// 頁面載入完成後，畫出預設（週）的體重趨勢圖，並計算體重狀態卡片用的趨勢方向
+onMounted(() => {
+  fetchWeightChart();
+  fetchWeightTrend();
+});
+
+// 使用者點擊 週/月/年 按鈕、currentTimeRange 改變時，重新查詢並重繪圖表
+// 注意：weightTrend（體重狀態卡片）固定看「近30天」，不受這個切換影響，所以這裡不需要呼叫 fetchWeightTrend
+watch(currentTimeRange, () => {
+  fetchWeightChart();
+});
+
+// 切換寵物時，currentPetId 改變，連帶重新查詢這隻寵物的體重趨勢圖、體重狀態、歷史日誌
+watch(currentPetId, () => {
+  fetchWeightChart();
+  fetchWeightTrend();
+  fetchHistoryLogs();
 });
 
 // ==========================================================================
-// 4. 體重狀態計算（對應 Pet.weight 理想區間判斷）
+// 4. 體重狀態卡片：顯示「跟上次紀錄相比」的趨勢方向（不做理想範圍判斷）
 // ==========================================================================
-const currentWeight = 13.6; // 實際串接時改為從 Pet API 取得的 weight
-const idealMin = 11;
-const idealMax = 16;
+const currentWeight = 13.6; // 「當前體重」卡片使用，實際串接時改為從 Pet API 取得的 weight
 
+// 依 weightTrend（up / down / flat / insufficient）決定卡片顯示的文字
 const statusLabel = computed(() => {
-  if (currentWeight < idealMin) return "偏瘦";
-  if (currentWeight > idealMax) return "過重";
-  return "正常";
+  if (weightTrend.value === "up") return "上升";
+  if (weightTrend.value === "down") return "下降";
+  if (weightTrend.value === "flat") return "持平";
+  return "資料不足";
 });
 
-const statusColor = computed(() => {
-  if (currentWeight < idealMin) return "#e29553";
-  if (currentWeight > idealMax) return "#df4733";
-  return "#6bae8a";
-});
+// 顏色維持中性色調，因為「上升/下降」本身不代表好壞，不適合用紅色/橘色暗示警示
+const statusColor = "#7bb3d4";
+const statusBg = "rgba(123, 179, 212, 0.15)";
 
-const statusBg = computed(() => {
-  if (currentWeight < idealMin) return "rgba(226, 149, 83, 0.15)";
-  if (currentWeight > idealMax) return "rgba(223, 71, 51, 0.15)";
-  return "rgba(107, 174, 138, 0.15)";
+// 卡片下方補充說明文字
+const statusSub = computed(() => {
+  if (weightTrend.value === "insufficient") return "尚無足夠紀錄";
+  return "與上次記錄相比";
 });
 
 // 右側三大健康摘要小卡資料
@@ -985,10 +958,10 @@ const healthStatsSummary = computed(() => [
   {
     label: "體重狀態",
     value: statusLabel.value,
-    sub: "理想範圍內",
+    sub: statusSub.value,
     emoji: "🐕",
-    color: statusColor.value,
-    bgColor: statusBg.value,
+    color: statusColor,
+    bgColor: statusBg,
     trend: "ok",
   },
 ]);

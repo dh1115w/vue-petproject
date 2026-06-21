@@ -206,6 +206,10 @@ import { ref, computed, onMounted } from "vue";
 import "@/css/medical/medical-clinic-search.css";
 import axios from "@/plugins/axios.js";
 
+// TODO：目前會員登入功能尚未串接，先用固定值測試收藏功能
+// 之後會員組做好登入後，這裡要改成從 src/stores/user.js 的 memberInfo.id 取得真實值
+const TEMP_MEM_ID = 1;
+
 // ==========================================================================
 // 1. UI 互動狀態
 // ==========================================================================
@@ -296,13 +300,25 @@ const filteredClinics = computed(() => {
 // ==========================================================================
 
 // 切換收藏狀態（對應新增/刪除 UserFavoriteClinics 紀錄）
-function toggleFavorite(clinic) {
+async function toggleFavorite(clinic) {
   const idx = clinicsList.value.findIndex(
     (c) => c.clinicId === clinic.clinicId,
   );
-  if (idx !== -1) {
-    clinicsList.value[idx].isFavorited = !clinicsList.value[idx].isFavorited;
-    // TODO：呼叫後端 API 新增或刪除 UserFavoriteClinics 紀錄
+  if (idx === -1) return;
+
+  try {
+    const response = await axios.post("/api/medical/favorites/toggle", null, {
+      params: {
+        memId: TEMP_MEM_ID,
+        clinicId: clinic.clinicId,
+      },
+    });
+
+    // 用後端回傳的最新狀態更新畫面，而不是自己猜測切換結果，確保前後端狀態一致
+    clinicsList.value[idx].isFavorited = response.data.isFavorited;
+  } catch (error) {
+    console.error("收藏狀態切換失敗", error);
+    alert("操作失敗，請稍後再試");
   }
 }
 
@@ -422,10 +438,13 @@ async function fetchNearbyClinics() {
       distanceText: `${clinic.distance} km`, // 數字轉成顯示用文字
       rawDistance: clinic.distance,
       tags: clinic.isPetFriendly ? ["特寵"] : [], // 後端沒有 tags，先簡單轉換
-      isFavorited: false, // 收藏功能尚未串接後端，先固定 false
+      isFavorited: false, // 先預設 false，下面會再查詢真實收藏狀態並更新
     }));
     // 資料更新後，同步更新地圖上的標記點
     updateMapMarkers();
+
+    // 查詢這個會員收藏了哪些診所，更新清單裡對應卡片的愛心狀態
+    await syncFavoriteStatus();
 
     // 如果有搜尋結果，把地圖中心移到使用者目前位置
     if (mapInstance && userLat.value !== null) {
@@ -436,6 +455,27 @@ async function fetchNearbyClinics() {
     alert("搜尋附近診所失敗，請稍後再試");
   } finally {
     isSearching.value = false;
+  }
+}
+
+// 查詢目前會員收藏了哪些診所 ID，更新 clinicsList 裡每張卡片的 isFavorited 狀態
+async function syncFavoriteStatus() {
+  try {
+    const response = await axios.get("/api/medical/favorites", {
+      params: { memId: TEMP_MEM_ID },
+    });
+
+    // response.data 是一串診所 ID 陣列，例如 [70, 96, 128]
+    const favoriteIds = response.data;
+
+    // 用 Set 比對效率較好，clinicsList 裡的每張卡片，ID 有在收藏清單裡的就標記為已收藏
+    const favoriteIdSet = new Set(favoriteIds);
+    clinicsList.value.forEach((clinic) => {
+      clinic.isFavorited = favoriteIdSet.has(clinic.clinicId);
+    });
+  } catch (error) {
+    console.error("查詢收藏狀態失敗", error);
+    // 查詢失敗不影響主要的搜尋結果顯示，所以這裡不彈出 alert 打擾使用者
   }
 }
 

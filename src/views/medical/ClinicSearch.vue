@@ -202,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import "@/css/medical/medical-clinic-search.css";
 import axios from "@/plugins/axios.js";
 
@@ -267,6 +267,11 @@ const hasLocated = ref(false);
 
 // 載入中狀態（呼叫 API 期間顯示 loading 用，可選）
 const isSearching = ref(false);
+
+// 地圖相關
+let mapInstance = null; // Google Maps 地圖物件本體
+let markers = []; // 目前畫在地圖上的所有標記點，之後要清除舊標記點時會用到
+let infoWindow = null; // 點擊標記點時跳出的小視窗，全部標記點共用同一個
 // ==========================================================================
 // 4. 交叉過濾計算器
 // ==========================================================================
@@ -318,6 +323,66 @@ function toggleFilter(key) {
   }
 }
 
+// 初始化地圖（頁面載入時執行一次）
+function initMap() {
+  // 預設中心點：南台科技大學附近（之後使用者定位成功會自動移動到使用者位置）
+  const defaultCenter = { lat: 23.0021, lng: 120.2155 };
+
+  mapInstance = new google.maps.Map(document.getElementById("clinicMap"), {
+    center: defaultCenter,
+    zoom: 14,
+    mapId: "CLINIC_SEARCH_MAP", // Advanced Marker 需要這個欄位，可以隨意命名
+  });
+
+  // 建立一個共用的資訊小視窗，之後點擊標記點時會重複使用這一個
+  infoWindow = new google.maps.InfoWindow();
+}
+
+// 清除地圖上所有舊的標記點
+function clearMarkers() {
+  markers.forEach((marker) => {
+    marker.map = null; // 把標記點從地圖上移除
+  });
+  markers = [];
+}
+
+// 依照目前的 clinicsList，在地圖上重新畫出所有標記點
+function updateMapMarkers() {
+  // 地圖還沒初始化完成，先不做事（避免初始化還沒跑完就被呼叫到，造成錯誤）
+  if (!mapInstance) {
+    return;
+  }
+
+  // 先清掉舊的標記點，再畫新的
+  clearMarkers();
+
+  clinicsList.value.forEach((clinic) => {
+    const marker = new google.maps.marker.AdvancedMarkerElement({
+      map: mapInstance,
+      position: { lat: clinic.latitude, lng: clinic.longitude },
+      title: clinic.clinicName,
+    });
+
+    // 標記點被點擊時，顯示診所資訊小視窗
+    marker.addListener("click", () => {
+      infoWindow.setContent(`
+        <div style="padding: 4px;">
+          <strong>${clinic.clinicName}</strong><br/>
+          ${clinic.address}<br/>
+          📞 ${clinic.phone}<br/>
+          ⭐ ${clinic.rating}　📍 ${clinic.distanceText}
+        </div>
+      `);
+      infoWindow.open(mapInstance, marker);
+
+      // 同步選中左側清單對應的卡片
+      selectedClinicId.value = clinic.clinicId;
+    });
+
+    markers.push(marker);
+  });
+}
+
 // 呼叫後端 API，搜尋附近診所
 // 每次「定位成功」或「篩選條件改變」時，都會呼叫這個函式重新查詢
 async function fetchNearbyClinics() {
@@ -359,6 +424,13 @@ async function fetchNearbyClinics() {
       tags: clinic.isPetFriendly ? ["特寵"] : [], // 後端沒有 tags，先簡單轉換
       isFavorited: false, // 收藏功能尚未串接後端，先固定 false
     }));
+    // 資料更新後，同步更新地圖上的標記點
+    updateMapMarkers();
+
+    // 如果有搜尋結果，把地圖中心移到使用者目前位置
+    if (mapInstance && userLat.value !== null) {
+      mapInstance.setCenter({ lat: userLat.value, lng: userLng.value });
+    }
   } catch (error) {
     console.error("搜尋附近診所失敗", error);
     alert("搜尋附近診所失敗，請稍後再試");
@@ -413,4 +485,9 @@ function handleCall(clinic) {
 function handleRecordInfo() {
   handleLocate();
 }
+
+// 頁面元件載入完成後，初始化地圖
+onMounted(() => {
+  initMap();
+});
 </script>

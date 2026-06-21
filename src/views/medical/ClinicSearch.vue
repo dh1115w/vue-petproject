@@ -69,7 +69,7 @@
                   type="button"
                   class="distance-tab-btn"
                   :class="{ 'is-active': selectedDistance === dist }"
-                  @click="selectedDistance = dist"
+                  @click="handleDistanceChange(dist)"
                 >
                   {{ dist }}km
                 </button>
@@ -96,7 +96,10 @@
         <!-- 滾動區域：診所清單 -->
         <div class="scrollable-list">
           <div class="clinic-list-scroll-view">
-            <p class="search-result-count">
+            <p v-if="!hasLocated" class="search-result-count">
+              請先點擊上方「定位」按鈕，搜尋附近診所
+            </p>
+            <p v-else class="search-result-count">
               找到 {{ filteredClinics.length }} 間診所
             </p>
 
@@ -208,6 +211,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import "@/css/medical/medical-clinic-search.css";
+import axios from "@/plugins/axios.js";
 
 // ==========================================================================
 // 1. UI 互動狀態
@@ -260,84 +264,21 @@ const filterOptions = [
 //    distanceText  → 前端計算後的顯示用距離文字
 //    rawDistance   → 前端計算後的公里數（用於距離篩選）
 // ==========================================================================
-const clinicsList = ref([
-  {
-    clinicId: 1,
-    clinicName: "台北動物醫院",
-    address: "台北市大安區仁愛路四段 300 號",
-    phone: "02-2700-1234",
-    rating: 4.8,
-    reviews: 234,
-    hasEmergency: true, // Clinics.hasEmergency
-    requireBooking: false, // Clinics.requireBooking
-    latitude: 25.033, // Clinics.latitude
-    longitude: 121.543, // Clinics.longitude
-    businessHours: "09:00 - 21:00", // 顯示用（來自 ClinicBusinessHours）
-    isOpen: true, // 前端計算即時開關狀態
-    distanceText: "0.8 km", // 顯示用距離文字
-    rawDistance: 0.8, // 篩選用公里數
-    tags: ["全科", "急診", "外科"],
-    isFavorited: false, // 對應 UserFavoriteClinics 是否存在此 clinicId
-  },
-  {
-    clinicId: 2,
-    clinicName: "愛寵動物診所",
-    address: "台北市信義區基隆路一段 180 號",
-    phone: "02-2720-5678",
-    rating: 4.6,
-    reviews: 156,
-    hasEmergency: false,
-    requireBooking: true,
-    latitude: 25.03,
-    longitude: 121.558,
-    businessHours: "10:00 - 20:00",
-    isOpen: true,
-    distanceText: "1.2 km",
-    rawDistance: 1.2,
-    tags: ["皮膚科", "眼科", "特寵"],
-    isFavorited: false,
-  },
-  {
-    clinicId: 3,
-    clinicName: "毛孩子動物醫院",
-    address: "台北市松山區南京東路五段 88 號",
-    phone: "02-2760-9012",
-    rating: 4.9,
-    reviews: 312,
-    hasEmergency: false,
-    requireBooking: false,
-    latitude: 25.051,
-    longitude: 121.561,
-    businessHours: "09:00 - 18:00",
-    isOpen: false,
-    distanceText: "2.1 km",
-    rawDistance: 2.1,
-    tags: ["全科", "牙科", "復健"],
-    isFavorited: false,
-  },
-  {
-    clinicId: 4,
-    clinicName: "24H 緊急動物醫院",
-    address: "台北市中山區林森北路 200 號",
-    phone: "02-2531-3456",
-    rating: 4.5,
-    reviews: 89,
-    hasEmergency: true,
-    requireBooking: false,
-    latitude: 25.058,
-    longitude: 121.524,
-    businessHours: "24 小時",
-    isOpen: true,
-    distanceText: "3.5 km",
-    rawDistance: 3.5,
-    tags: ["急診", "24H", "重症"],
-    isFavorited: false,
-  },
-]);
+const clinicsList = ref([]); // 改成空陣列，資料改由 API 回傳填入
+// 使用者目前的經緯度（定位成功後才會有值）
+const userLat = ref(null);
+const userLng = ref(null);
 
+// 是否已經定位過（還沒定位前，不顯示任何診所清單）
+const hasLocated = ref(false);
+
+// 載入中狀態（呼叫 API 期間顯示 loading 用，可選）
+const isSearching = ref(false);
 // ==========================================================================
 // 4. 交叉過濾計算器
 // ==========================================================================
+// 距離、特寵、營業中、夜間門診這幾個條件，後端 API 已經篩選好了，
+// 這裡只需要再做「收藏」跟「文字搜尋」這兩個後端沒處理的條件
 const filteredClinics = computed(() => {
   return clinicsList.value.filter((clinic) => {
     // 收藏頁籤：只顯示已加入 UserFavoriteClinics 的診所
@@ -348,15 +289,7 @@ const filteredClinics = computed(() => {
       clinic.clinicName.includes(searchQuery.value) ||
       clinic.address.includes(searchQuery.value);
 
-    // 距離篩選
-    const matchDist = clinic.rawDistance <= parseFloat(selectedDistance.value);
-
-    // 進階複選條件
-    const matchOpen = !filters.value.open || clinic.isOpen;
-    const matchNight = !filters.value.night || clinic.hasEmergency; // hasEmergency 對應夜間
-    const matchAppt = !filters.value.appointment || clinic.requireBooking; // requireBooking 對應特寵
-
-    return matchSearch && matchDist && matchOpen && matchNight && matchAppt;
+    return matchSearch;
   });
 });
 
@@ -376,8 +309,69 @@ function toggleFavorite(clinic) {
 }
 
 // 切換進階篩選 Chip
+// 距離篩選改變時呼叫
+function handleDistanceChange(dist) {
+  selectedDistance.value = dist;
+  if (hasLocated.value) {
+    fetchNearbyClinics();
+  }
+}
+
+// 切換進階篩選 Chip（特寵/營業中/夜間門診）
 function toggleFilter(key) {
   filters.value[key] = !filters.value[key];
+  if (hasLocated.value) {
+    fetchNearbyClinics();
+  }
+}
+
+// 呼叫後端 API，搜尋附近診所
+// 每次「定位成功」或「篩選條件改變」時，都會呼叫這個函式重新查詢
+async function fetchNearbyClinics() {
+  // 還沒定位過，不發送請求
+  if (userLat.value === null || userLng.value === null) {
+    return;
+  }
+
+  isSearching.value = true;
+
+  try {
+    const response = await axios.get("/api/medical/clinics/nearby", {
+      params: {
+        lat: userLat.value,
+        lng: userLng.value,
+        radius: selectedDistance.value,
+        petFriendly: filters.value.appointment,
+        openNow: filters.value.open,
+        nightClinic: filters.value.night,
+      },
+    });
+
+    // 把後端回傳的資料，轉換成前端畫面需要的格式
+    clinicsList.value = response.data.map((clinic) => ({
+      clinicId: clinic.clinicId,
+      clinicName: clinic.clinicName,
+      address: clinic.address,
+      phone: clinic.phone,
+      rating: clinic.rating,
+      reviews: 0, // 後端目前沒有評論數資料，先固定顯示 0
+      hasEmergency: clinic.hasEmergency,
+      requireBooking: clinic.requireBooking,
+      latitude: clinic.latitude,
+      longitude: clinic.longitude,
+      businessHours: "", // 後端目前沒有回傳文字格式的營業時間，先留空
+      isOpen: clinic.isOpenNow, // 欄位名稱轉換：isOpenNow → isOpen
+      distanceText: `${clinic.distance} km`, // 數字轉成顯示用文字
+      rawDistance: clinic.distance,
+      tags: clinic.isPetFriendly ? ["特寵"] : [], // 後端沒有 tags，先簡單轉換
+      isFavorited: false, // 收藏功能尚未串接後端，先固定 false
+    }));
+  } catch (error) {
+    console.error("搜尋附近診所失敗", error);
+    alert("搜尋附近診所失敗，請稍後再試");
+  } finally {
+    isSearching.value = false;
+  }
 }
 
 // 定位功能
@@ -390,16 +384,18 @@ async function handleLocate() {
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       const { latitude, longitude } = position.coords;
-      try {
-        // TODO：呼叫 Geocoding API 將經緯度轉為地址
-        // const res = await fetch(`https://maps.googleapis.com/.../geocode/json?latlng=${latitude},${longitude}&key=YOUR_KEY`)
-        searchQuery.value = "台北市大安區 (已取得目前定位)";
-        console.log(`定位成功: ${latitude}, ${longitude}`);
-      } catch (error) {
-        console.error("地址解析失敗", error);
-      } finally {
-        isLocating.value = false;
-      }
+
+      // 把定位拿到的座標存起來，之後篩選條件改變時還會用到
+      userLat.value = latitude;
+      userLng.value = longitude;
+      hasLocated.value = true;
+
+      console.log(`定位成功: ${latitude}, ${longitude}`);
+
+      // 呼叫後端 API，搜尋附近診所
+      await fetchNearbyClinics();
+
+      isLocating.value = false;
     },
     () => {
       isLocating.value = false;

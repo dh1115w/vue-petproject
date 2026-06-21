@@ -526,6 +526,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import instance from "@/plugins/axios.js";
+import useUserStore from "@/stores/user.js";
 import "@/css/medical/medical-health-tracking.css";
 import healthBannerImg from "@/images/health-tracking-banner.jpg";
 
@@ -537,6 +538,16 @@ const name = ref("小福"); // Pet.name
 
 // ── 備註框 focus 狀態 ────────────────────────────────────
 const isNoteFocused = ref(false);
+
+// ── 切換寵物 ────────────────────────────────────
+const userStore = useUserStore();
+
+// 算出目前要用的 petId（優先 selectPetId，沒有就用 pets[0]）
+const currentPetId = computed(() => {
+  if (userStore.selectPetId) return userStore.selectPetId;
+  if (userStore.pets.length > 0) return userStore.pets[0].id;
+  return null;
+});
 
 // ==========================================================================
 // 1. 左側表單：各欄位獨立 ref（對應 PetHealthTracking 欄位）
@@ -635,12 +646,17 @@ async function handleSubmitRecord() {
   historyLogs.value.unshift(newRecord);
 
   // 5. 串接 Java 後端
+  // 送出表單時：
+  if (!currentPetId.value) {
+    alert("尚未選擇寵物，請先選擇寵物後再儲存紀錄！");
+    return;
+  }
 
   try {
     // PetHealthTracking 每種指標各存一列，搭配 typeId 區分
     // typeId 實際數字需跟後端確認 HealthMetricTypes 資料表內容
     const postData = {
-      petId: 1,
+      petId: currentPetId.value, // 優先用 selectPetId，沒有時頂著用 pets 第一筆
       weight: parseFloat(w),
       waterIntake: parseInt(wt),
       foodIntake: parseInt(f),
@@ -658,11 +674,11 @@ async function handleSubmitRecord() {
     console.log("後端儲存成功:", response.data);
   } catch (error) {
     console.error("後端儲存失敗:", error);
-    alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
+    console.log("資料儲存至伺服器失敗，但已暫時更新於畫面。");
   }
 
   // 6. 彈出成功提示並清空備註欄
-  alert(
+  console.log(
     `今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`,
   );
   statusNoteExtra.value = "";

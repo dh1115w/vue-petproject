@@ -651,6 +651,8 @@ async function fetchHistoryLogs() {
 // ==========================================================================
 
 // ── 體重動態提示邏輯 ──
+// 注意：這裡依賴下方「3. 右側圖表」區塊宣告的 latestWeight，
+// 但因為 computed 是延遲執行（只有被 template 讀取時才會跑），所以宣告順序不影響正確性
 const weightInsight = computed(() => {
   const weight = parseFloat(metricValueWeight.value);
 
@@ -663,8 +665,17 @@ const weightInsight = computed(() => {
     };
   }
 
-  // 2. 基準體重：直接採用handleSubmitRecord 定義的預設值 13.6
-  const baseWeight = 13.6;
+  // 2. 基準體重：改用真實的「最近一次體重紀錄」(latestWeight)，不再寫死
+  //    如果還沒有任何歷史紀錄，就沒有比較基準，先顯示中性提示
+  if (latestWeight.value === null) {
+    return {
+      type: "tip",
+      icon: "📝",
+      text: "這是第一筆體重紀錄，之後系統將依此追蹤體重變化趨勢。",
+    };
+  }
+
+  const baseWeight = latestWeight.value;
   const diffPercent = ((weight - baseWeight) / baseWeight) * 100;
 
   // 3. 波動超過 3% 顯示警告
@@ -672,7 +683,7 @@ const weightInsight = computed(() => {
     return {
       type: "warning",
       icon: "⚠️",
-      text: `注意！與歷史體重 13.6kg 相比，今日波動 (${diffPercent > 0 ? "+" : ""}${diffPercent.toFixed(1)}%) 超過 3%，建議觀察食慾。`,
+      text: `注意！與上次紀錄 ${baseWeight}kg 相比，今日波動 (${diffPercent > 0 ? "+" : ""}${diffPercent.toFixed(1)}%) 超過 3%，建議觀察食慾。`,
     };
   }
 
@@ -730,6 +741,8 @@ let weightChartInstance = null;
 
 // 體重趨勢方向（給「體重狀態」摘要卡片用）："up" | "down" | "flat" | "insufficient"
 const weightTrend = ref("insufficient");
+// 最新一筆體重紀錄（給「當前體重」摘要卡片用），沒有任何紀錄時為 null
+const latestWeight = ref(null);
 
 /**
  * 向後端查詢體重變化趨勢資料，並重新繪製 Chart.js 圖表
@@ -754,13 +767,16 @@ async function fetchWeightChart() {
 }
 
 /**
- * 獨立查詢「最近兩筆有效體重紀錄」，用來判斷體重狀態卡片的趨勢方向（上升/下降/持平）
+ * 獨立查詢「最近的有效體重紀錄」，同時更新：
+ * 1. latestWeight：最新一筆體重值，給「當前體重」卡片使用
+ * 2. weightTrend：跟上一筆比較的趨勢方向，給「體重狀態」卡片使用
  * 固定查過去 30 天（不受使用者切換 週/月/年 影響），確保「上次紀錄」是真的最近一次，
  * 而不是被使用者目前選的時間範圍意外影響到比較基準
  */
 async function fetchWeightTrend() {
   if (!currentPetId.value) {
     weightTrend.value = "insufficient";
+    latestWeight.value = null;
     return;
   }
 
@@ -775,18 +791,27 @@ async function fetchWeightTrend() {
       (p) => p.weight !== null && p.weight !== undefined,
     );
 
-    if (validPoints.length < 2) {
-      weightTrend.value = "insufficient"; // 資料不到兩筆，無法比較
+    if (validPoints.length === 0) {
+      // 完全沒有任何體重紀錄
+      weightTrend.value = "insufficient";
+      latestWeight.value = null;
       return;
     }
 
-    // validPoints 依時間由舊到新排序，所以最後兩筆就是「最新一筆」與「上一筆」
-    const latest = Number(validPoints[validPoints.length - 1].weight);
+    // validPoints 依時間由舊到新排序，最後一筆就是「最新一筆」
+    latestWeight.value = Number(validPoints[validPoints.length - 1].weight);
+
+    if (validPoints.length < 2) {
+      // 只有 1 筆紀錄：當前體重可以顯示，但還無法判斷趨勢方向
+      weightTrend.value = "insufficient";
+      return;
+    }
+
     const previous = Number(validPoints[validPoints.length - 2].weight);
 
-    if (latest > previous) {
+    if (latestWeight.value > previous) {
       weightTrend.value = "up";
-    } else if (latest < previous) {
+    } else if (latestWeight.value < previous) {
       weightTrend.value = "down";
     } else {
       weightTrend.value = "flat";
@@ -794,6 +819,7 @@ async function fetchWeightTrend() {
   } catch (error) {
     console.error("查詢體重趨勢失敗:", error);
     weightTrend.value = "insufficient";
+    latestWeight.value = null;
   }
 }
 
@@ -859,6 +885,8 @@ watch(currentPetId, () => {
 // ==========================================================================
 const foodWaterChartCanvas = ref(null);
 let foodWaterChartInstance = null;
+// 今日飲水量（給「飲水達成率」摘要卡片用），沒有今天的紀錄時為 null
+const todayWater = ref(null);
 
 /**
  * 向後端查詢本週（過去7天）的飲水量、進食量資料，並重新繪製長條圖
@@ -875,6 +903,11 @@ async function fetchFoodWaterChart() {
     const labels = points.map((p) => p.label);
     const waterValues = points.map((p) => p.water); // null 的部分 Chart.js 不會畫出柱子
     const foodValues = points.map((p) => p.food);
+
+    // 資料依時間由舊到新排序，最後一筆就是「今天」
+    const todayPoint = points[points.length - 1];
+    todayWater.value =
+      todayPoint && todayPoint.water != null ? Number(todayPoint.water) : null;
 
     renderFoodWaterChart(labels, waterValues, foodValues);
   } catch (error) {
@@ -932,9 +965,8 @@ onMounted(() => {
 });
 
 // ==========================================================================
-// 4. 體重狀態卡片：顯示「跟上次紀錄相比」的趨勢方向（不做理想範圍判斷）
+// 4. 右側三大摘要卡片：當前體重、飲水達成率、體重狀態趨勢
 // ==========================================================================
-const currentWeight = 13.6; // 「當前體重」卡片使用，實際串接時改為從 Pet API 取得的 weight
 
 // 依 weightTrend（up / down / flat / insufficient）決定卡片顯示的文字
 const statusLabel = computed(() => {
@@ -954,12 +986,48 @@ const statusSub = computed(() => {
   return "與上次記錄相比";
 });
 
+// ── 「當前體重」卡片內容：取最新一筆體重紀錄（latestWeight，過去30天內）──
+const currentWeightDisplay = computed(() => {
+  if (latestWeight.value === null) return "尚無紀錄";
+  return latestWeight.value + " kg";
+});
+
+// ── 「飲水達成率」卡片內容：今日飲水 ÷ (最新體重 × 60ml) ──
+// 用 latestWeight 而非「今天的體重」當分母，這樣即使今天沒量體重，
+// 只要量過水，依然能用最近一次量到的體重估算出合理的達成率
+const waterTargetAmount = computed(() => {
+  if (latestWeight.value === null) return null;
+  return Math.round(latestWeight.value * 60);
+});
+
+const waterAchievementRate = computed(() => {
+  if (
+    todayWater.value === null ||
+    waterTargetAmount.value === null ||
+    waterTargetAmount.value === 0
+  ) {
+    return null; // 今天沒喝水紀錄，或沒有體重可以當分母，無法計算達成率
+  }
+  return Math.round((todayWater.value / waterTargetAmount.value) * 100);
+});
+
+const waterAchievementDisplay = computed(() => {
+  if (waterAchievementRate.value === null) return "尚無紀錄";
+  return waterAchievementRate.value + "%";
+});
+
+const waterAchievementSub = computed(() => {
+  if (todayWater.value === null) return "今日尚未記錄飲水";
+  if (waterTargetAmount.value === null) return "尚無體重可估算建議量";
+  return `${todayWater.value}/${waterTargetAmount.value} ml`;
+});
+
 // 右側三大健康摘要小卡資料
 const healthStatsSummary = computed(() => [
   {
     label: "當前體重",
-    value: currentWeight + " kg",
-    sub: "上週 +0.1kg",
+    value: currentWeightDisplay.value,
+    sub: "最近一次紀錄",
     emoji: "⚖️",
     color: "#7bb3d4",
     bgColor: "rgba(123, 179, 212, 0.15)",
@@ -967,8 +1035,8 @@ const healthStatsSummary = computed(() => [
   },
   {
     label: "飲水達成率",
-    value: "80%",
-    sub: "480/600 ml",
+    value: waterAchievementDisplay.value,
+    sub: waterAchievementSub.value,
     emoji: "💧",
     color: "#6bae8a",
     bgColor: "rgba(107, 174, 138, 0.15)",

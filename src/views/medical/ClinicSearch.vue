@@ -210,6 +210,10 @@ import axios from "@/plugins/axios.js";
 // 之後會員組做好登入後，這裡要改成從 src/stores/user.js 的 memberInfo.id 取得真實值
 const TEMP_MEM_ID = 1;
 
+// sessionStorage 的 key 名稱，記住「這次瀏覽期間」定位過的座標
+// sessionStorage 跟 localStorage 不同：分頁/瀏覽器關閉後資料會自動消失，符合「只記住這次使用期間」的需求
+const LOCATION_STORAGE_KEY = "clinicSearch_lastLocation";
+
 // ==========================================================================
 // 1. UI 互動狀態
 // ==========================================================================
@@ -497,6 +501,8 @@ async function handleLocate() {
 
       console.log(`定位成功: ${latitude}, ${longitude}`);
 
+      saveLocationToStorage(latitude, longitude);
+
       // 呼叫後端 API，搜尋附近診所
       await fetchNearbyClinics();
 
@@ -548,5 +554,35 @@ function handleRecordInfo() {
 // 頁面元件載入完成後，初始化地圖
 onMounted(() => {
   initMap();
+
+  // 檢查這次瀏覽期間是否已經定位過，有的話直接使用，不用使用者重新按一次定位
+  const savedLocation = loadLocationFromStorage();
+  if (savedLocation) {
+    userLat.value = savedLocation.lat;
+    userLng.value = savedLocation.lng;
+    hasLocated.value = true;
+    fetchNearbyClinics();
+  }
 });
+
+// 把目前的座標存進 sessionStorage，同一個分頁內切換頁面/重新整理都還在
+function saveLocationToStorage(lat, lng) {
+  try {
+    sessionStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify({ lat, lng }));
+  } catch (error) {
+    console.error("儲存定位座標失敗", error);
+  }
+}
+
+// 頁面未關閉時，儲存定位座標，頁面關閉時，清除 sessionStorage
+// 從 sessionStorage 讀取上次存的座標，沒有資料就回傳 null
+function loadLocationFromStorage() {
+  try {
+    const saved = sessionStorage.getItem(LOCATION_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    console.error("讀取定位座標失敗", error);
+    return null;
+  }
+}
 </script>

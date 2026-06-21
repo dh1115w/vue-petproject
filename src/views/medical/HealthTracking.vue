@@ -279,55 +279,14 @@
           </div>
         </div>
 
-        <!-- 下方：本週飲食紀錄雙色並排長條圖 -->
+        <!-- 下方：本週飲食紀錄雙色並排長條圖（Chart.js） -->
         <div class="pawcare-card chart-container-card" style="margin-top: 1rem">
           <div class="chart-header-row">
             <h3 class="chart-box-title">本週飲食紀錄</h3>
-
-            <!-- 圖例小貼紙說明 -->
-            <div class="bar-chart-legend">
-              <span class="legend-badge-item"
-                ><i class="dot-g"></i> 飲水(ml)</span
-              >
-              <span class="legend-badge-item"
-                ><i class="dot-o"></i> 進食(g)</span
-              >
-            </div>
           </div>
 
-          <!-- 雙色長條圖-->
-          <div class="bar-chart-visual-wrapper">
-            <div class="bar-chart-y-axis">
-              <span>600</span><span>400</span><span>200</span><span>0</span>
-            </div>
-
-            <div class="bar-chart-main-content">
-              <!-- 跑迴圈依據數據比例動態長出長條柱 -->
-              <div
-                v-for="day in weeklyFoodWaterData"
-                :key="day.date"
-                class="bar-column-group"
-              >
-                <div class="bars-two-mix-stack">
-                  <!-- 飲水柱狀體（綠色） -->
-                  <div
-                    class="single-bar water-bar"
-                    :style="{ height: (day.water / 650) * 100 + '%' }"
-                  >
-                    <span class="bar-tooltip-val">{{ day.water }}ml</span>
-                  </div>
-                  <!-- 進食柱狀體（橘色） -->
-                  <div
-                    class="single-bar food-bar"
-                    :style="{ height: (day.food / 650) * 100 + '%' }"
-                  >
-                    <span class="bar-tooltip-val">{{ day.food }}g</span>
-                  </div>
-                </div>
-                <!-- 底部日期 -->
-                <div class="bar-x-label">{{ day.date }}</div>
-              </div>
-            </div>
+          <div style="position: relative; height: 220px">
+            <canvas ref="foodWaterChartCanvas"></canvas>
           </div>
         </div>
       </div>
@@ -685,10 +644,7 @@ async function fetchHistoryLogs() {
   }
 }
 
-// 頁面一打開就自動查一次歷史紀錄
-onMounted(() => {
-  fetchHistoryLogs();
-});
+// fetchHistoryLogs 會在檔案最下方統一的 onMounted 中呼叫，這裡不重複註冊
 
 // ==========================================================================
 // 左側警示與建議卡片動態綁定資料
@@ -882,22 +838,7 @@ function renderWeightChart(labels, weights) {
   });
 }
 
-// ── 本週飲食紀錄長條圖專用假資料（這次體重圖改接後端，但飲食長條圖暫不在本次調整範圍內，先維持原樣）─────
-const weeklyFoodWaterData = ref([
-  { date: "週一", water: 520, food: 250 },
-  { date: "週二", water: 480, food: 240 },
-  { date: "週三", water: 600, food: 260 },
-  { date: "週四", water: 550, food: 250 },
-  { date: "週五", water: 480, food: 250 },
-  { date: "週六", water: 620, food: 270 },
-  { date: "週日", water: 480, food: 250 },
-]);
-
-// 頁面載入完成後，畫出預設（週）的體重趨勢圖，並計算體重狀態卡片用的趨勢方向
-onMounted(() => {
-  fetchWeightChart();
-  fetchWeightTrend();
-});
+// fetchWeightChart、fetchWeightTrend 會在檔案最下方統一的 onMounted 中呼叫，這裡不重複註冊
 
 // 使用者點擊 週/月/年 按鈕、currentTimeRange 改變時，重新查詢並重繪圖表
 // 注意：weightTrend（體重狀態卡片）固定看「近30天」，不受這個切換影響，所以這裡不需要呼叫 fetchWeightTrend
@@ -905,11 +846,89 @@ watch(currentTimeRange, () => {
   fetchWeightChart();
 });
 
-// 切換寵物時，currentPetId 改變，連帶重新查詢這隻寵物的體重趨勢圖、體重狀態、歷史日誌
+// 切換寵物時，currentPetId 改變，連帶重新查詢這隻寵物的體重趨勢圖、體重狀態、歷史日誌、本週飲食紀錄
 watch(currentPetId, () => {
   fetchWeightChart();
   fetchWeightTrend();
   fetchHistoryLogs();
+  fetchFoodWaterChart();
+});
+
+// ==========================================================================
+// 3-2. 本週飲食紀錄長條圖（Chart.js + 後端真實資料）
+// ==========================================================================
+const foodWaterChartCanvas = ref(null);
+let foodWaterChartInstance = null;
+
+/**
+ * 向後端查詢本週（過去7天）的飲水量、進食量資料，並重新繪製長條圖
+ */
+async function fetchFoodWaterChart() {
+  if (!currentPetId.value || !foodWaterChartCanvas.value) return;
+
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}/food-water-chart`,
+    );
+
+    const points = response.data; // [{ label, water, food }, ...]
+    const labels = points.map((p) => p.label);
+    const waterValues = points.map((p) => p.water); // null 的部分 Chart.js 不會畫出柱子
+    const foodValues = points.map((p) => p.food);
+
+    renderFoodWaterChart(labels, waterValues, foodValues);
+  } catch (error) {
+    console.error("查詢本週飲食紀錄失敗:", error);
+  }
+}
+
+/**
+ * 用 Chart.js 畫出（或重新畫出）本週飲食紀錄雙色長條圖
+ */
+function renderFoodWaterChart(labels, waterValues, foodValues) {
+  if (foodWaterChartInstance) {
+    foodWaterChartInstance.destroy();
+  }
+
+  foodWaterChartInstance = new Chart(foodWaterChartCanvas.value, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "飲水 (ml)",
+          data: waterValues,
+          backgroundColor: "#6bae8a",
+        },
+        {
+          label: "進食 (g)",
+          data: foodValues,
+          backgroundColor: "#e2A053",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: "top", align: "end" },
+      },
+      scales: {
+        y: {
+          beginAtZero: true, // 長條圖維持從 0 開始，符合長條圖的視覺慣例（柱子高度才有意義）
+        },
+      },
+    },
+  });
+}
+
+// 頁面載入完成後，統一執行所有需要的初始查詢：
+// 歷史健康日誌、體重變化趨勢圖、體重狀態趨勢、本週飲食紀錄圖
+onMounted(() => {
+  fetchHistoryLogs();
+  fetchWeightChart();
+  fetchWeightTrend();
+  fetchFoodWaterChart();
 });
 
 // ==========================================================================

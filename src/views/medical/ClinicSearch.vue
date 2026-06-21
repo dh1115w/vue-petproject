@@ -225,7 +225,7 @@ const tabs = ref([
 const filters = ref({
   open: false, // 只顯示營業中
   night: false, // 只顯示夜間門診
-  appointment: true, // 只顯示特寵（requireBooking）
+  appointment: false, // 只顯示特寵（requireBooking）
 });
 
 // ==========================================================================
@@ -496,7 +496,8 @@ function handleNavigate(clinic) {
 
 // 撥號（使用 Clinics.phone）
 function handleCall(clinic) {
-  alert(`📞 正在撥號給 ${clinic.clinicName}\n電話號碼：${clinic.phone}`);
+  // tel: 連結手機瀏覽器會直接跳出撥號介面，電腦瀏覽器點了通常無反應或詢問用哪個通話軟體，是正常現象
+  window.location.href = `tel:${clinic.phone}`;
 }
 
 // Banner 按鈕（預留）

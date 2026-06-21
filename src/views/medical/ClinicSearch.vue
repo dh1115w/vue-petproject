@@ -417,7 +417,7 @@ async function fetchNearbyClinics() {
       requireBooking: clinic.requireBooking,
       latitude: clinic.latitude,
       longitude: clinic.longitude,
-      businessHours: "", // 後端目前沒有回傳文字格式的營業時間，先留空
+      businessHours: formatBusinessHours(clinic.openTime, clinic.closeTime), // 時間格式轉換
       isOpen: clinic.isOpenNow, // 欄位名稱轉換：isOpenNow → isOpen
       distanceText: `${clinic.distance} km`, // 數字轉成顯示用文字
       rawDistance: clinic.distance,
@@ -469,11 +469,29 @@ async function handleLocate() {
   );
 }
 
+// 把後端傳來的開門/關門時間，轉成畫面顯示用的文字
+// 例如 openTime="09:00:00", closeTime="21:00:00" → 回傳 "09:00-21:00"
+// 如果今天沒有營業時間資料（公休），就回傳「今日公休」
+function formatBusinessHours(openTime, closeTime) {
+  if (!openTime || !closeTime) {
+    return "今日公休";
+  }
+  // 後端傳來的格式是 "09:00:00"，只取前 5 碼變成 "09:00"
+  const open = openTime.substring(0, 5);
+  const close = closeTime.substring(0, 5);
+  return `${open}-${close}`;
+}
+
 // 導航（使用 Clinics.address）
 function handleNavigate(clinic) {
-  alert(
-    `🚀 正在呼叫外部地圖導航至：${clinic.clinicName}\n地址：${clinic.address}`,
-  );
+  // 用 Google 地圖網址規格，帶起點（使用者目前位置）跟終點（診所經緯度）
+  // 文件：https://developers.google.com/maps/documentation/urls/get-started#directions-action
+  const origin = `${userLat.value},${userLng.value}`;
+  const destination = `${clinic.latitude},${clinic.longitude}`;
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+
+  // 開新分頁，避免使用者離開目前這個搜尋頁面
+  window.open(url, "_blank");
 }
 
 // 撥號（使用 Clinics.phone）

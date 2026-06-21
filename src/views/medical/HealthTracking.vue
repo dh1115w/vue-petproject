@@ -524,7 +524,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import instance from "@/plugins/axios.js";
 import useUserStore from "@/stores/user.js";
 import "@/css/medical/medical-health-tracking.css";
@@ -618,35 +618,9 @@ async function handleSubmitRecord() {
   const formattedDate = `${year} / ${month} / ${date}`;
   updatedAt.value = `${year}/${month}/${date} ${hours}:${minutes}`;
 
-  // 3. 判斷這筆資料是否需要觸發警告樣式（例如飲水過低、便便異常）
-  const waterAlarm = Number(wt) < 350;
-  const poopAlarm =
-    statusNotePoop.value === "偏軟" || statusNotePoop.value === "拉肚子";
-
-  // 4. 建立新日誌物件，並動態推入右側歷史紀錄的最前面
-  const newRecord = {
-    id: Date.now(), // 暫時用時間戳當作前端 key
-    date: formattedDate,
-    weight: w,
-    water: wt,
-    food: f,
-    poopCount: metricValuePoop.value || 0,
-    poopStatus: statusNotePoop.value || "正常",
-    mood: statusNoteMood.value || "非常好",
-    activity: statusNoteActivity.value || "一般",
-    memo: statusNoteExtra.value
-      ? `備註：${statusNoteExtra.value}`
-      : "無備註說明。",
-    isAlert: waterAlarm || poopAlarm,
-    isWaterAlert: waterAlarm,
-    isPoopAlert: poopAlarm,
-  };
-
-  // 立即在前端畫面更新日誌
-  historyLogs.value.unshift(newRecord);
-
   // 5. 串接 Java 後端
-  // 送出表單時：
+
+  // 5-1. 送出前先確認有沒有可用的寵物 id，沒有的話直接擋下來，不送 API
   if (!currentPetId.value) {
     alert("尚未選擇寵物，請先選擇寵物後再儲存紀錄！");
     return;
@@ -666,28 +640,35 @@ async function handleSubmitRecord() {
       activityLevel: statusNoteActivity.value, // "低","中","高"
       statusNote: statusNoteExtra.value,
     };
-    // 呼叫 Java 後端 API（typeId 數字接後端前需確認）
+    // 呼叫 Java 後端 API
     const response = await instance.post(
       "/api/medical/health-tracking/daily-log",
       postData,
     );
     console.log("後端儲存成功:", response.data);
+
+    // 存成功後，重新向後端查詢最新的歷史日誌，更新畫面上的「真實資料」區塊
+    await fetchHistoryLogs();
   } catch (error) {
     console.error("後端儲存失敗:", error);
-    console.log("資料儲存至伺服器失敗，但已暫時更新於畫面。");
+    alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
   }
 
   // 6. 彈出成功提示並清空備註欄
-  console.log(
+  alert(
     `今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`,
   );
   statusNoteExtra.value = "";
 }
 
-//顯示歷史資料
-const historyLogs = ref([
+// ==========================================================================
+// 歷史健康日誌：假資料（展示用，固定保留 5 筆）+ 後端真實資料（動態查詢）
+// ==========================================================================
+
+// 固定保留的展示用假資料，畫面一開始就先顯示這 5 筆，維持畫面豐富度
+const demoLogs = [
   {
-    id: 1,
+    id: "demo-1",
     date: "2026 / 07 / 09",
     weight: "13.6",
     water: "500",
@@ -702,7 +683,7 @@ const historyLogs = ref([
     isPoopAlert: false,
   },
   {
-    id: 2,
+    id: "demo-2",
     date: "2026 / 07 / 08",
     weight: "13.5",
     water: "420",
@@ -717,7 +698,7 @@ const historyLogs = ref([
     isPoopAlert: true,
   },
   {
-    id: 3,
+    id: "demo-3",
     date: "2026 / 07 / 07",
     weight: "13.4",
     water: "310",
@@ -732,7 +713,7 @@ const historyLogs = ref([
     isPoopAlert: false,
   },
   {
-    id: 4,
+    id: "demo-4",
     date: "2026 / 07 / 06",
     weight: "13.6",
     water: "650",
@@ -747,7 +728,7 @@ const historyLogs = ref([
     isPoopAlert: false,
   },
   {
-    id: 5,
+    id: "demo-5",
     date: "2026 / 07 / 05",
     weight: "13.5",
     water: "480",
@@ -761,7 +742,76 @@ const historyLogs = ref([
     isWaterAlert: false,
     isPoopAlert: false,
   },
-]);
+];
+
+// 從後端查回來的真實歷史紀錄，會顯示在假資料的「上方」（因為比較新）
+const realLogs = ref([]);
+
+// 畫面實際顯示用的清單 = 真實資料（新） + 假資料（展示用，固定墊底）
+const historyLogs = computed(() => [...realLogs.value, ...demoLogs]);
+
+/**
+ * 把後端回傳的一筆 PetDailyLogResponse，轉成前端畫面需要的格式
+ */
+function mapResponseToLog(item) {
+  // 後端的 recordDate 是 "yyyy-MM-ddTHH:mm:ss" 格式的字串，轉成跟假資料一樣的顯示格式
+  const d = new Date(item.recordDate);
+  const formattedDate = `${d.getFullYear()} / ${String(d.getMonth() + 1).padStart(2, "0")} / ${String(d.getDate()).padStart(2, "0")}`;
+
+  const water = item.water != null ? Number(item.water) : 0;
+  const waterAlarm = water > 0 && water < 350;
+  const poopAlarm = item.poopStatus === "軟便" || item.poopStatus === "拉肚子";
+
+  return {
+    id: item.recordId,
+    date: formattedDate,
+    weight: item.weight != null ? item.weight : "-",
+    water: item.water != null ? item.water : "-",
+    food: item.food != null ? item.food : "-",
+    poopCount: item.poopCount != null ? item.poopCount : "-",
+    poopStatus: item.poopStatus || "-",
+    mood: item.mood || "-",
+    activity: item.activity || "-",
+    memo: item.memo ? `備註：${item.memo}` : "無備註說明。",
+    isAlert: waterAlarm || poopAlarm,
+    isWaterAlert: waterAlarm,
+    isPoopAlert: poopAlarm,
+  };
+}
+
+/**
+ * 向後端查詢目前寵物的歷史健康日誌，並更新 realLogs
+ */
+async function fetchHistoryLogs() {
+  if (!currentPetId.value) return; // 還沒有可用的寵物 id，先不查
+
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}`,
+    );
+    realLogs.value = response.data.map(mapResponseToLog);
+
+    // 查詢結果依時間新到舊排序，所以第一筆就是「最新一筆紀錄」
+    // 用它的時間更新「最後更新時間」欄位，這樣重新整理後也能顯示正確的時間，而不是寫死的初始值
+    if (response.data.length > 0) {
+      const latest = new Date(response.data[0].recordDate);
+      const y = latest.getFullYear();
+      const m = String(latest.getMonth() + 1).padStart(2, "0");
+      const d = String(latest.getDate()).padStart(2, "0");
+      const h = String(latest.getHours()).padStart(2, "0");
+      const min = String(latest.getMinutes()).padStart(2, "0");
+      updatedAt.value = `${y}/${m}/${d} ${h}:${min}`;
+    }
+  } catch (error) {
+    console.error("查詢歷史健康日誌失敗:", error);
+    // 查詢失敗時不影響畫面，假資料仍會正常顯示
+  }
+}
+
+// 頁面一打開就自動查一次歷史紀錄
+onMounted(() => {
+  fetchHistoryLogs();
+});
 
 // ==========================================================================
 // 左側警示與建議卡片動態綁定資料

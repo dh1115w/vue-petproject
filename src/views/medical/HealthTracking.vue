@@ -651,7 +651,7 @@ async function handleSubmitRecord() {
       statusNote: statusNoteExtra.value,
     };
     // 呼叫 Java 後端 API（typeId 數字接後端前需確認）
-    const response = await axios.post(
+    const response = await instance.post(
       "/api/medical/health-tracking/daily-log",
       postData,
     );

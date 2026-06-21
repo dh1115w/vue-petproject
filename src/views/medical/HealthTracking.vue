@@ -525,7 +525,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import instance from "@/plugins/axiso.js";
+import instance from "@/plugins/axios.js";
 import "@/css/medical/medical-health-tracking.css";
 import healthBannerImg from "@/images/health-tracking-banner.jpg";
 

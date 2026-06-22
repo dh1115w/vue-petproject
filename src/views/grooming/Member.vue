@@ -106,7 +106,7 @@
         <form @submit.prevent="updatePet">
           <div class="grid grid-2 modal-grid">
             <div class="modal-form-group">
-              <label>毛孩姓名</label>
+              <label>毛孩姓名（必填）</label>
               <input type="text" v-model="editingPet.name">
             </div>
             <div class="modal-form-group">
@@ -116,14 +116,14 @@
           </div>
           <div class="grid grid-3 modal-grid">
             <div class="modal-form-group">
-              <label>性別</label>
+              <label>性別（必填）</label>
               <select v-model="editingPet.gender" class="modal-select">
                 <option value="male">公</option>
                 <option value="female">母</option>
               </select>
             </div>
-            <div class="modal-form-group"><label>年齡</label><input type="number" v-model.number="editingPet.age"></div>
-            <div class="modal-form-group"><label>體重(kg)</label><input type="number" step="0.1" v-model.number="editingPet.weight"></div>
+            <div class="modal-form-group"><label>年齡（必填）</label><input type="number" v-model.number="editingPet.age"></div>
+            <div class="modal-form-group"><label>體重(kg)（必填）</label><input type="number" step="0.1" v-model.number="editingPet.weight"></div>
           </div>
           <div class="grid grid-3 modal-grid">
             <div class="modal-form-group"><label>物種</label><input type="text" v-model="editingPet.species"></div>
@@ -138,7 +138,7 @@
             </div>
           </div>
           <div class="modal-form-group">
-            <label>是否結紮</label>
+            <label>是否結紮（必填）</label>
             <select v-model="editingPet.neutered" class="modal-select">
               <option value="isNeutered">是</option>
               <option value="unNeutered">否</option>
@@ -167,7 +167,7 @@
         <form @submit.prevent="saveNewPet">
           <div class="grid grid-2 modal-grid">
             <div class="modal-form-group">
-              <label>毛孩姓名</label>
+              <label>毛孩姓名（必填）</label>
               <input type="text" v-model="newPet.name" placeholder="例如：巧克力">
             </div>
             <div class="modal-form-group">
@@ -177,14 +177,14 @@
           </div>
           <div class="grid grid-3 modal-grid">
             <div class="modal-form-group">
-              <label>性別</label>
+              <label>性別（必填）</label>
               <select v-model="newPet.gender" class="modal-select">
                 <option value="male">公</option>
                 <option value="female">母</option>
               </select>
             </div>
-            <div class="modal-form-group"><label>年齡</label><input type="number" v-model.number="newPet.age"></div>
-            <div class="modal-form-group"><label>體重(kg)</label><input type="number" step="0.1" v-model.number="newPet.weight"></div>
+            <div class="modal-form-group"><label>年齡（必填）</label><input type="number" v-model.number="newPet.age"></div>
+            <div class="modal-form-group"><label>體重(kg)（必填）</label><input type="number" step="0.1" v-model.number="newPet.weight"></div>
           </div>
           <div class="grid grid-3 modal-grid">
             <div class="modal-form-group"><label>物種</label><input type="text" v-model="newPet.species" placeholder="例：狗、貓"></div>
@@ -199,7 +199,7 @@
             </div>
           </div>
           <div class="modal-form-group">
-            <label>是否結紮</label>
+            <label>是否結紮（必填）</label>
             <select v-model="newPet.neutered" class="modal-select">
               <option value="isNeutered">是</option>
               <option value="unNeutered">否</option>

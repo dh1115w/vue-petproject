@@ -56,6 +56,13 @@
               <input id="email" type="email" v-model="email" placeholder="請輸入電子信箱" />
             </div>
           </div>
+
+          <!-- 只有「email 跟原本不一樣」時才出現：驗證碼輸入框 + 寄送按鈕 -->
+          <div class="form-group" v-if="email !== originalEmail">
+            <label for="emailCode">信箱驗證碼（修改信箱才需要）</label>
+            <input id="emailCode" type="text" v-model="emailCode" placeholder="請輸入新信箱收到的 6 位數驗證碼" />
+            <button type="button" class="btn-secondary" @click="sendEmailCode" style="margin-top: 8px;">寄送驗證碼到新信箱</button>
+          </div>
         </div>
 
         <!-- 送出 -->
@@ -105,6 +112,46 @@ const gender = ref(info.gender)
 const address = ref(info.address)
 const phone = ref(info.phone)
 const email = ref(info.email)
+
+// 信箱驗證碼：只有「改 email」時才會用到（存檔時當 emailCode 送給後端）
+const emailCode = ref('')
+// 記住「進頁面時原本的 email」，用來判斷使用者到底有沒有改 email
+const originalEmail = info.email
+
+// ===== 寄送「變更信箱」驗證碼：請後端寄一組 6 位數驗證碼到新信箱 =====
+// async：裡面要 await 等後端回應
+async function sendEmailCode() {
+  const emailRule = /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // email 格式
+  const emailValue = email.value.trim()          // 去掉前後空白
+
+  // 先做基本檢查（後端也會再檢查一次，這裡是給使用者即時提示）
+  if (emailValue === '') {
+    Swal.fire({ icon: 'warning', title: '請先輸入新的電子信箱' })
+    return
+  }
+  if (!emailRule.test(emailValue)) {
+    Swal.fire({ icon: 'warning', title: '電子信箱格式錯誤' })
+    return
+  }
+  // 跟原本一樣就不用驗證
+  if (emailValue === originalEmail) {
+    Swal.fire({ icon: 'warning', title: '新信箱與目前信箱相同，不需驗證' })
+    return
+  }
+
+  try {
+    // 對後端 POST /api/member/secure/send-email-change-code，只送新信箱
+    await api.post('/api/member/secure/send-email-change-code', {
+      newEmail: emailValue
+    })
+    Swal.fire({ icon: 'success', title: '驗證碼已寄出', text: '請到新信箱收信，並在 10 分鐘內填入驗證碼' })
+
+  } catch (error) {
+    // 格式錯／新信箱被別人用了／寄信失敗時，後端回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '寄送失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '寄送失敗', text: msg })
+  }
+}
 
 // ===== 存檔：先驗證可修改的欄位，全部通過才送出 =====
 // 生日、身分證、性別是鎖住的(disabled)，不能改，所以不驗證
@@ -161,15 +208,25 @@ async function handleSave() {
     return
   }
 
+  // email 有沒有改：跟進頁面時的原本 email 比
+  const emailChanged = (emailValue !== originalEmail)
+  // 有改 email → 一定要先填驗證碼（沒填就擋下來，提醒去按「寄送驗證碼」）
+  if (emailChanged && emailCode.value.trim() === '') {
+    Swal.fire({ icon: 'warning', title: '你修改了電子信箱', text: '請先按「寄送驗證碼」，並填入新信箱收到的驗證碼' })
+    return
+  }
+
   // ===== 全部通過，送出更新 =====
   try {
     // 對後端 PUT /api/member/secure/updatemember
     // 只送可修改的 4 個欄位（對應後端 MemberUpdateDto），其餘後端不收
+    // emailCode：有改 email 才送驗證碼，沒改就送 null（後端不會看它）
     const response = await api.put('/api/member/secure/updatemember', {
       name: nameValue,
       address: addressValue,
       phone: phoneValue,
-      email: emailValue
+      email: emailValue,
+      emailCode: emailChanged ? emailCode.value.trim() : null
     })
 
     // 後端回傳更新後的會員資料 → 塞回 store，會員中心才會立刻顯示新資料

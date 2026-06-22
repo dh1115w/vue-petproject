@@ -254,7 +254,6 @@
           <div class="chart-header-row">
             <div>
               <h3 class="chart-box-title">體重變化趨勢</h3>
-              <p class="chart-box-subtitle">理想範圍：11 ~ 16 kg</p>
             </div>
 
             <!-- 週/月/年 時間篩選器切換 -->
@@ -271,187 +270,23 @@
             </div>
           </div>
 
-          <!-- 體重折線圖 -->
-          <div class="chart-visual-wrapper">
-            <svg class="line-chart-svg" viewBox="0 0 500 180">
-              <!-- 背景參考虛線網格、偏瘦與過重臨界警示線 -->
-              <line
-                x1="40"
-                y1="30"
-                x2="480"
-                y2="30"
-                stroke="#df4733"
-                stroke-dasharray="4 4"
-                opacity="0.4"
-              />
-              <text x="485" y="34" font-size="10" fill="#df4733">
-                過重(16kg)
-              </text>
-
-              <line
-                x1="40"
-                y1="130"
-                x2="480"
-                y2="130"
-                stroke="#e29553"
-                stroke-dasharray="4 4"
-                opacity="0.4"
-              />
-              <text x="485" y="134" font-size="10" fill="#e29553">
-                偏瘦(11kg)
-              </text>
-
-              <line
-                x1="40"
-                y1="80"
-                x2="480"
-                y2="80"
-                stroke="#e6e3da"
-                stroke-dasharray="3 3"
-              />
-
-              <!-- 體重趨勢主折線  -->
-              <polyline
-                fill="none"
-                stroke="var(--primary)"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                points="50,110 110,95 170,100 230,85 290,90 350,75 410,80 470,70"
-              />
-
-              <!-- 折線上的動態數據核心圓點群 -->
-              <circle
-                cx="50"
-                cy="110"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="110"
-                cy="95"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="170"
-                cy="100"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="230"
-                cy="85"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="290"
-                cy="90"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="350"
-                cy="75"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <circle
-                cx="410"
-                cy="80"
-                r="4"
-                fill="var(--primary)"
-                stroke="#fff"
-                stroke-width="2"
-              />
-              <!-- 最新體重節點（藍色強調） -->
-              <circle
-                cx="470"
-                cy="70"
-                r="5"
-                fill="#7bb3d4"
-                stroke="#fff"
-                stroke-width="2"
-              />
-
-              <!-- X 軸底部日期文字刻度 -->
-              <text
-                v-for="(d, idx) in currentChartData"
-                :key="idx"
-                :x="50 + idx * 60"
-                y="165"
-                text-anchor="middle"
-                font-size="11"
-                fill="#9c9e98"
-              >
-                {{ d.date }}
-              </text>
-            </svg>
+          <!-- 體重折線圖（Chart.js） -->
+          <div
+            class="chart-visual-wrapper"
+            style="position: relative; height: 220px"
+          >
+            <canvas ref="weightChartCanvas"></canvas>
           </div>
         </div>
 
-        <!-- 下方：本週飲食紀錄雙色並排長條圖 -->
+        <!-- 下方：本週飲食紀錄雙色並排長條圖（Chart.js） -->
         <div class="pawcare-card chart-container-card" style="margin-top: 1rem">
           <div class="chart-header-row">
             <h3 class="chart-box-title">本週飲食紀錄</h3>
-
-            <!-- 圖例小貼紙說明 -->
-            <div class="bar-chart-legend">
-              <span class="legend-badge-item"
-                ><i class="dot-g"></i> 飲水(ml)</span
-              >
-              <span class="legend-badge-item"
-                ><i class="dot-o"></i> 進食(g)</span
-              >
-            </div>
           </div>
 
-          <!-- 雙色長條圖-->
-          <div class="bar-chart-visual-wrapper">
-            <div class="bar-chart-y-axis">
-              <span>600</span><span>400</span><span>200</span><span>0</span>
-            </div>
-
-            <div class="bar-chart-main-content">
-              <!-- 跑迴圈依據數據比例動態長出長條柱 -->
-              <div
-                v-for="day in weeklyFoodWaterData"
-                :key="day.date"
-                class="bar-column-group"
-              >
-                <div class="bars-two-mix-stack">
-                  <!-- 飲水柱狀體（綠色） -->
-                  <div
-                    class="single-bar water-bar"
-                    :style="{ height: (day.water / 650) * 100 + '%' }"
-                  >
-                    <span class="bar-tooltip-val">{{ day.water }}ml</span>
-                  </div>
-                  <!-- 進食柱狀體（橘色） -->
-                  <div
-                    class="single-bar food-bar"
-                    :style="{ height: (day.food / 650) * 100 + '%' }"
-                  >
-                    <span class="bar-tooltip-val">{{ day.food }}g</span>
-                  </div>
-                </div>
-                <!-- 底部日期 -->
-                <div class="bar-x-label">{{ day.date }}</div>
-              </div>
-            </div>
+          <div style="position: relative; height: 220px">
+            <canvas ref="foodWaterChartCanvas"></canvas>
           </div>
         </div>
       </div>
@@ -524,8 +359,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import instance from "@/plugins/axiso.js";
+import { ref, computed, onMounted, watch } from "vue";
+import instance from "@/plugins/axios.js";
+import useUserStore from "@/stores/user.js";
+import Chart from "chart.js/auto";
 import "@/css/medical/medical-health-tracking.css";
 import healthBannerImg from "@/images/health-tracking-banner.jpg";
 
@@ -537,6 +374,16 @@ const name = ref("小福"); // Pet.name
 
 // ── 備註框 focus 狀態 ────────────────────────────────────
 const isNoteFocused = ref(false);
+
+// ── 切換寵物 ────────────────────────────────────
+const userStore = useUserStore();
+
+// 算出目前要用的 petId（優先 selectPetId，沒有就用 pets[0]）
+const currentPetId = computed(() => {
+  if (userStore.selectPetId) return userStore.selectPetId;
+  if (userStore.pets.length > 0) return userStore.pets[0].id;
+  return null;
+});
 
 // ==========================================================================
 // 1. 左側表單：各欄位獨立 ref（對應 PetHealthTracking 欄位）
@@ -607,40 +454,19 @@ async function handleSubmitRecord() {
   const formattedDate = `${year} / ${month} / ${date}`;
   updatedAt.value = `${year}/${month}/${date} ${hours}:${minutes}`;
 
-  // 3. 判斷這筆資料是否需要觸發警告樣式（例如飲水過低、便便異常）
-  const waterAlarm = Number(wt) < 350;
-  const poopAlarm =
-    statusNotePoop.value === "偏軟" || statusNotePoop.value === "拉肚子";
-
-  // 4. 建立新日誌物件，並動態推入右側歷史紀錄的最前面
-  const newRecord = {
-    id: Date.now(), // 暫時用時間戳當作前端 key
-    date: formattedDate,
-    weight: w,
-    water: wt,
-    food: f,
-    poopCount: metricValuePoop.value || 0,
-    poopStatus: statusNotePoop.value || "正常",
-    mood: statusNoteMood.value || "非常好",
-    activity: statusNoteActivity.value || "一般",
-    memo: statusNoteExtra.value
-      ? `備註：${statusNoteExtra.value}`
-      : "無備註說明。",
-    isAlert: waterAlarm || poopAlarm,
-    isWaterAlert: waterAlarm,
-    isPoopAlert: poopAlarm,
-  };
-
-  // 立即在前端畫面更新日誌
-  historyLogs.value.unshift(newRecord);
-
   // 5. 串接 Java 後端
+
+  // 5-1. 送出前先確認有沒有可用的寵物 id，沒有的話直接擋下來，不送 API
+  if (!currentPetId.value) {
+    alert("尚未選擇寵物，請先選擇寵物後再儲存紀錄！");
+    return;
+  }
 
   try {
     // PetHealthTracking 每種指標各存一列，搭配 typeId 區分
     // typeId 實際數字需跟後端確認 HealthMetricTypes 資料表內容
     const postData = {
-      petId: 1,
+      petId: currentPetId.value, // 優先用 selectPetId，沒有時頂著用 pets 第一筆
       weight: parseFloat(w),
       waterIntake: parseInt(wt),
       foodIntake: parseInt(f),
@@ -650,12 +476,15 @@ async function handleSubmitRecord() {
       activityLevel: statusNoteActivity.value, // "低","中","高"
       statusNote: statusNoteExtra.value,
     };
-    // 呼叫 Java 後端 API（typeId 數字接後端前需確認）
-    const response = await axios.post(
+    // 呼叫 Java 後端 API
+    const response = await instance.post(
       "/api/medical/health-tracking/daily-log",
       postData,
     );
     console.log("後端儲存成功:", response.data);
+
+    // 存成功後，重新向後端查詢最新的歷史日誌，更新畫面上的「真實資料」區塊
+    await fetchHistoryLogs();
   } catch (error) {
     console.error("後端儲存失敗:", error);
     alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
@@ -668,10 +497,14 @@ async function handleSubmitRecord() {
   statusNoteExtra.value = "";
 }
 
-//顯示歷史資料
-const historyLogs = ref([
+// ==========================================================================
+// 歷史健康日誌：假資料（展示用，固定保留 5 筆）+ 後端真實資料（動態查詢）
+// ==========================================================================
+
+// 固定保留的展示用假資料，畫面一開始就先顯示這 5 筆，維持畫面豐富度
+const demoLogs = [
   {
-    id: 1,
+    id: "demo-1",
     date: "2026 / 07 / 09",
     weight: "13.6",
     water: "500",
@@ -686,7 +519,7 @@ const historyLogs = ref([
     isPoopAlert: false,
   },
   {
-    id: 2,
+    id: "demo-2",
     date: "2026 / 07 / 08",
     weight: "13.5",
     water: "420",
@@ -701,7 +534,7 @@ const historyLogs = ref([
     isPoopAlert: true,
   },
   {
-    id: 3,
+    id: "demo-3",
     date: "2026 / 07 / 07",
     weight: "13.4",
     water: "310",
@@ -716,7 +549,7 @@ const historyLogs = ref([
     isPoopAlert: false,
   },
   {
-    id: 4,
+    id: "demo-4",
     date: "2026 / 07 / 06",
     weight: "13.6",
     water: "650",
@@ -731,7 +564,7 @@ const historyLogs = ref([
     isPoopAlert: false,
   },
   {
-    id: 5,
+    id: "demo-5",
     date: "2026 / 07 / 05",
     weight: "13.5",
     water: "480",
@@ -745,13 +578,81 @@ const historyLogs = ref([
     isWaterAlert: false,
     isPoopAlert: false,
   },
-]);
+];
+
+// 從後端查回來的真實歷史紀錄，會顯示在假資料的「上方」（因為比較新）
+const realLogs = ref([]);
+
+// 畫面實際顯示用的清單 = 真實資料（新） + 假資料（展示用，固定墊底）
+const historyLogs = computed(() => [...realLogs.value, ...demoLogs]);
+
+/**
+ * 把後端回傳的一筆 PetDailyLogResponse，轉成前端畫面需要的格式
+ */
+function mapResponseToLog(item) {
+  // 後端的 recordDate 是 "yyyy-MM-ddTHH:mm:ss" 格式的字串，轉成跟假資料一樣的顯示格式
+  const d = new Date(item.recordDate);
+  const formattedDate = `${d.getFullYear()} / ${String(d.getMonth() + 1).padStart(2, "0")} / ${String(d.getDate()).padStart(2, "0")}`;
+
+  const water = item.water != null ? Number(item.water) : 0;
+  const waterAlarm = water > 0 && water < 350;
+  const poopAlarm = item.poopStatus === "軟便" || item.poopStatus === "拉肚子";
+
+  return {
+    id: item.recordId,
+    date: formattedDate,
+    weight: item.weight != null ? item.weight : "-",
+    water: item.water != null ? item.water : "-",
+    food: item.food != null ? item.food : "-",
+    poopCount: item.poopCount != null ? item.poopCount : "-",
+    poopStatus: item.poopStatus || "-",
+    mood: item.mood || "-",
+    activity: item.activity || "-",
+    memo: item.memo ? `備註：${item.memo}` : "無備註說明。",
+    isAlert: waterAlarm || poopAlarm,
+    isWaterAlert: waterAlarm,
+    isPoopAlert: poopAlarm,
+  };
+}
+
+/**
+ * 向後端查詢目前寵物的歷史健康日誌，並更新 realLogs
+ */
+async function fetchHistoryLogs() {
+  if (!currentPetId.value) return; // 還沒有可用的寵物 id，先不查
+
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}`,
+    );
+    realLogs.value = response.data.map(mapResponseToLog);
+
+    // 查詢結果依時間新到舊排序，所以第一筆就是「最新一筆紀錄」
+    // 用它的時間更新「最後更新時間」欄位，這樣重新整理後也能顯示正確的時間，而不是寫死的初始值
+    if (response.data.length > 0) {
+      const latest = new Date(response.data[0].recordDate);
+      const y = latest.getFullYear();
+      const m = String(latest.getMonth() + 1).padStart(2, "0");
+      const d = String(latest.getDate()).padStart(2, "0");
+      const h = String(latest.getHours()).padStart(2, "0");
+      const min = String(latest.getMinutes()).padStart(2, "0");
+      updatedAt.value = `${y}/${m}/${d} ${h}:${min}`;
+    }
+  } catch (error) {
+    console.error("查詢歷史健康日誌失敗:", error);
+    // 查詢失敗時不影響畫面，假資料仍會正常顯示
+  }
+}
+
+// fetchHistoryLogs 會在檔案最下方統一的 onMounted 中呼叫，這裡不重複註冊
 
 // ==========================================================================
 // 左側警示與建議卡片動態綁定資料
 // ==========================================================================
 
 // ── 體重動態提示邏輯 ──
+// 注意：這裡依賴下方「3. 右側圖表」區塊宣告的 latestWeight，
+// 但因為 computed 是延遲執行（只有被 template 讀取時才會跑），所以宣告順序不影響正確性
 const weightInsight = computed(() => {
   const weight = parseFloat(metricValueWeight.value);
 
@@ -764,8 +665,17 @@ const weightInsight = computed(() => {
     };
   }
 
-  // 2. 基準體重：直接採用handleSubmitRecord 定義的預設值 13.6
-  const baseWeight = 13.6;
+  // 2. 基準體重：改用真實的「最近一次體重紀錄」(latestWeight)，不再寫死
+  //    如果還沒有任何歷史紀錄，就沒有比較基準，先顯示中性提示
+  if (latestWeight.value === null) {
+    return {
+      type: "tip",
+      icon: "📝",
+      text: "這是第一筆體重紀錄，之後系統將依此追蹤體重變化趨勢。",
+    };
+  }
+
+  const baseWeight = latestWeight.value;
   const diffPercent = ((weight - baseWeight) / baseWeight) * 100;
 
   // 3. 波動超過 3% 顯示警告
@@ -773,7 +683,7 @@ const weightInsight = computed(() => {
     return {
       type: "warning",
       icon: "⚠️",
-      text: `注意！與歷史體重 13.6kg 相比，今日波動 (${diffPercent > 0 ? "+" : ""}${diffPercent.toFixed(1)}%) 超過 3%，建議觀察食慾。`,
+      text: `注意！與上次紀錄 ${baseWeight}kg 相比，今日波動 (${diffPercent > 0 ? "+" : ""}${diffPercent.toFixed(1)}%) 超過 3%，建議觀察食慾。`,
     };
   }
 
@@ -820,88 +730,304 @@ const waterInsight = computed(() => {
 });
 
 // ==========================================================================
-// 3. 右側圖表：時間範圍切換
+// 3. 右側圖表：體重變化趨勢（Chart.js + 後端真實資料）
 // ==========================================================================
 const currentTimeRange = ref("week"); // 預設顯示週視圖
 
-// ── 歷史模擬資料 ────────────────────────────────────────
-const weeklyData = [
-  { date: "週一", weight: 13.4, water: 520, food: 250 },
-  { date: "週二", weight: 13.5, water: 480, food: 240 },
-  { date: "週三", weight: 13.5, water: 600, food: 260 },
-  { date: "週四", weight: 13.6, water: 550, food: 250 },
-  { date: "週五", weight: 13.6, water: 480, food: 250 },
-  { date: "週六", weight: 13.7, water: 620, food: 270 },
-  { date: "週日", weight: 13.6, water: 480, food: 250 },
-];
+// canvas 元素的 template ref，Chart.js 需要綁定在真實 DOM 上
+const weightChartCanvas = ref(null);
+// 保存目前的 Chart.js 實例，之後切換時間範圍要先銷毀舊圖表再畫新的，避免疊圖
+let weightChartInstance = null;
 
-const monthlyData = [
-  { date: "3/1", weight: 12.8 },
-  { date: "3/8", weight: 13.1 },
-  { date: "3/15", weight: 13.0 },
-  { date: "3/22", weight: 13.3 },
-  { date: "3/29", weight: 13.2 },
-  { date: "4/5", weight: 13.5 },
-  { date: "4/12", weight: 13.4 },
-  { date: "4/19", weight: 13.6 },
-];
+// 體重趨勢方向（給「體重狀態」摘要卡片用）："up" | "down" | "flat" | "insufficient"
+const weightTrend = ref("insufficient");
+// 最新一筆體重紀錄（給「當前體重」摘要卡片用），沒有任何紀錄時為 null
+const latestWeight = ref(null);
 
-const yearlyData = [
-  { date: "1月", weight: 11.2 },
-  { date: "2月", weight: 11.8 },
-  { date: "3月", weight: 12.3 },
-  { date: "4月", weight: 12.8 },
-  { date: "5月", weight: 13.1 },
-  { date: "6月", weight: 13.0 },
-  { date: "7月", weight: 13.2 },
-  { date: "8月", weight: 13.4 },
-  { date: "9月", weight: 13.3 },
-  { date: "10月", weight: 13.5 },
-  { date: "11月", weight: 13.6 },
-  { date: "12月", weight: 13.6 },
-];
+/**
+ * 向後端查詢體重變化趨勢資料，並重新繪製 Chart.js 圖表
+ */
+async function fetchWeightChart() {
+  if (!currentPetId.value || !weightChartCanvas.value) return;
 
-// 雙色長條圖專用（固定取當週飲食數據）
-const weeklyFoodWaterData = ref(weeklyData);
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}/weight-chart`,
+      { params: { range: currentTimeRange.value } },
+    );
 
-// 折線圖 X 軸日期：依時間範圍自動切換
-const currentChartData = computed(() => {
-  if (currentTimeRange.value === "week") return weeklyData;
-  if (currentTimeRange.value === "month") return monthlyData;
-  return yearlyData;
+    const points = response.data; // [{ label, weight }, ...]
+    const labels = points.map((p) => p.label);
+    const weights = points.map((p) => p.weight); // null 的部分 Chart.js 會自動斷線
+
+    renderWeightChart(labels, weights);
+  } catch (error) {
+    console.error("查詢體重變化趨勢失敗:", error);
+  }
+}
+
+/**
+ * 獨立查詢「最近的有效體重紀錄」，同時更新：
+ * 1. latestWeight：最新一筆體重值，給「當前體重」卡片使用
+ * 2. weightTrend：跟上一筆比較的趨勢方向，給「體重狀態」卡片使用
+ * 固定查過去 30 天（不受使用者切換 週/月/年 影響），確保「上次紀錄」是真的最近一次，
+ * 而不是被使用者目前選的時間範圍意外影響到比較基準
+ */
+async function fetchWeightTrend() {
+  if (!currentPetId.value) {
+    weightTrend.value = "insufficient";
+    latestWeight.value = null;
+    return;
+  }
+
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}/weight-chart`,
+      { params: { range: "month" } },
+    );
+
+    // 篩掉沒紀錄的日期（weight 為 null），只保留真正有填寫的資料點
+    const validPoints = response.data.filter(
+      (p) => p.weight !== null && p.weight !== undefined,
+    );
+
+    if (validPoints.length === 0) {
+      // 完全沒有任何體重紀錄
+      weightTrend.value = "insufficient";
+      latestWeight.value = null;
+      return;
+    }
+
+    // validPoints 依時間由舊到新排序，最後一筆就是「最新一筆」
+    latestWeight.value = Number(validPoints[validPoints.length - 1].weight);
+
+    if (validPoints.length < 2) {
+      // 只有 1 筆紀錄：當前體重可以顯示，但還無法判斷趨勢方向
+      weightTrend.value = "insufficient";
+      return;
+    }
+
+    const previous = Number(validPoints[validPoints.length - 2].weight);
+
+    if (latestWeight.value > previous) {
+      weightTrend.value = "up";
+    } else if (latestWeight.value < previous) {
+      weightTrend.value = "down";
+    } else {
+      weightTrend.value = "flat";
+    }
+  } catch (error) {
+    console.error("查詢體重趨勢失敗:", error);
+    weightTrend.value = "insufficient";
+    latestWeight.value = null;
+  }
+}
+
+/**
+ * 用 Chart.js 畫出（或重新畫出）體重趨勢折線圖
+ */
+function renderWeightChart(labels, weights) {
+  // 切換時間範圍時，先銷毀舊圖表實例，避免畫面疊加殘影
+  if (weightChartInstance) {
+    weightChartInstance.destroy();
+  }
+
+  weightChartInstance = new Chart(weightChartCanvas.value, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "體重 (kg)",
+          data: weights,
+          borderColor: "#7bb3d4",
+          backgroundColor: "#7bb3d4",
+          spanGaps: false, // 關鍵設定：遇到 null 值時折線斷開，不連接前後兩點
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: "#7bb3d4",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        y: {
+          beginAtZero: false, // 不強制從 0 開始，讓 Chart.js 依實際資料自動決定合適的範圍
+        },
+      },
+    },
+  });
+}
+
+// fetchWeightChart、fetchWeightTrend 會在檔案最下方統一的 onMounted 中呼叫，這裡不重複註冊
+
+// 使用者點擊 週/月/年 按鈕、currentTimeRange 改變時，重新查詢並重繪圖表
+// 注意：weightTrend（體重狀態卡片）固定看「近30天」，不受這個切換影響，所以這裡不需要呼叫 fetchWeightTrend
+watch(currentTimeRange, () => {
+  fetchWeightChart();
+});
+
+// 切換寵物時，currentPetId 改變，連帶重新查詢這隻寵物的體重趨勢圖、體重狀態、歷史日誌、本週飲食紀錄
+watch(currentPetId, () => {
+  fetchWeightChart();
+  fetchWeightTrend();
+  fetchHistoryLogs();
+  fetchFoodWaterChart();
 });
 
 // ==========================================================================
-// 4. 體重狀態計算（對應 Pet.weight 理想區間判斷）
+// 3-2. 本週飲食紀錄長條圖（Chart.js + 後端真實資料）
 // ==========================================================================
-const currentWeight = 13.6; // 實際串接時改為從 Pet API 取得的 weight
-const idealMin = 11;
-const idealMax = 16;
+const foodWaterChartCanvas = ref(null);
+let foodWaterChartInstance = null;
+// 今日飲水量（給「飲水達成率」摘要卡片用），沒有今天的紀錄時為 null
+const todayWater = ref(null);
 
+/**
+ * 向後端查詢本週（過去7天）的飲水量、進食量資料，並重新繪製長條圖
+ */
+async function fetchFoodWaterChart() {
+  if (!currentPetId.value || !foodWaterChartCanvas.value) return;
+
+  try {
+    const response = await instance.get(
+      `/api/medical/health-tracking/${currentPetId.value}/food-water-chart`,
+    );
+
+    const points = response.data; // [{ label, water, food }, ...]
+    const labels = points.map((p) => p.label);
+    const waterValues = points.map((p) => p.water); // null 的部分 Chart.js 不會畫出柱子
+    const foodValues = points.map((p) => p.food);
+
+    // 資料依時間由舊到新排序，最後一筆就是「今天」
+    const todayPoint = points[points.length - 1];
+    todayWater.value =
+      todayPoint && todayPoint.water != null ? Number(todayPoint.water) : null;
+
+    renderFoodWaterChart(labels, waterValues, foodValues);
+  } catch (error) {
+    console.error("查詢本週飲食紀錄失敗:", error);
+  }
+}
+
+/**
+ * 用 Chart.js 畫出（或重新畫出）本週飲食紀錄雙色長條圖
+ */
+function renderFoodWaterChart(labels, waterValues, foodValues) {
+  if (foodWaterChartInstance) {
+    foodWaterChartInstance.destroy();
+  }
+
+  foodWaterChartInstance = new Chart(foodWaterChartCanvas.value, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "飲水 (ml)",
+          data: waterValues,
+          backgroundColor: "#6bae8a",
+        },
+        {
+          label: "進食 (g)",
+          data: foodValues,
+          backgroundColor: "#e2A053",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: "top", align: "end" },
+      },
+      scales: {
+        y: {
+          beginAtZero: true, // 長條圖維持從 0 開始，符合長條圖的視覺慣例（柱子高度才有意義）
+        },
+      },
+    },
+  });
+}
+
+// 頁面載入完成後，統一執行所有需要的初始查詢：
+// 歷史健康日誌、體重變化趨勢圖、體重狀態趨勢、本週飲食紀錄圖
+onMounted(() => {
+  fetchHistoryLogs();
+  fetchWeightChart();
+  fetchWeightTrend();
+  fetchFoodWaterChart();
+});
+
+// ==========================================================================
+// 4. 右側三大摘要卡片：當前體重、飲水達成率、體重狀態趨勢
+// ==========================================================================
+
+// 依 weightTrend（up / down / flat / insufficient）決定卡片顯示的文字
 const statusLabel = computed(() => {
-  if (currentWeight < idealMin) return "偏瘦";
-  if (currentWeight > idealMax) return "過重";
-  return "正常";
+  if (weightTrend.value === "up") return "上升";
+  if (weightTrend.value === "down") return "下降";
+  if (weightTrend.value === "flat") return "持平";
+  return "資料不足";
 });
 
-const statusColor = computed(() => {
-  if (currentWeight < idealMin) return "#e29553";
-  if (currentWeight > idealMax) return "#df4733";
-  return "#6bae8a";
+// 顏色維持中性色調，因為「上升/下降」本身不代表好壞，不適合用紅色/橘色暗示警示
+const statusColor = "#7bb3d4";
+const statusBg = "rgba(123, 179, 212, 0.15)";
+
+// 卡片下方補充說明文字
+const statusSub = computed(() => {
+  if (weightTrend.value === "insufficient") return "尚無足夠紀錄";
+  return "與上次記錄相比";
 });
 
-const statusBg = computed(() => {
-  if (currentWeight < idealMin) return "rgba(226, 149, 83, 0.15)";
-  if (currentWeight > idealMax) return "rgba(223, 71, 51, 0.15)";
-  return "rgba(107, 174, 138, 0.15)";
+// ── 「當前體重」卡片內容：取最新一筆體重紀錄（latestWeight，過去30天內）──
+const currentWeightDisplay = computed(() => {
+  if (latestWeight.value === null) return "尚無紀錄";
+  return latestWeight.value + " kg";
+});
+
+// ── 「飲水達成率」卡片內容：今日飲水 ÷ (最新體重 × 60ml) ──
+// 用 latestWeight 而非「今天的體重」當分母，這樣即使今天沒量體重，
+// 只要量過水，依然能用最近一次量到的體重估算出合理的達成率
+const waterTargetAmount = computed(() => {
+  if (latestWeight.value === null) return null;
+  return Math.round(latestWeight.value * 60);
+});
+
+const waterAchievementRate = computed(() => {
+  if (
+    todayWater.value === null ||
+    waterTargetAmount.value === null ||
+    waterTargetAmount.value === 0
+  ) {
+    return null; // 今天沒喝水紀錄，或沒有體重可以當分母，無法計算達成率
+  }
+  return Math.round((todayWater.value / waterTargetAmount.value) * 100);
+});
+
+const waterAchievementDisplay = computed(() => {
+  if (waterAchievementRate.value === null) return "尚無紀錄";
+  return waterAchievementRate.value + "%";
+});
+
+const waterAchievementSub = computed(() => {
+  if (todayWater.value === null) return "今日尚未記錄飲水";
+  if (waterTargetAmount.value === null) return "尚無體重可估算建議量";
+  return `${todayWater.value}/${waterTargetAmount.value} ml`;
 });
 
 // 右側三大健康摘要小卡資料
 const healthStatsSummary = computed(() => [
   {
     label: "當前體重",
-    value: currentWeight + " kg",
-    sub: "上週 +0.1kg",
+    value: currentWeightDisplay.value,
+    sub: "最近一次紀錄",
     emoji: "⚖️",
     color: "#7bb3d4",
     bgColor: "rgba(123, 179, 212, 0.15)",
@@ -909,8 +1035,8 @@ const healthStatsSummary = computed(() => [
   },
   {
     label: "飲水達成率",
-    value: "80%",
-    sub: "480/600 ml",
+    value: waterAchievementDisplay.value,
+    sub: waterAchievementSub.value,
     emoji: "💧",
     color: "#6bae8a",
     bgColor: "rgba(107, 174, 138, 0.15)",
@@ -919,10 +1045,10 @@ const healthStatsSummary = computed(() => [
   {
     label: "體重狀態",
     value: statusLabel.value,
-    sub: "理想範圍內",
+    sub: statusSub.value,
     emoji: "🐕",
-    color: statusColor.value,
-    bgColor: statusBg.value,
+    color: statusColor,
+    bgColor: statusBg,
     trend: "ok",
   },
 ]);

@@ -1,6 +1,4 @@
-// ⚠️【合併前要還原】組員原寫法路徑 @/api/axios 在本專案不存在，先註解掉
-// import axios from '@/api/axios'; // 確保此路徑指向您的 axios 實例
-import axios from '@/plugins/axios.js'; // 暫時改成本專案實際的 axios 路徑，讓程式跑得動
+import axios from '@/api/axios'; // 確保此路徑指向您的 axios 實例
 import useUserStore from '@/stores/user.js';
 
 /**

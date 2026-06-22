@@ -130,9 +130,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
-// ⚠️【合併前要還原】組員原寫法路徑 @/api/groomingApi 在本專案不存在，先註解掉
-// import { getFeaturedServices, getActivePromotion } from '@/api/groomingApi';
-import { getFeaturedServices, getActivePromotion } from './groomingApi'; // 暫時改成同資料夾的相對路徑
+import { getFeaturedServices, getActivePromotion } from '@/api/groomingApi';
 
 export default {
   name: 'GroomingIndex',

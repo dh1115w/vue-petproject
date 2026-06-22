@@ -156,7 +156,9 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getReviews, getUnreviewedAppointments, submitGroomingReview } from '@/api/groomingApi';
+// 【合併前要還原】組員原本寫 '@/api/groomingApi'，但本專案沒有 src/api 資料夾，會導致整個專案編譯失敗。
+// 暫時改成相對路徑 './groomingApi'（指向同資料夾的假資料檔），讓本機能跑。上傳 GitHub 前要改回 '@/api/groomingApi'。
+import { getReviews, getUnreviewedAppointments, submitGroomingReview } from './groomingApi';
 
 export default {
   name: 'ReviewsPage',

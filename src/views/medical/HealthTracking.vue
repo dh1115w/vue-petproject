@@ -370,7 +370,11 @@ import healthBannerImg from "@/images/health-tracking-banner.jpg";
 const healthBanner = ref(healthBannerImg);
 
 // ── 寵物基本資料（對應 Pet 表）──────────────────────────
-const name = ref("小福"); // Pet.name
+// 依目前選中的寵物動態取得名字，確保切換寵物時畫面同步更新
+const name = computed(() => {
+  const pet = userStore.pets.find((p) => p.id === currentPetId.value);
+  return pet ? pet.name : "寵物";
+});
 
 // ── 備註框 focus 狀態 ────────────────────────────────────
 const isNoteFocused = ref(false);
@@ -490,10 +494,7 @@ async function handleSubmitRecord() {
     alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
   }
 
-  // 6. 彈出成功提示並清空備註欄
-  alert(
-    `今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`,
-  );
+  // 6. 清空備註欄
   statusNoteExtra.value = "";
 }
 
@@ -748,6 +749,8 @@ const latestWeight = ref(null);
  * 向後端查詢體重變化趨勢資料，並重新繪製 Chart.js 圖表
  */
 async function fetchWeightChart() {
+  console.log("petId：", currentPetId.value);
+  console.log("canvas：", weightChartCanvas.value);
   if (!currentPetId.value || !weightChartCanvas.value) return;
 
   try {
@@ -959,9 +962,13 @@ function renderFoodWaterChart(labels, waterValues, foodValues) {
 // 歷史健康日誌、體重變化趨勢圖、體重狀態趨勢、本週飲食紀錄圖
 onMounted(() => {
   fetchHistoryLogs();
-  fetchWeightChart();
   fetchWeightTrend();
-  fetchFoodWaterChart();
+
+  // 等 100 毫秒，讓 Vue 把 canvas 畫到畫面上，再畫圖表
+  setTimeout(() => {
+    fetchWeightChart();
+    fetchFoodWaterChart();
+  }, 100);
 });
 
 // ==========================================================================

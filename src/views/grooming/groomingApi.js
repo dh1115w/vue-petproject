@@ -1,7 +1,7 @@
 import axios from '@/plugins/axios.js';
 
 // 大部分還是暫時的 mock 版本，純粹讓本機可以正常開發/測試畫面
-// getAllServices 已經改成真正打後端 API，其他 function 之後後端做好了再一個一個換掉
+// getAllServices、getGroomers、getReviews 已經改成真正打後端 API，其他 function 之後後端做好了再一個一個換掉
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -169,64 +169,11 @@ export const getActivePromotion = () => {
   });
 };
 
-export const getReviews = (params) => {
-  console.log('[mock] getReviews 被呼叫，參數：', params);
-
-  const mockReviews = [
-    {
-      id: 1,
-      userName: '王小明',
-      groomerName: 'Andy',
-      rating: 5,
-      comment: '服務很細心，毛孩剪完整個變超帥！下次還會再來。',
-      date: '2026-06-18',
-      image: ''
-    },
-    {
-      id: 2,
-      userName: '陳小華',
-      groomerName: 'Emily',
-      rating: 4,
-      comment: '整體不錯，洗得很乾淨，毛孩看起來很放鬆。',
-      date: '2026-06-15',
-      image: ''
-    },
-    {
-      id: 3,
-      userName: '林小美',
-      groomerName: 'Jason',
-      rating: 5,
-      comment: '美容師很有耐心，狗狗平常很怕剪毛但這次很乖。',
-      date: '2026-06-10',
-      image: ''
-    },
-    {
-      id: 4,
-      userName: '張大同',
-      groomerName: 'Sophie',
-      rating: 3,
-      comment: '還可以，但等待時間有點久。',
-      date: '2026-06-05',
-      image: ''
-    },
-    {
-      id: 5,
-      userName: '李小芳',
-      groomerName: 'Andy',
-      rating: 5,
-      comment: '每次都指定同一位美容師，技術真的很穩。',
-      date: '2026-05-28',
-      image: ''
-    }
-  ];
-
-  // 簡單模擬後端的篩選邏輯，行為盡量貼近真正 API
-  let result = mockReviews;
-  if (params && params.groomer && params.groomer !== 'all') {
-    result = result.filter(r => r.groomerName === params.groomer);
-  }
-
-  return Promise.resolve({ data: result });
+// 已串接真正後端 API：GET /api/reviews
+// 註：Reviews.vue 自己有用 sortedReviews 在前端依 groomerName 篩選跟排序，
+// 所以這裡單純把資料整批抓回來即可，不用真的把 params 傳給後端。
+export const getReviews = () => {
+  return axios.get('/api/reviews');
 };
 
 export const getUnreviewedAppointments = () => {
@@ -395,12 +342,7 @@ export const submitGroomingReview = (data) => {
 // /**
 //  * 【評價系統】
 //  */
-// /**
-//  * 取得評論列表 (支援篩選美容師與排序)
-//  */
-// export const getReviews = (params) => {
-//   return axios.get('/api/reviews', { params });
-// };
+// getReviews 已經在上面改成真正打後端 API 了，這裡不用留參考版本
 
 // /**
 //  * 取得會員目前可進行評價的已完成預約

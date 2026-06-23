@@ -1,61 +1,21 @@
-// 暫時的 mock 版本，純粹讓本機可以正常開發/測試畫面
-// 等組員把真正串接後端的版本寫好、push 上來之後，這個檔案就可以刪掉
-// ⚠️ 記得把 src/api/groomingApi.js 加進 .gitignore，避免明天合併時互相干擾
+import axios from '@/plugins/axios.js';
+
+// 大部分還是暫時的 mock 版本，純粹讓本機可以正常開發/測試畫面
+// getAllServices 已經改成真正打後端 API，其他 function 之後後端做好了再一個一個換掉
 
 // ===== 共用假資料 =====
-const mockGroomers = [
-  { id: 1, name: 'Andy', specialty: '大型犬專家', rating: 4.8, isOnDuty: true, desc: '擁有10年大型犬美容經驗，手法穩定細心。', experience: '從業10年', image: '' },
-  { id: 2, name: 'Emily', specialty: '貓咪/造型專家', rating: 4.9, isOnDuty: true, desc: '擅長貓咪安撫與創意造型剪裁。', experience: '從業7年', image: '' },
-  { id: 3, name: 'Jason', specialty: '皮膚藥浴專家', rating: 4.7, isOnDuty: false, desc: '專精敏感肌膚與藥浴療程規劃。', experience: '從業5年', image: '' },
-  { id: 4, name: 'Sophie', specialty: 'SPA/貓咪專家', rating: 4.9, isOnDuty: true, desc: '提供高端SPA護理，深受毛孩家長喜愛。', experience: '從業8年', image: '' }
-];
-
 const mockAppointments = [
   { id: 1001, petName: '巧克力', serviceName: '基礎洗護', price: 600, date: '2026-06-22 10:00', groomer: 'Andy', status: 0, isReviewed: false },
   { id: 1002, petName: 'Mimi', serviceName: '全套美容造型', price: 1200, date: '2026-06-15 14:00', groomer: 'Emily', status: 1, isReviewed: false },
   { id: 1003, petName: '豆豆', serviceName: '藥浴護理', price: 900, date: '2026-06-10 11:00', groomer: 'Jason', status: 1, isReviewed: true }
 ];
 
-// ===== Booking.vue 用 =====
+// ===== Booking.vue、Services.vue 用 =====
+// 已串接真正後端 API：GET /api/services
+// 註：後端目前還沒有 features（服務特色文字）、allowedGroomers（指定美容師）這兩個欄位，
+// 回傳資料裡不會有這兩個值，畫面上對應的地方會先顯示空白/全部美容師，之後後端補上再串。
 export const getAllServices = () => {
-  console.log('[mock] getAllServices 被呼叫');
-  return Promise.resolve({
-    data: [
-      {
-        id: 1,
-        title: '基礎洗護',
-        minPrice: 600,
-        duration: 60,
-        allowedSpecies: ['dog', 'cat'],
-        allowedGroomers: [1, 2, 3, 4],
-        priceMap: { S: 600, M: 800, L: 1000 },
-        durationMap: { S: 60, M: 75, L: 90 },
-        features: ['洗澡', '吹整', '清耳', '剪指甲']
-      },
-      {
-        id: 2,
-        title: '全套美容造型',
-        minPrice: 1200,
-        duration: 120,
-        allowedSpecies: ['dog'],
-        allowedGroomers: [1, 2],
-        priceMap: { S: 1200, M: 1500, L: 1800 },
-        durationMap: { S: 120, M: 140, L: 160 },
-        features: ['剪毛造型', 'SPA護膚', '香氛護理']
-      },
-      {
-        id: 3,
-        title: '藥浴護理',
-        minPrice: 900,
-        duration: 90,
-        allowedSpecies: ['dog', 'cat'],
-        allowedGroomers: [3, 4],
-        priceMap: { S: 900, M: 1100, L: 1300 },
-        durationMap: { S: 90, M: 100, L: 110 },
-        features: ['專業藥浴', '皮膚檢測', '低敏配方']
-      }
-    ]
-  });
+  return axios.get('/api/services');
 };
 
 export const getAvailableTimeSlots = (params) => {
@@ -107,9 +67,11 @@ export const updateAppointmentStatus = (id, status) => {
 };
 
 // ===== Staff.vue 用 =====
+// 已串接真正後端 API：GET /api/groomers
+// 註：後端目前還沒有 rating（評分，要等 Review 表）、isOnDuty（今日有沒有上班，要等 GroomerSchedule 表），
+// 這兩個欄位後端會先回傳 null，畫面上對應的地方會先顯示空白/休假狀態，之後後端補上再串。
 export const getGroomers = () => {
-  console.log('[mock] getGroomers 被呼叫');
-  return Promise.resolve({ data: mockGroomers });
+  return axios.get('/api/groomers');
 };
 
 // ===== StaffDashboard.vue 用 =====
@@ -350,19 +312,7 @@ export const submitGroomingReview = (data) => {
 //   return axios.get('/api/active-promotion');
 // };
 
-// /**
-//  * 取得所有美容服務項目與詳細價格表
-//  */
-// export const getAllServices = (params) => {
-//   return axios.get('/api/services', { params });
-// };
-
-// /**
-//  * 取得所有美容師團隊成員資訊
-//  */
-// export const getGroomers = () => {
-//   return axios.get('/api/groomers');
-// };
+// getAllServices、getGroomers 已經在上面改成真正打後端 API 了，這裡不用留參考版本
 
 // /**
 //  * 【毛孩與會員管理】

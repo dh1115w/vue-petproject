@@ -136,9 +136,9 @@ export default {
       if (!priceMap) return [];
       
       const isCatOnly = allowedSpecies.length === 1 && allowedSpecies[0] === 'cat';
-      const labels = isCatOnly 
-        ? { S: '短毛貓', M: '長毛貓' }
-        : { S: '小型犬 (5kg以下)', M: '中型犬 (5-15kg)', L: '大型犬 (15kg以上)' };
+      const labels = isCatOnly
+        ? { small: '短毛貓', mid: '長毛貓' }
+        : { small: '小型犬 (5kg以下)', mid: '中型犬 (5-15kg)', big: '大型犬 (15kg以上)' };
 
       return Object.entries(priceMap).map(([key, price]) => ({
         type: labels[key] || key,

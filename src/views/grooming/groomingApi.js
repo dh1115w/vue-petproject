@@ -1,7 +1,7 @@
 import axios from '@/plugins/axios.js';
 
-// 大部分還是暫時的 mock 版本，純粹讓本機可以正常開發/測試畫面
-// getAllServices、getGroomers、getReviews 已經改成真正打後端 API，其他 function 之後後端做好了再一個一個換掉
+// 還剩 StaffDashboard.vue、優惠碼用的幾個 function 是 mock，其他都已經改成真正打後端 API
+// （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、cancelAppointment）
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -18,20 +18,16 @@ export const getAllServices = () => {
   return axios.get('/api/services');
 };
 
+// 已串接真正後端 API：GET /api/available-slots
+// params 要帶 { groomer_id, date, pricing_id }，後端會依排班、已有預約、服務時長算出空檔
 export const getAvailableTimeSlots = (params) => {
-  console.log('[mock] getAvailableTimeSlots 被呼叫，參數：', params);
-  return Promise.resolve({
-    data: [
-      { value: '10:00', label: '10:00 AM' },
-      { value: '13:00', label: '01:00 PM' },
-      { value: '15:30', label: '03:30 PM' }
-    ]
-  });
+  return axios.get('/api/available-slots', { params });
 };
 
+// 已串接真正後端 API：POST /api/secure/appointments（要登入會員才能用）
+// data 要帶 { petId, groomerId, pricingId, appointmentDate, startTime, note }
 export const createAppointment = (data) => {
-  console.log('[mock] createAppointment 被呼叫，內容：', data);
-  return Promise.resolve({ data: { success: true, id: Date.now() } });
+  return axios.post('/api/secure/appointments', data);
 };
 
 export const validateCoupon = (code) => {
@@ -47,18 +43,14 @@ export const validateCoupon = (code) => {
 };
 
 // ===== Appointments.vue 用 =====
+// 已串接真正後端 API：GET /api/secure/appointments（要登入會員才能用，只會看到自己的）
 export const getAppointments = (params) => {
-  console.log('[mock] getAppointments 被呼叫，參數：', params);
-  let result = mockAppointments;
-  if (params && params.status !== undefined && params.status !== 'all') {
-    result = result.filter(a => a.status === parseInt(params.status));
-  }
-  return Promise.resolve({ data: result });
+  return axios.get('/api/secure/appointments', { params });
 };
 
+// 已串接真正後端 API：POST /api/secure/appointments/{id}/cancel
 export const cancelAppointment = (id) => {
-  console.log('[mock] cancelAppointment 被呼叫，id：', id);
-  return Promise.resolve({ data: { success: true } });
+  return axios.post(`/api/secure/appointments/${id}/cancel`);
 };
 
 export const updateAppointmentStatus = (id, status) => {
@@ -298,39 +290,8 @@ export const submitGroomingReview = (data) => {
 //   return axios.post('/api/notifications/line', data);
 // };
 
-// /**
-//  * 【預約流程】
-//  */
-// /**
-//  * 取得特定日期與美容師的可用預約時段
-//  */
-// export const getAvailableTimeSlots = (params) => {
-//   return axios.get('/api/available-slots', { params });
-// };
-
-// /**
-//  * 提交新的美容預約
-//  */
-// export const createAppointment = (appointmentData) => {
-//   return axios.post('/api/appointments', appointmentData);
-// };
-
-// /**
-//  * 【預約紀錄管理】
-//  */
-// /**
-//  * 取得會員的美容預約紀錄 (支援篩選狀態)
-//  */
-// export const getAppointments = (params) => {
-//   return axios.get('/api/appointments', { params });
-// };
-
-// /**
-//  * 取消特定的美容預約
-//  */
-// export const cancelAppointment = (appointmentId) => {
-//   return axios.post(`/api/appointments/${appointmentId}/cancel`);
-// };
+// getAvailableTimeSlots、createAppointment、getAppointments、cancelAppointment
+// 都已經在上面改成真正打後端 API 了，這裡不用留參考版本
 
 // /**
 //  * 更新預約狀態 (用於模擬美容進度切換)

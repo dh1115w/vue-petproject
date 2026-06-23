@@ -76,9 +76,9 @@
             <label for="petSize">毛孩體型 (Size)</label>
             <select id="petSize" v-model="form.pet_size" required>
               <option value="" disabled>-- 請選擇體型 --</option>
-              <option value="S">小型 (S) - 5kg 以下</option>
-              <option value="M">中型 (M) - 5-15kg</option>
-              <option value="L">大型 (L) - 15kg 以上</option>
+              <option value="small">小型 - 5kg 以下</option>
+              <option value="mid">中型 - 5-15kg</option>
+              <option value="big">大型 - 15kg 以上</option>
             </select>
           </div>
           <div class="form-group">
@@ -177,7 +177,7 @@
           <h3 class="modal-title">確認您的預約資訊</h3>
           <div class="modal-body">
             <p>毛孩：<strong>{{ selectedPetName }}</strong></p>
-            <p>體型：<strong>{{ form.pet_size === 'S' ? '小型' : form.pet_size === 'M' ? '中型' : '大型' }}</strong></p>
+            <p>體型：<strong>{{ form.pet_size === 'small' ? '小型' : form.pet_size === 'mid' ? '中型' : '大型' }}</strong></p>
             <p>服務：<strong>{{ selectedService ? selectedService.title : '未選擇' }}</strong></p>
             <p>美容師：<strong>{{ selectedGroomerName }}</strong></p>
             <p>日期：<strong>{{ form.apt_date_date }}</strong></p>
@@ -215,7 +215,8 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, createAppointment, getAllServices, validateCoupon } from './groomingApi'
+import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon } from './groomingApi'
+import useUserStore from '@/stores/user.js'
 
 export default {
   name: 'BookingPage',
@@ -244,16 +245,8 @@ export default {
       apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
       couponTimer: null,         // 用於 debounce 請求 (防抖)
       couponError: null,         // 新增：儲存優惠碼錯誤訊息
-      pets: [ // Mock pet data
-        { id: 1, name: '巧克力', breed: '貴賓', age: 3, type: 'dog', size: 'S' },
-        { id: 2, name: 'Mimi', breed: '波斯貓', age: 2, type: 'cat', size: 'S' }
-      ],
-      groomers: [ // Mock groomer data
-        { id: 1, name: 'Andy (大型犬專家)' },
-        { id: 2, name: 'Emily (貓咪/造型專家)' },
-        { id: 3, name: 'Jason (皮膚藥浴專家)' },
-        { id: 4, name: 'Sophie (SPA/貓咪專家)' }
-      ],
+      pets: [], // 改成從 user.js 共用資料源撈，見 mounted()
+      groomers: [], // 改成從後端 fetchGroomers() 撈，見 mounted()
       services: [],
       availableTimeSlots: [], // 儲存可用的預約時段
       isLoadingTimeSlots: false, // 載入時段的狀態
@@ -267,6 +260,17 @@ export default {
   },
   async mounted() {
     await this.fetchServices();
+    await this.fetchGroomers();
+
+    // 讀 user.js 共用資料源：寵物清單 + 目前切換的寵物，預設帶入這隻
+    const userStore = useUserStore();
+    this.pets = userStore.pets.map(pet => ({
+      ...pet,
+      type: this.speciesToType(pet.species)
+    }));
+    if (userStore.selectPetId) {
+      this.form.pet_id = userStore.selectPetId;
+    }
 
     // 檢查網址是否有傳遞 petId 參數，如果有則自動選取該毛孩
     if (this.$route.query.petId) {
@@ -295,7 +299,8 @@ export default {
       // 如果尚未選擇毛孩（例如從服務頁面直接跳轉過來），顯示所有服務，確保自動填入功能正常
       if (!this.form.pet_id) return this.services;
       const pet = this.pets.find(p => p.id == this.form.pet_id);
-      if (!pet) return this.services;
+      // pet.type 判斷不出來（物種文字看不出貓狗）時，先顯示全部服務，不要整個擋掉
+      if (!pet || !pet.type) return this.services;
       return this.services.filter(s => s.allowedSpecies.includes(pet.type));
     },
     // 新增：動態計算預估價格
@@ -386,9 +391,11 @@ export default {
         }
       }
     },
-    // 當預約日期或美容師改變時，重新獲取可用時段 
+    // 當預約日期或美容師改變時，重新獲取可用時段
     'form.apt_date_date': 'handleDateOrGroomerChange',
     'form.groomer_id': 'handleDateOrGroomerChange',
+    // 體型會影響服務要花多久（duration），所以也要重新查可用時段
+    'form.pet_size': 'fetchAvailableTimeSlots',
     // 新增：監控服務項目，若切換服務後目前的美容師不符合資格，則重設美容師選擇
     // 同時，當服務被手動更改時，清除不相容服務的警告
     'form.service_id'(newServiceId) {
@@ -397,6 +404,8 @@ export default {
       if (service && service.allowedGroomers && !service.allowedGroomers.includes(this.form.groomer_id)) {
         this.form.groomer_id = '';
       }
+      // 服務改變也會影響時長，重新查可用時段
+      this.fetchAvailableTimeSlots();
     },
     // 新增：監控優惠碼輸入，自動呼叫 API 驗證
     'form.coupon_code'(newCode) {
@@ -422,13 +431,14 @@ export default {
         console.error('Failed to fetch services:', error);
       }
     },
-    async fetchPets() {
-      try {
-        const response = await getPets({ member_id: this.form.member_id });
-        this.pets = response.data;
-      } catch (error) {
-        console.error('Failed to fetch pets:', error);
-      }
+    // 把寵物的 species（自由填寫文字，例如「貓」「狗」）轉成 'cat'/'dog'，
+    // 抓不出來就回傳 null，filteredServices 那邊會處理（顯示全部服務，不會擋住）
+    speciesToType(species) {
+      if (!species) return null;
+      const lower = species.toLowerCase();
+      if (species.includes('貓') || lower.includes('cat')) return 'cat';
+      if (species.includes('狗') || lower.includes('dog')) return 'dog';
+      return null;
     },
     async fetchGroomers() {
       try {
@@ -461,10 +471,19 @@ export default {
       }
     },
     async fetchAvailableTimeSlots() {
-      const { apt_date_date, groomer_id } = this.form;
+      const { apt_date_date, groomer_id, service_id, pet_size } = this.form;
 
-      // 只有當日期和美容師都選定時才發送請求
-      if (!apt_date_date || !groomer_id) {
+      // 日期、美容師、服務、體型都要選好，才知道要算哪個服務的可用時段
+      if (!apt_date_date || !groomer_id || !service_id || !pet_size) {
+        this.availableTimeSlots = [];
+        this.timeSlotsError = null;
+        return;
+      }
+
+      // 用服務 + 體型找出對應的 pricingId（送給後端用來查時長）
+      const service = this.services.find(s => s.id == service_id);
+      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[pet_size] : null;
+      if (!pricingId) {
         this.availableTimeSlots = [];
         this.timeSlotsError = null;
         return;
@@ -474,9 +493,10 @@ export default {
       this.timeSlotsError = null;
 
       try {
-        const response = await getAvailableTimeSlots({ 
-          date: apt_date_date, 
-          groomer_id 
+        const response = await getAvailableTimeSlots({
+          date: apt_date_date,
+          groomer_id,
+          pricing_id: pricingId
         });
         this.availableTimeSlots = response.data;
 
@@ -523,26 +543,29 @@ export default {
     },
     async confirmBooking() {
       this.isProcessingPayment = true;
-      
+
+      // 用服務 + 體型找出對應的 pricingId，後端要靠這個查價格、時長
+      const service = this.services.find(s => s.id == this.form.service_id);
+      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[this.form.pet_size] : null;
+
       const appointmentData = {
-        member_id: this.form.member_id,
-        pet_id: parseInt(this.form.pet_id),
-        service_id: parseInt(this.form.service_id),
-        groomer_id: parseInt(this.form.groomer_id),
-        apt_date: `${this.form.apt_date_date} ${this.form.timeSlot}:00`,
-        total_price: this.finalPrice || this.estimatedPrice,
-        deposit_paid: this.depositAmount,
-        payment_method: this.form.payment_method,
-        coupon_used: this.form.coupon_code,
-        status: 1, // 假設 1 代表「已付訂金，待服務」
-        notes: this.form.notes
+        petId: parseInt(this.form.pet_id),
+        groomerId: parseInt(this.form.groomer_id),
+        pricingId: pricingId,
+        appointmentDate: this.form.apt_date_date,
+        startTime: this.form.timeSlot,
+        note: this.form.notes
       };
-      
+
       try {
-        // 呼叫 API 建立預約
+        // 呼叫 API 建立預約（金流/付款這部分目前還是模擬的，後端還沒做）
         await createAppointment(appointmentData);
       } catch (error) {
-        console.error('預約提交失敗:', error);
+        this.isProcessingPayment = false;
+        // 後端驗證沒通過時（例如時段被搶走了），把原因顯示給使用者看，不要靜默失敗
+        const message = error.response && error.response.data ? error.response.data : '預約失敗，請重新嘗試';
+        this.triggerToast(`❌ ${message}`, 'error');
+        return;
       }
 
       this.isProcessingPayment = false;

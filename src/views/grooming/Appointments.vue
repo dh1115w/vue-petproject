@@ -18,10 +18,12 @@
             <label class="filter-label">篩選狀態：</label>
             <select v-model="filterStatus" class="status-select">
               <option value="all">顯示全部</option>
-              <option value="0">已收到預約</option>
-              <option value="1">服務已完成</option>
-              <option value="2">預約已取消</option>
-              <option value="3">美容進行中</option>
+              <option value="0">待確認</option>
+              <option value="1">已確認</option>
+              <option value="2">美容進行中</option>
+              <option value="3">服務已完成</option>
+              <option value="4">預約已取消</option>
+              <option value="5">未到店</option>
             </select>
           </div>
         </div>
@@ -53,20 +55,20 @@
                   </span>
                 </td>
                 <td>
-                  <button 
-                    v-if="apt.status === 0" 
-                    @click="openCancelModal(apt)" 
+                  <button
+                    v-if="apt.status === 0 || apt.status === 1"
+                    @click="openCancelModal(apt)"
                     class="mini-page-btn danger-border"
                   >取消</button>
-                  <button 
-                    v-if="apt.status === 0" 
-                    @click="updateStatus(apt.id, 3)" 
+                  <button
+                    v-if="apt.status === 0"
+                    @click="updateStatus(apt.id, 2)"
                     class="mini-page-btn"
                     style="border-color: #f39c12; color: #f39c12; margin-left: 5px;"
                   >開始美容</button>
-                  <button 
-                    v-if="apt.status === 3" 
-                    @click="updateStatus(apt.id, 1)" 
+                  <button
+                    v-if="apt.status === 2"
+                    @click="updateStatus(apt.id, 3)"
                     class="mini-page-btn"
                     style="border-color: #27ae60; color: #27ae60;"
                   >完成美容</button>
@@ -77,8 +79,8 @@
                     class="mini-page-btn"
                     style="border-color: #f39c12; color: #f39c12;"
                   >評價服務</button>
-                  <button 
-                    v-else-if="apt.status === 1 && apt.isReviewed" 
+                  <button
+                    v-else-if="apt.status === 3 && apt.isReviewed"
                     @click="viewReview(apt)" 
                     class="mini-page-btn"
                     style="border-color: #9b59b6; color: #9b59b6;"
@@ -265,11 +267,15 @@ export default {
   data() {
     return {
       appointments: [], // 將預約資料初始化為空陣列
+      // 註：後端真正的狀態是 0~5（待確認/已確認/進行中/已完成/已取消/未到店），
+      // 跟舊版的 0~3（已收到預約/已完成/已取消/進行中）對不起來，已經改成跟後端一致
       statusMap: {
-        0: { label: '已收到預約', class: 'badge-info' },
-        1: { label: '服務已完成', class: 'badge-success' },
-        2: { label: '預約已取消', class: 'badge-secondary' },
-        3: { label: '美容進行中', class: 'badge-warning' }
+        0: { label: '待確認', class: 'badge-info' },
+        1: { label: '已確認', class: 'badge-info' },
+        2: { label: '美容進行中', class: 'badge-warning' },
+        3: { label: '服務已完成', class: 'badge-success' },
+        4: { label: '預約已取消', class: 'badge-secondary' },
+        5: { label: '未到店', class: 'badge-secondary' }
       },
       filterStatus: 'all',
       currentAptPage: 1,
@@ -397,14 +403,16 @@ export default {
         this.fetchAppointments(); // 重新載入列表以確保資料最新
       } catch (error) {
         console.error('取消預約失敗:', error);
-        alert('取消預約失敗，請稍後再試。');
+        // 後端有給原因的話（例如「這筆預約目前的狀態不能取消」），顯示真正的原因
+        const message = error.response && error.response.data ? error.response.data : '取消預約失敗，請稍後再試。';
+        alert(message);
       } finally {
         this.closeCancelModal();
       }
     },
     async updateStatus(id, newStatus) {
       try {
-        const actionName = newStatus === 3 ? '開始美容' : '完成美容';
+        const actionName = newStatus === 2 ? '開始美容' : '完成美容';
         await updateAppointmentStatus(id, newStatus);
         alert(`預約編號 ${id} 已切換至 ${actionName}！`);
         this.fetchAppointments(); // 重新載入列表以確保畫面同步
@@ -450,8 +458,8 @@ export default {
       }
     },
     canReview(apt) {
-      // 1. 狀態必須是「已完成」且「尚未評價」
-      if (apt.status !== 1 || apt.isReviewed) return false;
+      // 1. 狀態必須是「已完成」(3) 且「尚未評價」
+      if (apt.status !== 3 || apt.isReviewed) return false;
 
       // 2. 計算時間差（毫秒轉天數）
       const aptDate = new Date(apt.date);
@@ -462,8 +470,8 @@ export default {
       return diffInDays >= 0 && diffInDays <= 7;
     },
     isReviewExpired(apt) {
-      // 1. 狀態必須是「已完成」且「尚未評價」
-      if (apt.status !== 1 || apt.isReviewed) return false;
+      // 1. 狀態必須是「已完成」(3) 且「尚未評價」
+      if (apt.status !== 3 || apt.isReviewed) return false;
 
       const aptDate = new Date(apt.date);
       const now = new Date();

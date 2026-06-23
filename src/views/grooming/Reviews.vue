@@ -109,7 +109,7 @@
           <div class="review-body">
             <div class="review-header">
               <span class="user-name">{{ review.userName }}</span>
-              <span class="review-date">{{ review.date }}</span>
+              <span class="review-date">{{ review.date.split('T')[0] }}</span>
             </div>
             <div class="review-meta">
               <span class="groomer-tag">美容師：{{ review.groomerName }}</span>

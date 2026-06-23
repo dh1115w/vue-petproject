@@ -22,6 +22,100 @@
       </header>
     </div>
 
+    <!-- AI 辨識確認表單（上傳後才顯示，與 Banner 等寬） -->
+    <div v-if="parsedResult && !savedRecordId" class="ai-confirm-form-wrap">
+      <div class="ai-confirm-form-card">
+        <h3 class="ai-form-title">資訊結果確認</h3>
+        <p class="ai-form-subtitle">
+          請確認以下資訊是否正確，可直接修改後再儲存
+        </p>
+
+        <div class="ai-form-grid">
+          <div class="ai-form-field">
+            <label class="ai-form-label">診所名稱</label>
+            <input
+              class="ai-form-input"
+              v-model="parsedResult.clinicName"
+              placeholder="未辨識，請手動填寫"
+            />
+          </div>
+          <div class="ai-form-field">
+            <label class="ai-form-label">就診日期</label>
+            <input
+              class="ai-form-input"
+              v-model="parsedResult.visitDate"
+              placeholder="yyyy-MM-dd"
+            />
+          </div>
+          <div class="ai-form-field">
+            <label class="ai-form-label">獸醫師姓名</label>
+            <input
+              class="ai-form-input"
+              v-model="parsedResult.vetName"
+              placeholder="未辨識，請手動填寫"
+            />
+          </div>
+          <div class="ai-form-field">
+            <label class="ai-form-label">回診日期</label>
+            <input
+              class="ai-form-input"
+              v-model="parsedResult.followUpDate"
+              placeholder="yyyy-MM-dd"
+            />
+          </div>
+          <div class="ai-form-field ai-form-field--full">
+            <label class="ai-form-label">診斷結果</label>
+            <textarea
+              class="ai-form-textarea"
+              v-model="parsedResult.diagnosis"
+              placeholder="未辨識，請手動填寫"
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="ai-form-field ai-form-field--full">
+            <label class="ai-form-label">症狀描述</label>
+            <textarea
+              class="ai-form-textarea"
+              v-model="parsedResult.symptoms"
+              placeholder="未辨識，請手動填寫"
+              rows="2"
+            ></textarea>
+          </div>
+          <div class="ai-form-field">
+            <label class="ai-form-label">藥物名稱</label>
+            <input
+              class="ai-form-input"
+              v-model="parsedResult.medication"
+              placeholder="未辨識"
+            />
+          </div>
+          <div class="ai-form-field">
+            <label class="ai-form-label">劑量與頻率</label>
+            <input
+              class="ai-form-input"
+              v-model="parsedResult.dosage"
+              placeholder="未辨識"
+            />
+          </div>
+        </div>
+
+        <!-- AI 不確定提醒
+        <p v-if="parsedResult.aiConfidenceNote" class="ai-form-note">
+          ⚠️ {{ parsedResult.aiConfidenceNote }}
+        </p> -->
+
+        <!-- 按鈕列 -->
+        <div class="ai-form-actions">
+          <button class="ai-form-cancel-btn" @click="parsedResult = null">
+            取消
+          </button>
+          <button class="ai-form-save-btn" @click="handleSaveRecord">
+            確認儲存病歷
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 主排版區：左側面板 + 右側列表區 -->
     <div class="records-main-grid stagger-children">
       <!-- ==========================================
@@ -45,10 +139,40 @@
             <button class="select-file-btn" @click="handleFileSelect">
               選擇檔案
             </button>
+
+            <!-- 健康建議區塊（儲存後才顯示） -->
+            <div v-if="healthAdvice" class="pawcare-card ai-advice-card">
+              <h3 class="panel-small-title">🐾 健康照護建議</h3>
+              <pre class="health-advice-text">{{ healthAdvice }}</pre>
+            </div>
+
+            <!-- 隱藏的檔案選擇器，由上面的按鈕觸發 -->
+            <input
+              type="file"
+              ref="fileInputRef"
+              accept=".jpg,.jpeg,.png,.pdf"
+              style="display: none"
+              @change="handleFileChosen"
+            />
           </div>
+
+          <!--  loading 提示，讓用戶知道正在辨識中 -->
+          <div v-if="isParsingAI" class="ai-parsing-overlay">
+            <span class="ai-parsing-spinner">⏳</span>
+            <p>AI 辨識中，請稍候...</p>
+          </div>
+
+          <!-- 同時讓上傳按鈕在辨識中時 disabled -->
+          <button
+            class="select-file-btn"
+            @click="handleFileSelect"
+            :disabled="isParsingAI"
+          >
+            {{ isParsingAI ? "辨識中..." : "選擇檔案" }}
+          </button>
         </div>
 
-        <!-- 2. 插圖展示卡 -->
+        <!-- 2. 插圖展示卡
         <div class="pawcare-card illustration-card">
           <img
             src="https://manuscdn.com"
@@ -61,7 +185,7 @@
               {{ totalFilesCount }} 個檔案
             </p>
           </div>
-        </div>
+        </div> -->
 
         <!-- 3. 紀錄類別分類統計小卡 -->
         <div class="pawcare-card">
@@ -228,19 +352,26 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import axios from "@/plugins/axios.js";
 import "@/css/medical/medical-records.css";
 
 // ==========================================================================
 // 1. UI 互動狀態
 // ==========================================================================
-const searchQuery = ref(""); // 搜尋關鍵字
-const selectedTypeKey = ref("all"); // 目前選中的分類分頁
-const expandedRecordId = ref(null); // 目前展開的病歷 recordId（null = 全收合）
-const dragging = ref(false); // 拖曳上傳狀態開關
+const searchQuery = ref("");
+const selectedTypeKey = ref("all");
+const expandedRecordId = ref(null);
+const dragging = ref(false);
+
+// AI 功能相關狀態
+const fileInputRef = ref(null); // 隱藏 input 的參考
+const isParsingAI = ref(false); // AI 辨識中的 loading 狀態
+const parsedResult = ref(null); // 存放 AI 辨識結果
+const healthAdvice = ref(""); // 存放健康建議串流文字
+const savedRecordId = ref(null); // 存放儲存後的 recordId
 
 // ==========================================================================
 // 2. 醫療紀錄五大類別設定檔
-//    key 值對應 MedicalRecords.fileType 欄位
 // ==========================================================================
 const typeConfig = {
   checkup: {
@@ -275,7 +406,7 @@ const typeConfig = {
   },
 };
 
-// 自動產生頂部分頁按鈕陣列（全部 + 五大分類）
+// 自動產生頂部分頁按鈕陣列
 const filterTabsList = computed(() => {
   const base = [{ key: "all", label: "全部" }];
   Object.entries(typeConfig).forEach(([k, v]) => {
@@ -285,29 +416,21 @@ const filterTabsList = computed(() => {
 });
 
 // ==========================================================================
-// 3. 醫療紀錄核心資料（對應 MedicalRecords 表）
-//    欄位：recordId, petId, recordDate, diagnosis, exportCount, status
-//    ⚠️ fileType：DB 原意是副檔名（pdf/jpg），此處當作類別 key 使用（語意不同）
-//       → 接後端前需新增 categoryType TINYINT 欄位，fileType 保留存副檔名
-//    ⚠️ status：DB 是 TINYINT 數字代碼，此處暫用中文字串，需跟後端確認對應
-//    ⚠️ clinicName / doctor / tags / medicalHistory：DB 無此欄，純前端顯示用
-//       → clinicName 實際串接時從 Clinics 表 JOIN 取得
-//       → doctor 需確認是否在 MedicalRecords 新增 doctorName 欄位
-//       → medicalHistory 是就診備註（非 Pet.medicalHistory），需確認是否新增欄位
+// 3. 醫療紀錄假資料（接後端前暫用）
 // ==========================================================================
 const medicalRecordsList = ref([
   {
     recordId: 1,
     petId: 1,
     recordDate: "2026/04/10",
-    diagnosis: "年度健康檢查報告", // MedicalRecords.diagnosis
-    clinicName: "台北動物醫院", // 顯示用（來自 Clinics.clinicName）
+    diagnosis: "年度健康檢查報告",
+    clinicName: "台北動物醫院",
     doctor: "陳獸醫師",
-    fileType: "checkup", // ⚠️ 暫用類別 key（待新增 categoryType 欄位後調整）
-    exportCount: 3, // MedicalRecords.exportCount
-    tags: ["血液檢查", "X光", "心電圖"], // 前端顯示用，不在 DB
-    status: "正常", // ⚠️ DB 是 TINYINT，暫用字串，需跟後端確認數字代碼
-    medicalHistory: "整體健康狀況良好，建議半年後追蹤血液指數。", // 就診備註（非 Pet.medicalHistory），DB 無此欄
+    fileType: "checkup",
+    exportCount: 3,
+    tags: ["血液檢查", "X光", "心電圖"],
+    status: "正常",
+    medicalHistory: "整體健康狀況良好，建議半年後追蹤血液指數。",
   },
   {
     recordId: 2,
@@ -364,31 +487,25 @@ const medicalRecordsList = ref([
 ]);
 
 // ==========================================================================
-// 4. 篩選計算器（關鍵字 + 分類同時過濾）
+// 4. 篩選計算器
 // ==========================================================================
 const filteredRecords = computed(() => {
   return medicalRecordsList.value.filter((record) => {
-    // 模糊比對：診斷名稱、診所名稱、或任一標籤
     const matchSearch =
       record.diagnosis.includes(searchQuery.value) ||
       record.clinicName.includes(searchQuery.value) ||
       record.tags.some((t) => t.includes(searchQuery.value));
-
-    // 分類分頁過濾（all = 全顯示）
     const matchType =
       selectedTypeKey.value === "all" ||
       record.fileType === selectedTypeKey.value;
-
     return matchSearch && matchType;
   });
 });
 
-// 依 fileType 統計各分類筆數（左側統計小卡用）
 function getRecordCountByType(typeKey) {
   return medicalRecordsList.value.filter((r) => r.fileType === typeKey).length;
 }
 
-// 加總所有病歷的 exportCount（左側插圖卡用）
 const totalFilesCount = computed(() => {
   return medicalRecordsList.value.reduce(
     (total, r) => total + r.exportCount,
@@ -397,39 +514,21 @@ const totalFilesCount = computed(() => {
 });
 
 // ==========================================================================
-// 5. 摺疊展開與互動函式
+// 5. 摺疊展開與基本互動
 // ==========================================================================
 function toggleExpandRecord(recordId) {
   expandedRecordId.value =
     expandedRecordId.value === recordId ? null : recordId;
 }
 
-function handleRecordInfo() {
-  alert("💡 新增病歷功能即將推出！");
-}
-
-function handleFileSelect() {
-  alert("請選擇您電腦中的 PDF 或圖檔報告 📄");
-}
-
-function handleFileDrop() {
-  dragging.value = false;
-  alert("🎉 檔案上傳成功！病歷檔案已加入紀錄。");
-}
-
 function handleViewFile(record) {
-  alert(
-    `👁️ 正在為您開啟：\n【${record.diagnosis}】的 PDF 報告原始檔\n主治醫生：${record.doctor}`,
-  );
+  alert(`👁️ 正在為您開啟：\n【${record.diagnosis}】的報告原始檔`);
 }
 
 function handleDownloadFile(record) {
-  alert(
-    `📥 開始下載【${record.diagnosis}】的病歷打包檔案 (共 ${record.exportCount} 個附件)`,
-  );
+  alert(`📥 開始下載【${record.diagnosis}】的病歷檔案`);
 }
 
-// 依 fileType 取得對應的顯示設定（找不到時給預設值）
 function getEventConfig(fileType) {
   return (
     typeConfig[fileType] || {
@@ -439,5 +538,129 @@ function getEventConfig(fileType) {
       icon: "📝",
     }
   );
+}
+
+// ==========================================================================
+// 6. AI 上傳辨識功能
+// ==========================================================================
+
+// 按「新增病歷」或「選擇檔案」按鈕時，觸發隱藏的 input
+function handleRecordInfo() {
+  fileInputRef.value.value = ""; // 清空 input 的值
+  fileInputRef.value.click();
+}
+function handleFileSelect() {
+  fileInputRef.value.value = "";
+  fileInputRef.value.click();
+}
+
+// 拖曳放下時觸發
+async function handleFileDrop(event) {
+  dragging.value = false;
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  await uploadAndParse(file);
+}
+
+// 使用者選好檔案後觸發
+async function handleFileChosen(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  await uploadAndParse(file);
+}
+
+// 上傳給後端 AI 辨識
+async function uploadAndParse(file) {
+  if (isParsingAI.value) return; // 防止重複觸發
+
+  isParsingAI.value = true;
+  parsedResult.value = null;
+  healthAdvice.value = "";
+  savedRecordId.value = null;
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axios.post("/api/medical/parse", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    // 辨識結果存起來，同時暫存檔案物件（儲存時要用）
+    parsedResult.value = response.data;
+    parsedResult.value._file = file;
+  } catch (error) {
+    console.error("AI 辨識失敗：", error);
+    alert("❌ 辨識失敗，請確認檔案格式或稍後再試。");
+  } finally {
+    isParsingAI.value = false; // 確保一定會重置
+  }
+}
+
+// 用戶確認後儲存病歷
+async function handleSaveRecord() {
+  if (!parsedResult.value) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("petId", 1); // 之後從 store 取得真實 petId
+    formData.append("file", parsedResult.value._file);
+    formData.append("diagnosis", parsedResult.value.diagnosis || "待確認");
+    formData.append("clinicName", parsedResult.value.clinicName || "");
+    formData.append("vetName", parsedResult.value.vetName || "");
+    formData.append("visitDate", parsedResult.value.visitDate || "");
+    formData.append("symptoms", parsedResult.value.symptoms || "");
+    formData.append("medication", parsedResult.value.medication || "");
+    formData.append("dosage", parsedResult.value.dosage || "");
+    formData.append("followUpDate", parsedResult.value.followUpDate || "");
+    formData.append(
+      "recordType",
+      parsedResult.value.recordType || "HEALTH_CHECK",
+    );
+    formData.append(
+      "tags",
+      parsedResult.value.tags ? parsedResult.value.tags.join(",") : "",
+    );
+    formData.append(
+      "aiConfidenceNote",
+      parsedResult.value.aiConfidenceNote || "",
+    );
+
+    const response = await axios.post("/api/medical/save", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    savedRecordId.value = response.data;
+    alert("✅ 病歷儲存成功！正在產生健康建議...");
+
+    // 儲存成功後自動開始串流健康建議
+    await startHealthAnalysis(savedRecordId.value);
+  } catch (error) {
+    console.error("儲存失敗：", error);
+    alert("❌ 儲存失敗，請稍後再試。");
+  }
+}
+
+// 串流健康建議（打字機效果）
+async function startHealthAnalysis(recordId) {
+  healthAdvice.value = "";
+
+  const response = await fetch(`/api/medical/analyze/${recordId}`);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    // SSE 格式是 "data: 文字"，去掉前綴後顯示
+    const chunk = decoder.decode(value);
+    const lines = chunk.split("\n");
+    for (const line of lines) {
+      if (line.startsWith("data:")) {
+        healthAdvice.value += line.replace("data:", "") + "\n";
+      }
+    }
+  }
 }
 </script>

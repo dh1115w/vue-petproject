@@ -373,17 +373,22 @@ export default {
     }
   },
   watch: {
-    // 新增：當切換毛孩時，若原選服務不適用該種類，則重設服務
+    // 新增：當切換毛孩時，自動帶入體型；若原選服務不適用該種類，則重設服務
     'form.pet_id'(newPetId, oldPetId) {
       // 清除任何先前的警告訊息
       this.incompatibleServiceWarning = '';
 
       const pet = this.pets.find(p => p.id == newPetId);
-      // 只有當有選擇毛孩且之前有選服務時才檢查
-      if (pet && this.form.service_id) {
-        // 自動根據毛孩檔案預填體型，但使用者仍可手動更改
-        this.form.pet_size = pet.size;
+      if (!pet) return;
 
+      // 自動根據毛孩檔案預填體型，但使用者仍可手動更改
+      // 寵物資料庫沒填過體型的話 pet.size 會是 null，這種情況就不帶入，維持讓客人自己選
+      if (pet.size) {
+        this.form.pet_size = pet.size;
+      }
+
+      // 只有「之前已經選過服務」才需要檢查現在這隻寵物還適不適用
+      if (this.form.service_id) {
         const previouslySelectedService = this.services.find(s => s.id == this.form.service_id);
         if (previouslySelectedService && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
           this.incompatibleServiceWarning = `您選擇的毛孩 (${pet.name}) 不適用「${previouslySelectedService.title}」服務，請重新選擇。`;

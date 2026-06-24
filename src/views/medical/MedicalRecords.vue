@@ -600,6 +600,25 @@ async function uploadAndParse(file) {
 
     // 辨識結果存起來，同時暫存檔案物件（儲存時要用）
     parsedResult.value = response.data;
+    // 把 AI 回傳的字串 "null" 清成空字串，避免畫面直接顯示 "null"
+    const 要清洗的欄位 = [
+      "clinicName",
+      "vetName",
+      "visitDate",
+      "followUpDate",
+      "diagnosis",
+      "symptoms",
+      "medication",
+      "dosage",
+    ];
+    要清洗的欄位.forEach(function (欄位名稱) {
+      if (
+        parsedResult.value[欄位名稱] === "null" ||
+        parsedResult.value[欄位名稱] === null
+      ) {
+        parsedResult.value[欄位名稱] = ""; // 空字串會讓 placeholder 顯示出來
+      }
+    });
     parsedResult.value._file = file;
   } catch (error) {
     console.error("AI 辨識失敗：", error);
@@ -611,6 +630,7 @@ async function uploadAndParse(file) {
 
 // 用戶確認後儲存病歷
 async function handleSaveRecord() {
+  console.log("handleSaveRecord 被呼叫了，parsedResult =", parsedResult.value);
   if (!parsedResult.value) return;
 
   try {
@@ -645,6 +665,8 @@ async function handleSaveRecord() {
     savedRecordId.value = response.data;
     alert("✅ 病歷儲存成功！正在產生健康建議...");
 
+    console.log("準備呼叫 analyze，recordId =", savedRecordId.value);
+
     // 儲存成功後自動開始串流健康建議
     await startHealthAnalysis(savedRecordId.value);
   } catch (error) {
@@ -654,25 +676,42 @@ async function handleSaveRecord() {
 }
 
 // 串流健康建議（打字機效果）
+// 串流健康建議（打字機效果）
 async function startHealthAnalysis(recordId) {
+  console.log("startHealthAnalysis 開始，recordId =", recordId);
   healthAdvice.value = "";
 
-  const response = await fetch(`/api/medical/analyze/${recordId}`);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+  // 改用 XMLHttpRequest 處理 SSE，避免 CORS 問題
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", `http://localhost:8080/api/medical/analyze/${recordId}`);
+    xhr.setRequestHeader("Accept", "text/event-stream");
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    // SSE 格式是 "data: 文字"，去掉前綴後顯示
-    const chunk = decoder.decode(value);
-    const lines = chunk.split("\n");
-    for (const line of lines) {
-      if (line.startsWith("data:")) {
-        healthAdvice.value += line.replace("data:", "") + "\n";
+    // 每次收到資料就觸發（打字機效果）
+    xhr.onprogress = function () {
+      const text = xhr.responseText;
+      const lines = text.split("\n");
+      healthAdvice.value = ""; // 重設後重新組裝
+      for (const line of lines) {
+        if (line.startsWith("data:")) {
+          healthAdvice.value += line.replace("data:", "") + "\n";
+        }
       }
-    }
-  }
+    };
+
+    // 串流結束
+    xhr.onload = function () {
+      console.log("串流結束");
+      resolve();
+    };
+
+    // 發生錯誤
+    xhr.onerror = function () {
+      console.error("串流請求失敗");
+      resolve();
+    };
+
+    xhr.send();
+  });
 }
 </script>

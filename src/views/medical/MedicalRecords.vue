@@ -136,17 +136,22 @@
             </div>
             <p class="upload-main-text">拖曳檔案至此上傳</p>
             <p class="upload-sub-text">支援 PDF、JPG、PNG 格式，最大 20MB</p>
-            <button class="select-file-btn" @click="handleFileSelect">
-              選擇檔案
+
+            <button
+              class="select-file-btn"
+              @click="handleFileSelect"
+              :disabled="isParsingAI"
+            >
+              {{ isParsingAI ? "辨識中..." : "選擇檔案" }}
             </button>
 
-            <!-- 健康建議區塊（儲存後才顯示） -->
+            <!-- 健康建議區塊 -->
             <div v-if="healthAdvice" class="pawcare-card ai-advice-card">
               <h3 class="panel-small-title">🐾 健康照護建議</h3>
               <pre class="health-advice-text">{{ healthAdvice }}</pre>
             </div>
 
-            <!-- 隱藏的檔案選擇器，由上面的按鈕觸發 -->
+            <!-- 隱藏的檔案選擇器 -->
             <input
               type="file"
               ref="fileInputRef"
@@ -155,14 +160,21 @@
               @change="handleFileChosen"
             />
           </div>
+        </div>
 
-          <!--  loading 提示，讓用戶知道正在辨識中 -->
-          <div v-if="isParsingAI" class="ai-parsing-overlay">
-            <span class="ai-parsing-spinner">⏳</span>
-            <p>AI 辨識中，請稍候...</p>
+        <!-- 全螢幕 loading 遮罩 -->
+        <teleport to="body">
+          <div v-if="isParsingAI" class="ai-fullscreen-overlay">
+            <img
+              src="@/images/loading-cat.gif"
+              alt="AI 辨識中"
+              class="ai-loading-gif"
+            />
+            <p class="ai-loading-text">AI 辨識中，請稍候...</p>
           </div>
+        </teleport>
 
-          <!-- 同時讓上傳按鈕在辨識中時 disabled -->
+        <!-- 同時讓上傳按鈕在辨識中時 disabled
           <button
             class="select-file-btn"
             @click="handleFileSelect"
@@ -170,7 +182,7 @@
           >
             {{ isParsingAI ? "辨識中..." : "選擇檔案" }}
           </button>
-        </div>
+        </div> -->
 
         <!-- 2. 插圖展示卡
         <div class="pawcare-card illustration-card">

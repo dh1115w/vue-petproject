@@ -581,7 +581,8 @@ export default {
       try {
         const paymentResponse = await createGroomingPayment({
           appointmentId,
-          amount: this.depositAmount
+          amount: this.depositAmount,
+          couponCode: this.appliedCoupon ? this.form.coupon_code : null
         });
         this.paypalOrderId = paymentResponse.data.paypalOrderId;
       } catch (error) {

@@ -32,7 +32,8 @@ export const createAppointment = (data) => {
 };
 
 // 已串接真正後端 API：POST /api/secure/payments/create（要登入會員才能用）
-// data 要帶 { appointmentId, amount }，amount 是這次要付的金額（例如訂金 30%）
+// data 要帶 { appointmentId, amount, couponCode }，amount 是這次要付的金額（例如訂金 30%），
+// couponCode 有套用優惠碼才要帶，沒套用就是 null（後端會用這個扣掉優惠券的使用次數）
 // 回傳 { id, paypalOrderId, status }，paypalOrderId 是 PayPal 按鈕要用的訂單 id
 export const createGroomingPayment = (data) => {
   return axios.post('/api/secure/payments/create', data);

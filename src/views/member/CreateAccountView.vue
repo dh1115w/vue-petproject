@@ -57,6 +57,16 @@
             </div>
           </div>
 
+          <!-- 信箱驗證碼：寄送按鈕 + 驗證碼輸入框（註冊一定要先驗證信箱沒填錯）-->
+          <div class="form-group">
+            <label>信箱驗證碼（必填，請按「寄送驗證碼」後到信箱收 6 位數字）</label>
+            <input type="text" v-model="emailCode" placeholder="請輸入信箱收到的 6 位數驗證碼" maxlength="6" />
+            <!-- 寄送按鈕：冷卻中（codeCooldown > 0）就鎖住，並顯示剩餘秒數 -->
+            <button type="button" class="btn-secondary" @click="sendRegisterCode" :disabled="codeCooldown > 0" style="margin-top: 8px;">
+              {{ codeCooldown > 0 ? codeCooldown + ' 秒後可重寄' : '寄送驗證碼' }}
+            </button>
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label>帳號（必填，4～30 字，限英文與數字）</label>
@@ -193,6 +203,10 @@ const gender = ref('')
 const address = ref('')
 const phone = ref('')
 const email = ref('')
+// 信箱驗證碼：使用者按「寄送驗證碼」後，到信箱收到的 6 位數字
+const emailCode = ref('')
+// 寄送按鈕的「冷卻秒數」：大於 0 時按鈕鎖住並倒數，避免使用者狂寄信
+const codeCooldown = ref(0)
 const account = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -213,6 +227,46 @@ function removePet(index) {
   pets.value.splice(index, 1)
 }
 
+// ===== 寄送「註冊」驗證碼：請後端寄一組 6 位數驗證碼到使用者填的信箱 =====
+// async：裡面要 await 等後端回應
+async function sendRegisterCode() {
+  const emailRule = /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // email 格式
+  const emailValue = email.value.trim()          // 去掉前後空白
+
+  // 先在前端做基本檢查（後端也會再檢查一次，這裡是給使用者即時提示）
+  if (emailValue === '') {
+    Swal.fire({ icon: 'warning', title: '請先輸入電子信箱' })
+    return
+  }
+  if (!emailRule.test(emailValue)) {
+    Swal.fire({ icon: 'warning', title: '電子信箱格式錯誤' })
+    return
+  }
+
+  try {
+    // 對後端 POST /api/member/send-register-code，只送使用者填的信箱
+    await api.post('/api/member/send-register-code', {
+      email: emailValue
+    })
+    Swal.fire({ icon: 'success', title: '驗證碼已寄出', text: '請至信箱查看 6 位數驗證碼，並在 10 分鐘內填入' })
+
+    // 寄出成功 → 按鈕進入 60 秒冷卻，倒數完才能再寄
+    codeCooldown.value = 60
+    // setInterval：每隔 1000 毫秒（= 1 秒）執行一次裡面的程式
+    const timer = setInterval(() => {
+      codeCooldown.value = codeCooldown.value - 1   // 秒數減 1
+      if (codeCooldown.value <= 0) {
+        clearInterval(timer)   // 倒數到 0 就停掉計時器，不再繼續
+      }
+    }, 1000)
+
+  } catch (error) {
+    // 格式錯／信箱已被使用／寄信失敗時，後端回 HTTP 400 + { message: '...' }
+    const msg = error.response?.data?.message || '寄送失敗，請稍後再試'
+    Swal.fire({ icon: 'error', title: '寄送失敗', text: msg })
+  }
+}
+
 // ===== 創建帳號：先驗證個人資料，全部通過才送出 =====
 // async：裡面要「等」後端回應（await），函式前面要加 async
 async function handleRegister() {
@@ -229,6 +283,7 @@ async function handleRegister() {
   const addressValue = address.value.trim()
   const phoneValue = phone.value.trim()
   const emailValue = email.value.trim()
+  const emailCodeValue = emailCode.value.trim()
   const accountValue = account.value.trim()
   const passwordValue = password.value.trim()
 
@@ -302,6 +357,15 @@ async function handleRegister() {
   }
   if (emailValue.length > 50) {
     Swal.fire({ icon: 'warning', title: '電子信箱不能超過 50 個字' })
+    return
+  }
+  // 信箱驗證碼：必填、需為 6 位數字
+  if (emailCodeValue === '') {
+    Swal.fire({ icon: 'warning', title: '請先按「寄送驗證碼」，並填入信箱收到的驗證碼' })
+    return
+  }
+  if (!/^[0-9]{6}$/.test(emailCodeValue)) {
+    Swal.fire({ icon: 'warning', title: '驗證碼格式錯誤（需為 6 位數字）' })
     return
   }
   // 帳號：必填、4～30 字、僅英數
@@ -437,6 +501,7 @@ async function handleRegister() {
       address: addressValue,
       phone: phoneValue,
       email: emailValue,
+      emailCode: emailCodeValue,
       account: accountValue,
       password: passwordValue,
       pets: petsToSend

@@ -224,15 +224,16 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import '@/css/grooming/StaffDashboard.css';
-import { 
-  getAdminStats, 
-  getAdminSchedule, 
-  getAdminOrders, 
-  updateAdminOrder, 
-  getBlacklist, 
+import {
+  getAdminStats,
+  getAdminSchedule,
+  getAdminOrders,
+  updateAdminOrder,
+  getBlacklist,
   addToBlacklist as apiAddToBlacklist,
   updateAppointmentStatus,
-  exportTodayAppointments
+  exportTodayAppointments,
+  getGroomers
 } from './groomingApi';
 
 // 頁籤狀態
@@ -276,7 +277,7 @@ const calendarDays = computed(() => {
     const count = daySlots.filter(s => s.appointmentId).length;
     
     // 彙整美容師狀態摘要
-    const staffStatus = staffList.map(staff => {
+    const staffStatus = staffList.value.map(staff => {
       const slots = daySlots.filter(s => s.staffName === staff.name);
       const hasAppointment = slots.some(s => s.appointmentId);
       const allClosed = slots.length > 0 && slots.every(s => !s.isOpen);
@@ -298,17 +299,11 @@ const calendarDays = computed(() => {
 const itemsPerPage = 5; // 每頁顯示 5 筆
 const ordersPage = ref(1);
 
-// 快速操作選中的美容師
-const quickActionStaff = ref('Andy');
+// 快速操作選中的美容師（名單還沒抓回來前先空著，抓回來再讓使用者選）
+const quickActionStaff = ref('');
 
-// 建議：這部分名單應與 Staff.vue 共用，未來可移至 @/stores/grooming.js
-// 與 Staff.vue 同步的美容師名單
-const staffList = [
-  { name: 'Andy', title: '專業美容師' },
-  { name: 'Emily', title: '專業美容師' },
-  { name: 'Jason', title: '專業美容師' },
-  { name: 'Sophie', title: '專業美容師' }
-];
+// 美容師名單，改成 fetchData() 時打 /api/groomers 抓真實資料，不再寫死
+const staffList = ref([]);
 
 // 模擬排班資料 (關聯預約)
 const schedule = ref([]);
@@ -318,14 +313,16 @@ const blacklist = ref([]);
 // 初始化資料載入
 const fetchData = async () => {
   try {
-    const [statsRes, scheduleRes, ordersRes, blacklistRes] = await Promise.all([
+    const [statsRes, scheduleRes, ordersRes, blacklistRes, groomersRes] = await Promise.all([
       getAdminStats(),
       getAdminSchedule(),
       getAdminOrders(),
-      getBlacklist()
+      getBlacklist(),
+      getGroomers()
     ]);
     stats.value = statsRes.data;
-    
+    staffList.value = groomersRes.data;
+
     // 格式化 schedule (將預約紀錄映射到時段)
     schedule.value = scheduleRes.data.map(apt => ({
       id: apt.id,

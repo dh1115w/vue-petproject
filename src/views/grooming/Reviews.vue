@@ -158,14 +158,14 @@
 import NavBar from './NavBar.vue'
 // 【合併前要還原】組員原本寫 '@/api/groomingApi'，但本專案沒有 src/api 資料夾，會導致整個專案編譯失敗。
 // 暫時改成相對路徑 './groomingApi'（指向同資料夾的假資料檔），讓本機能跑。上傳 GitHub 前要改回 '@/api/groomingApi'。
-import { getReviews, getUnreviewedAppointments, submitGroomingReview } from './groomingApi';
+import { getReviews, getUnreviewedAppointments, submitGroomingReview, getGroomers } from './groomingApi';
 
 export default {
   name: 'ReviewsPage',
   components: { NavBar },
   data() {
     return {
-      staffNames: ['Andy', 'Emily', 'Jason', 'Sophie'],
+      staffNames: [], // 美容師名單，改成 mounted() 時打 /api/groomers 抓真實資料，不再寫死
       sortBy: 'newest',
       filterGroomer: 'all',
       currentPage: 1,
@@ -186,6 +186,7 @@ export default {
   },
   async mounted() {
     await this.fetchReviews();
+    await this.fetchGroomers();
     if (this.isLoggedIn) {
       await this.fetchUserAppointments();
     }
@@ -250,6 +251,15 @@ export default {
         this.currentPage = 1;
       } catch (error) {
         console.error('獲取評論失敗:', error);
+      }
+    },
+    // 抓真實的美容師名單，給篩選下拉選單用（取代原本寫死的 staffNames）
+    async fetchGroomers() {
+      try {
+        const response = await getGroomers();
+        this.staffNames = response.data.map(g => g.name);
+      } catch (error) {
+        console.error('獲取美容師名單失敗:', error);
       }
     },
     async fetchUserAppointments() {

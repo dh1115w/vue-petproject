@@ -1,7 +1,8 @@
 import axios from '@/plugins/axios.js';
 
 // 還剩 StaffDashboard.vue、優惠碼用的幾個 function 是 mock，其他都已經改成真正打後端 API
-// （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、cancelAppointment）
+// （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
+//   cancelAppointment、createGroomingPayment、captureGroomingPayment）
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -28,6 +29,19 @@ export const getAvailableTimeSlots = (params) => {
 // data 要帶 { petId, groomerId, pricingId, appointmentDate, startTime, note }
 export const createAppointment = (data) => {
   return axios.post('/api/secure/appointments', data);
+};
+
+// 已串接真正後端 API：POST /api/secure/payments/create（要登入會員才能用）
+// data 要帶 { appointmentId, amount }，amount 是這次要付的金額（例如訂金 30%）
+// 回傳 { id, paypalOrderId, status }，paypalOrderId 是 PayPal 按鈕要用的訂單 id
+export const createGroomingPayment = (data) => {
+  return axios.post('/api/secure/payments/create', data);
+};
+
+// 已串接真正後端 API：POST /api/secure/payments/{paypalOrderId}/capture
+// 使用者在 PayPal 視窗按確認後呼叫，真正請款
+export const captureGroomingPayment = (paypalOrderId) => {
+  return axios.post(`/api/secure/payments/${paypalOrderId}/capture`);
 };
 
 export const validateCoupon = (code) => {

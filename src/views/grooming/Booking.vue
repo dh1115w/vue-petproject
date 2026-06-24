@@ -130,13 +130,8 @@
           </div>
 
           <div class="form-group">
-            <label for="paymentMethod">訂金預付方式</label>
-            <select id="paymentMethod" v-model="form.payment_method" required>
-              <option value="credit_card">信用卡 / Google Pay</option>
-              <option value="line_pay">LINE Pay</option>
-              <option value="atm">虛擬帳號轉帳</option>
-              <option value="store_credit">儲值金扣款</option>
-            </select>
+            <label>訂金預付方式</label>
+            <p style="margin: 0;">PayPal（線上刷卡）</p>
           </div>
 
           <div class="form-group">
@@ -192,11 +187,16 @@
             <p style="font-size: 0.9rem; color: #888;">到店支付尾款：NT$ {{ finalPrice - depositAmount }}</p>
             <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">付款方式：<strong>{{ paymentMethodLabel }}</strong></p>
           </div>
-          <div class="modal-actions">
+          <div class="modal-actions" v-if="!paypalOrderId">
             <button type="button" @click="confirmBooking" class="btn btn-primary flex-1" :disabled="isProcessingPayment">
-              {{ isProcessingPayment ? '處理金流中...' : '前往付款' }}
+              {{ isProcessingPayment ? '處理中...' : '前往付款' }}
             </button>
             <button type="button" @click="isConfirmModalOpen = false" class="btn btn-cancel flex-1">取消</button>
+          </div>
+          <!-- 後端已經建立好 PayPal 訂單，這裡渲染 PayPal 官方按鈕讓使用者真正付款 -->
+          <div v-else class="modal-actions" style="flex-direction: column; align-items: stretch;">
+            <div id="paypal-button-container"></div>
+            <button type="button" @click="cancelPayPalPayment" class="btn btn-cancel flex-1" style="margin-top: 10px;">取消付款</button>
           </div>
         </div>
       </div>
@@ -215,7 +215,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon } from './groomingApi'
+import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment } from './groomingApi'
 import useUserStore from '@/stores/user.js'
 
 export default {
@@ -235,13 +235,15 @@ export default {
         timeSlot: '',
         notes: '',
         coupon_code: '',
-        payment_method: 'credit_card'
+        payment_method: 'paypal'
       },
       isConfirmModalOpen: false, // 控制確認預約彈窗顯示
       showToast: false,          // 控制 Toast 顯示
       toastMessage: '',          // Toast 顯示文字
       toastType: 'success',      // Toast 類型 (success / error)
-      isProcessingPayment: false, // 模擬金流處理狀態
+      isProcessingPayment: false, // 是否正在處理金流（true 時按鈕要顯示 loading、不能再按）
+      paypalOrderId: null,       // 跟後端建立好的 PayPal 訂單 id，PayPal 按鈕要用這個
+      pendingAppointmentData: null, // 暫存剛建立的預約資料，付款成功後要拿來發 Line 通知
       apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
       couponTimer: null,         // 用於 debounce 請求 (防抖)
       couponError: null,         // 新增：儲存優惠碼錯誤訊息
@@ -351,15 +353,9 @@ export default {
     depositAmount() {
       return this.finalPrice ? Math.round(this.finalPrice * 0.3) : 0;
     },
-    // 取得付款方式的中文顯示
+    // 取得付款方式的中文顯示（目前只有 PayPal 這個真的選項）
     paymentMethodLabel() {
-      const methods = {
-        credit_card: '信用卡 / Google Pay',
-        line_pay: 'LINE Pay',
-        atm: '虛擬帳號轉帳',
-        store_credit: '儲值金扣款'
-      };
-      return methods[this.form.payment_method] || '未選擇';
+      return 'PayPal';
     }
     // 新增：根據選定日期判斷是否為店休
     ,isDateHoliday() {
@@ -561,22 +557,88 @@ export default {
         startTime: this.form.timeSlot,
         note: this.form.notes
       };
+      // 留著給付款成功後的 Line 通知用
+      this.pendingAppointmentData = appointmentData;
 
+      let appointmentId;
       try {
-        // 呼叫 API 建立預約（金流/付款這部分目前還是模擬的，後端還沒做）
-        await createAppointment(appointmentData);
+        const response = await createAppointment(appointmentData);
+        appointmentId = response.data.id;
       } catch (error) {
         this.isProcessingPayment = false;
         // 後端驗證沒通過時（例如時段被搶走了），把原因顯示給使用者看，不要靜默失敗
-        const message = error.response && error.response.data ? error.response.data : '預約失敗，請重新嘗試';
-        this.triggerToast(`❌ ${message}`, 'error');
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, '預約失敗，請重新嘗試')}`, 'error');
+        return;
+      }
+
+      // 預約建立成功後，跟後端建立 PayPal 訂單（付訂金，不是全額）
+      try {
+        const paymentResponse = await createGroomingPayment({
+          appointmentId,
+          amount: this.depositAmount
+        });
+        this.paypalOrderId = paymentResponse.data.paypalOrderId;
+      } catch (error) {
+        this.isProcessingPayment = false;
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, 'PayPal 訂單建立失敗，請重新嘗試')}`, 'error');
         return;
       }
 
       this.isProcessingPayment = false;
 
+      // 等畫面把 #paypal-button-container 渲染出來後，才能掛 PayPal 按鈕上去
+      await this.$nextTick();
+      await this.renderPayPalButton();
+    },
+    // 動態載入 PayPal 官方提供的 JS SDK（只有要用到的時候才載入，不放在 index.html 裡）
+    loadPayPalScript() {
+      if (window.paypal) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        // Client ID 是設計給前端公開使用的（跟密碼性質的 Secret 不一樣），可以直接寫在這裡
+        script.src = 'https://www.paypal.com/sdk/js?client-id=AZaFFX3VraF12lhqkQiNJ9V3i8OkFQa5XBuLG9VAQRcwtG-DXRtGKDMLSl7uz8CzxkJyBp9GjlngWjsU&currency=TWD';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    },
+    // 把 PayPal 官方的付款按鈕渲染到 #paypal-button-container 裡
+    async renderPayPalButton() {
+      try {
+        await this.loadPayPalScript();
+      } catch (error) {
+        this.triggerToast('❌ PayPal 按鈕載入失敗，請檢查網路連線', 'error');
+        return;
+      }
+
+      window.paypal.Buttons({
+        // 訂單已經在後端建立好了，這裡只要回傳訂單 id，不用重新建立
+        createOrder: () => this.paypalOrderId,
+        onApprove: async (data) => {
+          await this.handlePayPalApprove(data.orderID);
+        },
+        onError: (err) => {
+          // 印到 console 方便除錯（按 F12 看 Console 分頁）
+          console.error('PayPal Buttons onError:', err);
+          this.triggerToast('❌ PayPal 付款發生錯誤，請重新嘗試', 'error');
+        }
+      }).render('#paypal-button-container');
+    },
+    // 使用者在 PayPal 視窗按確認後，呼叫後端真正請款
+    async handlePayPalApprove(paypalOrderId) {
+      try {
+        await captureGroomingPayment(paypalOrderId);
+      } catch (error) {
+        console.error('captureGroomingPayment 失敗:', error);
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, '付款失敗，請重新嘗試')}`, 'error');
+        return;
+      }
+
       // 關閉確認彈窗
       this.isConfirmModalOpen = false;
+      this.paypalOrderId = null;
 
       // 顯示 Toast 成功通知
       this.triggerToast(`✅ 訂金 NT$ ${this.depositAmount} 支付成功！預約已確認。`, 'success');
@@ -588,9 +650,13 @@ export default {
         // 重置表單 (在跳轉後進行，避免影響 Toast 訊息的顯示)
         this.form = { pet_id: '', service_id: '', groomer_id: '', apt_date_date: '', timeSlot: '', notes: '', coupon_code: '' };
       }, 1500); // 1.5 秒後跳轉
-      
+
       // 呼叫 Line 通知方法 (這部分通常由後端處理更安全)
-      this.sendLineNotification(appointmentData);
+      this.sendLineNotification(this.pendingAppointmentData);
+    },
+    // 使用者在 PayPal 按鈕渲染出來後反悔，取消這次付款，回到「前往付款」畫面
+    cancelPayPalPayment() {
+      this.paypalOrderId = null;
     },
     triggerToast(message, type = 'success') {
       this.toastMessage = message;
@@ -599,6 +665,15 @@ export default {
       setTimeout(() => {
         this.showToast = false;
       }, 3000); // 3秒後自動消失
+    },
+    // 把後端回傳的錯誤內容轉成「一定是字串」的訊息，不要讓畫面顯示 [object Object]
+    // （後端有時候回的是純文字，但 Spring 系統發生未預期的錯誤時，回的會是一個物件）
+    extractErrorMessage(error, fallback) {
+      const data = error.response ? error.response.data : null;
+      if (!data) return fallback;
+      if (typeof data === 'string') return data;
+      if (data.message) return data.message;
+      return fallback;
     },
     async sendLineNotification(appointmentData) {
       // 實際應用中，這裡應該向您的後端 API 發送請求，由後端負責發送 Line 通知

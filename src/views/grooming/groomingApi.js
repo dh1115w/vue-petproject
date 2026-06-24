@@ -1,8 +1,8 @@
 import axios from '@/plugins/axios.js';
 
-// 還剩 StaffDashboard.vue、優惠碼用的幾個 function 是 mock，其他都已經改成真正打後端 API
+// 還剩 StaffDashboard.vue 用的幾個 function 是 mock，其他都已經改成真正打後端 API
 // （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
-//   cancelAppointment、createGroomingPayment、captureGroomingPayment）
+//   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon）
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -44,16 +44,10 @@ export const captureGroomingPayment = (paypalOrderId) => {
   return axios.post(`/api/secure/payments/${paypalOrderId}/capture`);
 };
 
-export const validateCoupon = (code) => {
-  console.log('[mock] validateCoupon 被呼叫，代碼：', code);
-  if (code && code.toUpperCase() === 'PET80') {
-    return Promise.resolve({
-      data: { success: true, data: { label: '夏日優惠 8 折', type: 'percent', discount: 0.8 } }
-    });
-  }
-  return Promise.resolve({
-    data: { success: false, message: '優惠碼無效或已過期' }
-  });
+// 已串接真正後端 API：GET /api/coupons/validate
+// amount 是目前訂單金額（折扣前），後端要用這個檢查最低消費門檻
+export const validateCoupon = (code, amount) => {
+  return axios.get('/api/coupons/validate', { params: { code, amount } });
 };
 
 // ===== Appointments.vue 用 =====

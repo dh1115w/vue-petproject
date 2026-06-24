@@ -452,8 +452,14 @@ export default {
     // 新增：呼叫 API 驗證優惠碼
     async verifyCoupon(code) {
       this.couponError = null; // 每次驗證前先清除錯誤訊息
+      if (!this.estimatedPrice) {
+        // 還沒選好服務項目，沒有金額可以拿去檢查最低消費門檻，先不要送出去
+        this.apiCoupon = null;
+        this.couponError = '請先選擇服務項目，才能套用優惠碼';
+        return;
+      }
       try {
-        const response = await validateCoupon(code);
+        const response = await validateCoupon(code, this.estimatedPrice);
         if (response.data.success) {
           this.apiCoupon = response.data.data;
           this.couponError = null; // 成功驗證則清除錯誤

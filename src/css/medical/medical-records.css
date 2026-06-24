@@ -209,7 +209,7 @@
   font-weight: 700;
 }
 
-/* 3. 插圖展示卡 */
+/* 3. 插圖展示卡
 .illustration-card {
   padding: 0 !important;
   overflow: hidden;
@@ -229,6 +229,287 @@
   font-weight: 700;
   color: #555752;
   margin: 0;
+} */
+
+/* ==========================================
+   AI 功能相關區塊
+   ========================================== */
+
+/* AI 辨識結果卡片 */
+.ai-result-card {
+  padding: 1rem !important;
+  border-radius: 16px !important;
+  animation: fadeIn 0.3s ease;
+}
+
+/* AI 辨識欄位列表 */
+.ai-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ai-field-row {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  align-items: flex-start;
+}
+
+.ai-field-label {
+  color: #848680;
+  font-weight: 700;
+  min-width: 55px;
+  flex-shrink: 0;
+}
+
+.ai-field-value {
+  color: #383a36;
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* AI 不確定提醒文字 */
+.ai-confidence-note {
+  font-size: 0.75rem;
+  color: #e29553;
+  background-color: rgba(226, 149, 83, 0.08);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+/* 確認儲存按鈕 */
+.save-record-btn {
+  width: 100%;
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.625rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.save-record-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* AI 辨識中 loading 卡片 */
+.ai-loading-card {
+  padding: 1.25rem !important;
+  border-radius: 16px !important;
+  text-align: center;
+}
+
+.ai-loading-text {
+  font-size: 0.875rem;
+  color: #848680;
+  margin: 0;
+  animation: pulse 1.5s infinite;
+}
+
+/* 健康建議卡片 */
+.ai-advice-card {
+  padding: 1.25rem !important;
+  border-radius: 16px !important;
+  animation: fadeIn 0.3s ease;
+}
+
+.health-advice-text {
+  font-size: 0.8125rem;
+  color: #555752;
+  line-height: 1.8;
+  white-space: pre-wrap; /* 保留換行 */
+  word-break: break-word;
+  margin: 0;
+  font-family: inherit; /* 不要用等寬字體 */
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ==========================================
+   AI 辨識確認表單（全寬）
+   ========================================== */
+.ai-confirm-form-wrap {
+  max-width: clamp(731px, 80vw, 1100px);
+  margin: 0 auto 1.5rem;
+  padding: 0 1.5rem;
+}
+
+.ai-confirm-form-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.ai-form-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #383a36;
+  margin: 0 0 0.25rem 0;
+}
+
+.ai-form-subtitle {
+  font-size: 0.8125rem;
+  color: #848680;
+  margin: 0 0 1.25rem 0;
+}
+
+/* 兩欄格線排版 */
+.ai-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* 佔滿整行 */
+.ai-form-field--full {
+  grid-column: 1 / -1;
+}
+
+.ai-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ai-form-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #555752;
+}
+
+.ai-form-input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #383a36;
+  outline: none;
+  font-family: inherit;
+  background: #ffffff;
+}
+.ai-form-input:focus {
+  border-color: var(--primary);
+}
+
+.ai-form-textarea {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #383a36;
+  outline: none;
+  font-family: inherit;
+  resize: none;
+  line-height: 1.6;
+  background: #ffffff;
+}
+.ai-form-textarea:focus {
+  border-color: var(--primary);
+}
+
+.ai-form-note {
+  font-size: 0.75rem;
+  color: #e29553;
+  background-color: rgba(226, 149, 83, 0.08);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+/* 按鈕列 */
+.ai-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.ai-form-cancel-btn {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: #555752;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.5rem 1.25rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.ai-form-cancel-btn:hover {
+  background: #f3f0e8;
+}
+
+.ai-form-save-btn {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.5rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ai-form-save-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 手機版 */
+@media (max-width: 992px) {
+  .ai-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .ai-confirm-form-wrap {
+    padding: 0 1rem;
+  }
+}
+
+/* 全螢幕 loading 遮罩 */
+.ai-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.ai-loading-gif {
+  width: 280px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.ai-loading-text {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
 }
 
 /* 4. 右側搜尋過濾面板 */

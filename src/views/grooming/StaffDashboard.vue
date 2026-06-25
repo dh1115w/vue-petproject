@@ -185,7 +185,7 @@
               <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 2)" class="btn-primary">開始美容</button>
               <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 4)" class="btn-cancel">取消</button>
               <button v-if="order.status === 2" @click="updateOrderStatus(order.id, 3)" class="btn-success">完成美容</button>
-              <button class="btn-blacklist" @click="addToBlacklist(order.userId)">加入黑名單</button>
+              <button class="btn-blacklist" @click="addToBlacklist(order.memberId)">加入黑名單</button>
             </td>
           </tr>
         </tbody>
@@ -207,15 +207,24 @@
         <thead>
           <tr>
             <th>客戶 ID</th>
+            <th>姓名</th>
+            <th>電話</th>
+            <th>類型</th>
             <th>違規原因</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in blacklist" :key="index">
+          <tr v-if="blacklist.length === 0">
+            <td colspan="6" style="text-align: center; color: #888;">目前沒有封鎖中的黑名單客戶</td>
+          </tr>
+          <tr v-for="item in blacklist" :key="item.id">
             <td>{{ item.userId }}</td>
+            <td>{{ item.userName }}</td>
+            <td>{{ item.userPhone }}</td>
+            <td>{{ item.categoryName }}</td>
             <td>{{ item.reason }}</td>
-            <td><button @click="removeBlacklist(index)">解除</button></td>
+            <td><button @click="removeBlacklist(item)">解除</button></td>
           </tr>
         </tbody>
       </table>
@@ -233,6 +242,7 @@ import {
   updateAdminOrder,
   getBlacklist,
   addToBlacklist as apiAddToBlacklist,
+  removeFromBlacklist,
   exportTodayAppointments,
   getGroomers
 } from './groomingApi';
@@ -525,17 +535,35 @@ const getSlotStatusClass = (slot) => {
 // 樣式類別補充 (假設在 CSS 中定義)
 // status-closed { background-color: #999; color: white; }
 
-const addToBlacklist = async (userId) => {
+// 把某個會員加入黑名單（memberId 來自訂單資料 order.memberId）
+const addToBlacklist = async (memberId) => {
+  if (!memberId) {
+    alert('找不到這筆訂單的會員 ID，無法加入黑名單');
+    return;
+  }
   const reason = prompt('請輸入加入黑名單的原因：');
-  if (reason) {
-    await apiAddToBlacklist({ userId, reason });
-    alert(`用戶 ${userId} 已加入黑名單`);
-    await fetchData();
+  if (!reason) return; // 使用者按取消或沒填原因就不做
+  try {
+    // 後端要的欄位是 memberId（不是 userId）
+    await apiAddToBlacklist({ memberId, reason });
+    alert(`會員 ${memberId} 已加入黑名單`);
+    await fetchData(); // 重新載入，黑名單分頁才會看到這筆
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '加入黑名單失敗';
+    alert(message);
   }
 };
 
-const removeBlacklist = (index) => {
-  blacklist.value.splice(index, 1);
+// 解除某筆黑名單（item.id 是黑名單紀錄的 id，不是會員 id）
+const removeBlacklist = async (item) => {
+  if (!confirm(`確定要把 ${item.userName || ('會員' + item.userId)} 從黑名單解除嗎？`)) return;
+  try {
+    await removeFromBlacklist(item.id);
+    await fetchData(); // 重新載入列表（解除後就不會再出現在封鎖中清單）
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '解除黑名單失敗';
+    alert(message);
+  }
 };
 </script>
 

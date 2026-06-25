@@ -1,10 +1,10 @@
 import axios from '@/plugins/axios.js';
 import adminAxios from '@/plugins/grooming/adminAxios.js';
 
-// 還剩 StaffDashboard.vue 的「排班表格、統計數字、黑名單」幾個 function 是 mock，其他都已經改成真正打後端 API
+// 還剩 StaffDashboard.vue 的「排班表格、統計數字」幾個 function 是 mock，其他都已經改成真正打後端 API
 // （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
 //   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon、
-//   getAdminOrders、updateAdminOrder、submitGroomingReview）
+//   getAdminOrders、updateAdminOrder、submitGroomingReview、getBlacklist、addToBlacklist、removeFromBlacklist）
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -95,14 +95,21 @@ export const updateAdminOrder = (id, newStatus, cancelReason = null) => {
   return adminAxios.post(`/api/admin/appointments/${id}/status`, { status: newStatus, cancelReason });
 };
 
+// 已串接真正後端 API：GET /api/admin/blacklist（要登入管理員才能用，只回封鎖中的）
+// 回傳每筆 { id, userId, userName, userPhone, categoryName, reason, startDate, endDate }
 export const getBlacklist = () => {
-  console.log('[mock] getBlacklist 被呼叫');
-  return Promise.resolve({ data: [] });
+  return adminAxios.get('/api/admin/blacklist');
 };
 
+// 已串接真正後端 API：POST /api/admin/blacklist
+// data 要帶 { memberId, reason }（categoryId 不傳，後端會自己挑預設分類）
 export const addToBlacklist = (data) => {
-  console.log('[mock] addToBlacklist 被呼叫，內容：', data);
-  return Promise.resolve({ data: { success: true } });
+  return adminAxios.post('/api/admin/blacklist', data);
+};
+
+// 已串接真正後端 API：POST /api/admin/blacklist/{id}/remove（解除封鎖，把狀態改成已解除）
+export const removeFromBlacklist = (id) => {
+  return adminAxios.post(`/api/admin/blacklist/${id}/remove`);
 };
 
 export const exportTodayAppointments = () => {

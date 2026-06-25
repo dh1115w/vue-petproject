@@ -165,7 +165,9 @@
             儲存今日紀錄
           </button>
 
-          <p class="last-update-time">最後更新時間：{{ updatedAt }}</p>
+          <p v-if="isLoggedIn" class="last-update-time">
+            最後更新時間：{{ updatedAt }}
+          </p>
         </div>
       </div>
 
@@ -233,19 +235,38 @@
               </div>
             </div>
           </div>
-          <!-- 右側：醫護提醒快訊區 -->
+          <!-- 右側：醫護提醒快訊區：未登入時顯示提示 -->
           <div class="reminders-card">
-            <div class="reminder-item">
-              <h4>疫苗進度</h4>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: 60%"></div>
+            <div
+              v-if="!isLoggedIn"
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                color: #aaa;
+                font-size: 14px;
+                gap: 8px;
+                padding: 16px 0;
+              "
+            >
+              <span style="font-size: 32px">🔒</span>
+              <p style="margin: 0">請先登入，即可查看醫護提醒</p>
+            </div>
+            <template v-else>
+              <div class="reminder-item">
+                <h4>疫苗進度</h4>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 60%"></div>
+                </div>
+                <p>距離下次狂犬病疫苗還有 15 天</p>
               </div>
-              <p>距離下次狂犬病疫苗還有 15 天</p>
-            </div>
-            <div class="reminder-item">
-              <h4>驅蟲提醒</h4>
-              <p>下次日期：6/25</p>
-            </div>
+              <div class="reminder-item">
+                <h4>驅蟲提醒</h4>
+                <p>下次日期：6/25</p>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -270,12 +291,28 @@
             </div>
           </div>
 
-          <!-- 體重折線圖（Chart.js） -->
+          <!-- 體重折線圖（Chart.js）：未登入時顯示提示 -->
           <div
             class="chart-visual-wrapper"
             style="position: relative; height: 220px"
           >
-            <canvas ref="weightChartCanvas"></canvas>
+            <canvas v-if="isLoggedIn" ref="weightChartCanvas"></canvas>
+            <div
+              v-else
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                color: #aaa;
+                font-size: 14px;
+                gap: 8px;
+              "
+            >
+              <span style="font-size: 32px">🔒</span>
+              <p style="margin: 0">請先登入，即可查看體重趨勢圖表</p>
+            </div>
           </div>
         </div>
 
@@ -286,14 +323,30 @@
           </div>
 
           <div style="position: relative; height: 220px">
-            <canvas ref="foodWaterChartCanvas"></canvas>
+            <canvas v-if="isLoggedIn" ref="foodWaterChartCanvas"></canvas>
+            <div
+              v-else
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                color: #aaa;
+                font-size: 14px;
+                gap: 8px;
+              "
+            >
+              <span style="font-size: 32px">🔒</span>
+              <p style="margin: 0">請先登入，即可查看飲食紀錄圖表</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 歷史健康日誌 -->
-    <div class="history-log-card">
+    <!-- 歷史健康日誌：未登入時隱藏 -->
+    <div v-if="isLoggedIn" class="history-log-card">
       <h3>📜 歷史健康日誌</h3>
 
       <!-- 捲軸滾動區域 -->
@@ -369,20 +422,30 @@ import healthBannerImg from "@/images/health-tracking-banner.jpg";
 // ── 圖片路徑 ────────────────────────────────────────────
 const healthBanner = ref(healthBannerImg);
 
-// ── 寵物基本資料（對應 Pet 表）──────────────────────────
-const name = ref("小福"); // Pet.name
-
 // ── 備註框 focus 狀態 ────────────────────────────────────
 const isNoteFocused = ref(false);
 
 // ── 切換寵物 ────────────────────────────────────
+// 注意：userStore 要在 name、isLoggedIn、currentPetId 之前宣告，它們都有用到
 const userStore = useUserStore();
+
+// ── 登入狀態判斷 ────────────────────────────────────────
+// memberInfo 有值代表已登入，null 代表未登入
+const isLoggedIn = computed(() => !!userStore.memberInfo?.account);
 
 // 算出目前要用的 petId（優先 selectPetId，沒有就用 pets[0]）
 const currentPetId = computed(() => {
   if (userStore.selectPetId) return userStore.selectPetId;
   if (userStore.pets.length > 0) return userStore.pets[0].id;
   return null;
+});
+
+// ── 寵物基本資料（對應 Pet 表）──────────────────────────
+// 依目前選中的寵物動態取得名字，確保切換寵物時畫面同步更新
+// 注意：必須在 userStore、currentPetId 宣告之後才能用
+const name = computed(() => {
+  const pet = userStore.pets.find((p) => p.id === currentPetId.value);
+  return pet ? pet.name : "寵物";
 });
 
 // ==========================================================================
@@ -490,10 +553,7 @@ async function handleSubmitRecord() {
     alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
   }
 
-  // 6. 彈出成功提示並清空備註欄
-  alert(
-    `今日健康紀錄已儲存！\n體重 ${w} kg · 飲水 ${wt} ml · 進食 ${f} g\n備註：${n}`,
-  );
+  // 6. 清空備註欄
   statusNoteExtra.value = "";
 }
 
@@ -748,6 +808,8 @@ const latestWeight = ref(null);
  * 向後端查詢體重變化趨勢資料，並重新繪製 Chart.js 圖表
  */
 async function fetchWeightChart() {
+  console.log("petId：", currentPetId.value);
+  console.log("canvas：", weightChartCanvas.value);
   if (!currentPetId.value || !weightChartCanvas.value) return;
 
   try {
@@ -959,9 +1021,13 @@ function renderFoodWaterChart(labels, waterValues, foodValues) {
 // 歷史健康日誌、體重變化趨勢圖、體重狀態趨勢、本週飲食紀錄圖
 onMounted(() => {
   fetchHistoryLogs();
-  fetchWeightChart();
   fetchWeightTrend();
-  fetchFoodWaterChart();
+
+  // 等 100 毫秒，讓 Vue 把 canvas 畫到畫面上，再畫圖表
+  setTimeout(() => {
+    fetchWeightChart();
+    fetchFoodWaterChart();
+  }, 100);
 });
 
 // ==========================================================================

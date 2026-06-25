@@ -25,15 +25,32 @@
                 >{{ apt.date }} - {{ apt.serviceName }} ({{ apt.groomer }})</option>
               </select>
             </div>
+          </div>
+
+          <!-- 評分要填4個項目，後端的評價表是這樣設計的：整體/服務品質/環境/價格 各自獨立評分 -->
+          <div class="grid grid-2" style="gap: 20px;">
             <div class="form-group">
-              <label>給予星級評價</label>
+              <label>整體評分</label>
               <div class="star-rating-input">
-                <span 
-                  v-for="star in 5" 
-                  :key="star" 
-                  @click="newReview.rating = star"
-                  :class="{ 'active': star <= newReview.rating }"
-                >★</span>
+                <span v-for="star in 5" :key="star" @click="newReview.overallRating = star" :class="{ 'active': star <= newReview.overallRating }">★</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>服務品質評分</label>
+              <div class="star-rating-input">
+                <span v-for="star in 5" :key="star" @click="newReview.serviceRating = star" :class="{ 'active': star <= newReview.serviceRating }">★</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>環境評分</label>
+              <div class="star-rating-input">
+                <span v-for="star in 5" :key="star" @click="newReview.envRating = star" :class="{ 'active': star <= newReview.envRating }">★</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>價格評分</label>
+              <div class="star-rating-input">
+                <span v-for="star in 5" :key="star" @click="newReview.priceRating = star" :class="{ 'active': star <= newReview.priceRating }">★</span>
               </div>
             </div>
           </div>
@@ -62,8 +79,8 @@
       <section v-else-if="!isLoggedIn" class="review-form-section card text-center">
         <h3>您尚未登入</h3>
         <p class="mb-20">請登入會員後再分享您的美容體驗。</p>
-        <button type="button" class="btn btn-primary" @click="toggleLoginStatus">
-          <i class="fas fa-sign-in-alt"></i> 模擬登入
+        <button type="button" class="btn btn-primary" @click="$router.push('/member/login')">
+          <i class="fas fa-sign-in-alt"></i> 前往登入
         </button>
       </section>
       <section v-else class="review-form-section card text-center">
@@ -109,7 +126,7 @@
           <div class="review-body">
             <div class="review-header">
               <span class="user-name">{{ review.userName }}</span>
-              <span class="review-date">{{ review.date }}</span>
+              <span class="review-date">{{ review.date.split('T')[0] }}</span>
             </div>
             <div class="review-meta">
               <span class="groomer-tag">美容師：{{ review.groomerName }}</span>
@@ -158,25 +175,29 @@
 import NavBar from './NavBar.vue'
 // 【合併前要還原】組員原本寫 '@/api/groomingApi'，但本專案沒有 src/api 資料夾，會導致整個專案編譯失敗。
 // 暫時改成相對路徑 './groomingApi'（指向同資料夾的假資料檔），讓本機能跑。上傳 GitHub 前要改回 '@/api/groomingApi'。
-import { getReviews, getUnreviewedAppointments, submitGroomingReview } from './groomingApi';
+import { getReviews, getAppointments, submitGroomingReview, getGroomers } from './groomingApi';
+import useUserStore from '@/stores/user.js';
 
 export default {
   name: 'ReviewsPage',
   components: { NavBar },
   data() {
     return {
-      staffNames: ['Andy', 'Emily', 'Jason', 'Sophie'],
+      staffNames: [], // 美容師名單，改成 mounted() 時打 /api/groomers 抓真實資料，不再寫死
       sortBy: 'newest',
       filterGroomer: 'all',
       currentPage: 1,
       pageSize: 4, // 每頁顯示 4 筆評價
-      isLoggedIn: false, // 模擬登入狀態
-      currentUserName: '新用戶', // 模擬登入用戶名
+      isLoggedIn: false, // 真正的登入狀態，created() 時從 user.js 共用資料源讀
+      currentUserName: '', // 真正的會員姓名
       lightboxImage: null, // 儲存目前放大顯示的圖片
       newReview: {
         appointmentId: '',
         groomer: '',
-        rating: 5,
+        overallRating: 5,  // 整體評分
+        serviceRating: 5,  // 服務品質評分
+        envRating: 5,      // 環境評分
+        priceRating: 5,    // 價格評分
         comment: '',
         image: null
       },
@@ -186,6 +207,7 @@ export default {
   },
   async mounted() {
     await this.fetchReviews();
+    await this.fetchGroomers();
     if (this.isLoggedIn) {
       await this.fetchUserAppointments();
     }
@@ -193,11 +215,17 @@ export default {
     if (this.$route.query.groomer) {
       this.newReview.groomer = this.$route.query.groomer;
     }
+    // 從 Appointments.vue 的「評價服務」按鈕過來時，網址會帶 appointmentId，自動選定那一筆預約
+    if (this.$route.query.appointmentId) {
+      this.newReview.appointmentId = Number(this.$route.query.appointmentId);
+      this.syncGroomer();
+    }
   },
   created() {
-    // 初始載入時檢查是否有登入狀態 (這裡可以替換為實際的登入檢查邏輯)
-    this.isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    this.currentUserName = localStorage.getItem('currentUserName') || '新用戶'; // 載入用戶名
+    // 真正的登入狀態：user.js 共用資料源裡有 token 就代表已登入（跟 axios.js 判斷是否帶 token 的方式一樣）
+    const userStore = useUserStore();
+    this.isLoggedIn = !!userStore.token;
+    this.currentUserName = userStore.memberInfo.name || '會員';
   },
   computed: {
     // 取得所有「已完成」且「尚未評價過」的預約清單
@@ -252,10 +280,21 @@ export default {
         console.error('獲取評論失敗:', error);
       }
     },
+    // 抓真實的美容師名單，給篩選下拉選單用（取代原本寫死的 staffNames）
+    async fetchGroomers() {
+      try {
+        const response = await getGroomers();
+        this.staffNames = response.data.map(g => g.name);
+      } catch (error) {
+        console.error('獲取美容師名單失敗:', error);
+      }
+    },
     async fetchUserAppointments() {
       try {
-        const response = await getUnreviewedAppointments();
-        this.userAppointments = response.data;
+        // 已串接真正後端 API：GET /api/secure/appointments?status=3（只查「已完成」的預約）
+        // 後端有回傳 isReviewed，前端自己再篩掉已經評價過的，剩下的才是「能評價」的清單
+        const response = await getAppointments({ status: 3 });
+        this.userAppointments = response.data.filter(apt => !apt.isReviewed);
       } catch (error) {
         console.error('獲取可評價預約失敗:', error);
       }
@@ -290,39 +329,37 @@ export default {
     },
     async submitReview() {
       try {
-        const formData = new FormData();
-        formData.append('appointmentId', this.newReview.appointmentId);
-        formData.append('groomerName', this.newReview.groomer);
-        formData.append('rating', this.newReview.rating);
-        formData.append('comment', this.newReview.comment);
-        // 這裡暫時處理圖片
+        // 已串接真正後端 API：POST /api/secure/reviews
+        // 註：圖片目前後端還沒支援上傳，先不送；groomerName 也不用送，後端會自己從預約紀錄查出來
+        const payload = {
+          appointmentId: this.newReview.appointmentId,
+          overallRating: this.newReview.overallRating,
+          serviceRating: this.newReview.serviceRating,
+          envRating: this.newReview.envRating,
+          priceRating: this.newReview.priceRating,
+          comment: this.newReview.comment,
+          isAnonymous: false
+        };
 
-        await submitGroomingReview(formData);
-        
+        await submitGroomingReview(payload);
+
         alert('感謝您的評價！');
-        this.newReview = { appointmentId: '', groomer: '', rating: 5, comment: '', image: null };
+        this.newReview = {
+          appointmentId: '', groomer: '',
+          overallRating: 5, serviceRating: 5, envRating: 5, priceRating: 5,
+          comment: '', image: null
+        };
         await this.fetchReviews();
         await this.fetchUserAppointments();
       } catch (error) {
-        alert('提交評價失敗');
+        // 後端有給原因的話（例如「這筆預約還沒完成，不能評價」），顯示真正的原因
+        const message = error.response && error.response.data ? error.response.data : '提交評價失敗，請稍後再試。';
+        alert(message);
       }
     },
     changePage(page) {
       this.currentPage = page;
       window.scrollTo({ top: 600, behavior: 'smooth' }); // 切換分頁時平滑滾動到列表頂部
-    },
-    toggleLoginStatus() {
-      this.isLoggedIn = !this.isLoggedIn;
-      if (this.isLoggedIn) {
-        this.currentUserName = '模擬會員'; // 模擬登入後的用戶名
-        localStorage.setItem('currentUserName', this.currentUserName); // 儲存用戶名
-        localStorage.setItem('isLoggedIn', 'true');
-        alert('您已模擬登入！');
-      } else {
-        localStorage.removeItem('isLoggedIn');
-        alert('您已模擬登出！');
-        localStorage.removeItem('currentUserName'); // 移除用戶名
-      }
     }
   }
 }

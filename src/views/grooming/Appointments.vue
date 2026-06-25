@@ -18,10 +18,12 @@
             <label class="filter-label">篩選狀態：</label>
             <select v-model="filterStatus" class="status-select">
               <option value="all">顯示全部</option>
-              <option value="0">已收到預約</option>
-              <option value="1">服務已完成</option>
-              <option value="2">預約已取消</option>
-              <option value="3">美容進行中</option>
+              <option value="0">待確認</option>
+              <option value="1">已確認</option>
+              <option value="2">美容進行中</option>
+              <option value="3">服務已完成</option>
+              <option value="4">預約已取消</option>
+              <option value="5">未到店</option>
             </select>
           </div>
         </div>
@@ -53,32 +55,22 @@
                   </span>
                 </td>
                 <td>
-                  <button 
-                    v-if="apt.status === 0" 
-                    @click="openCancelModal(apt)" 
+                  <button
+                    v-if="apt.status === 0 || apt.status === 1"
+                    @click="openCancelModal(apt)"
                     class="mini-page-btn danger-border"
                   >取消</button>
-                  <button 
-                    v-if="apt.status === 0" 
-                    @click="updateStatus(apt.id, 3)" 
-                    class="mini-page-btn"
-                    style="border-color: #f39c12; color: #f39c12; margin-left: 5px;"
-                  >開始美容</button>
-                  <button 
-                    v-if="apt.status === 3" 
-                    @click="updateStatus(apt.id, 1)" 
-                    class="mini-page-btn"
-                    style="border-color: #27ae60; color: #27ae60;"
-                  >完成美容</button>
+                  <!-- 「開始美容/完成美容」是店家標記服務進度的動作，不該由客人自己按，
+                       已經移到管理員後台（StaffDashboard.vue 的「訂單管理」分頁）去做 -->
 
                   <button
-                    v-if="canReview(apt)" 
-                    @click="openReviewModal(apt)" 
+                    v-if="canReview(apt)"
+                    @click="goToReview(apt)"
                     class="mini-page-btn"
                     style="border-color: #f39c12; color: #f39c12;"
                   >評價服務</button>
-                  <button 
-                    v-else-if="apt.status === 1 && apt.isReviewed" 
+                  <button
+                    v-else-if="apt.status === 3 && apt.isReviewed"
                     @click="viewReview(apt)" 
                     class="mini-page-btn"
                     style="border-color: #9b59b6; color: #9b59b6;"
@@ -112,30 +104,8 @@
 
     </main>
 
-    <!-- 評價預約彈窗 (Modal) -->
-    <div v-if="isReviewModalOpen" class="modal-overlay" @click.self="closeReviewModal">
-      <div class="card modal-content">
-        <h3 class="modal-title">評價您的美容服務</h3>
-        <div class="modal-body">
-          <p class="text-center">毛孩：<strong>{{ appointmentToReview?.petName }}</strong></p>
-          <p class="text-center">服務：<strong>{{ appointmentToReview?.serviceName }}</strong></p>
-          <div class="modal-form-group">
-            <label>評分 (1-5 星)</label>
-            <select v-model="reviewRating" class="modal-select">
-              <option v-for="n in 5" :key="n" :value="n">{{ n }} 星</option>
-            </select>
-          </div>
-          <div class="modal-form-group">
-            <label>評價內容</label>
-            <textarea v-model="reviewComment" rows="3" class="modal-textarea" placeholder="分享您的美容心得..."></textarea>
-          </div>
-        </div>
-        <div class="modal-actions mt-20">
-          <button type="button" @click="submitReview" class="btn btn-primary flex-1">送出評價</button>
-          <button type="button" @click="closeReviewModal" class="btn btn-cancel flex-1">返回</button>
-        </div>
-      </div>
-    </div>
+    <!-- 評價表單已經統一搬到 Reviews.vue（避免兩個地方各維護一份評價表單），
+         這裡的「評價服務」按鈕改成直接導去那個頁面 -->
 
     <!-- 取消預約確認彈窗 (Modal) -->
     <div v-if="isCancelModalOpen" class="modal-overlay" @click.self="closeCancelModal">
@@ -257,7 +227,7 @@
 
 <script>
 import NavBar from './NavBar.vue'; // 假設 NavBar 路徑正確
-import { getAppointments, cancelAppointment, submitGroomingReview, updateAppointmentStatus } from './groomingApi';
+import { getAppointments, cancelAppointment } from './groomingApi';
 
 export default {
   name: 'Appointments',
@@ -265,11 +235,15 @@ export default {
   data() {
     return {
       appointments: [], // 將預約資料初始化為空陣列
+      // 註：後端真正的狀態是 0~5（待確認/已確認/進行中/已完成/已取消/未到店），
+      // 跟舊版的 0~3（已收到預約/已完成/已取消/進行中）對不起來，已經改成跟後端一致
       statusMap: {
-        0: { label: '已收到預約', class: 'badge-info' },
-        1: { label: '服務已完成', class: 'badge-success' },
-        2: { label: '預約已取消', class: 'badge-secondary' },
-        3: { label: '美容進行中', class: 'badge-warning' }
+        0: { label: '待確認', class: 'badge-info' },
+        1: { label: '已確認', class: 'badge-info' },
+        2: { label: '美容進行中', class: 'badge-warning' },
+        3: { label: '服務已完成', class: 'badge-success' },
+        4: { label: '預約已取消', class: 'badge-secondary' },
+        5: { label: '未到店', class: 'badge-secondary' }
       },
       filterStatus: 'all',
       currentAptPage: 1,
@@ -278,10 +252,6 @@ export default {
       error: null, // 已修正：這裡原本漏了逗點
       isCancelModalOpen: false, // 控制取消預約彈窗顯示
       appointmentToCancel: null, // 儲存要取消的預約
-      isReviewModalOpen: false, // 控制評價彈窗
-      appointmentToReview: null, // 儲存要評價的預約
-      reviewRating: 5,
-      reviewComment: '',
       sortKey: 'date', // 預設排序欄位
       sortOrder: 'desc' // 預設降冪排序 (最新的在前)
     }
@@ -397,61 +367,20 @@ export default {
         this.fetchAppointments(); // 重新載入列表以確保資料最新
       } catch (error) {
         console.error('取消預約失敗:', error);
-        alert('取消預約失敗，請稍後再試。');
+        // 後端有給原因的話（例如「這筆預約目前的狀態不能取消」），顯示真正的原因
+        const message = error.response && error.response.data ? error.response.data : '取消預約失敗，請稍後再試。';
+        alert(message);
       } finally {
         this.closeCancelModal();
       }
     },
-    async updateStatus(id, newStatus) {
-      try {
-        const actionName = newStatus === 3 ? '開始美容' : '完成美容';
-        await updateAppointmentStatus(id, newStatus);
-        alert(`預約編號 ${id} 已切換至 ${actionName}！`);
-        this.fetchAppointments(); // 重新載入列表以確保畫面同步
-      } catch (error) {
-        console.error('更新狀態失敗:', error);
-        alert('狀態更新失敗，請稍後再試。');
-      }
-    },
-    openReviewModal(appointment) {
-      this.appointmentToReview = appointment;
-      this.isReviewModalOpen = true;
-    },
-    closeReviewModal() {
-      this.isReviewModalOpen = false;
-      this.appointmentToReview = null;
-      this.reviewComment = '';
-      this.reviewRating = 5;
-    },
-    async submitReview() {
-      try {
-        const targetApt = this.appointments.find(a => a.id === this.appointmentToReview.id);
-        if (targetApt) {
-          // 建立評價數據物件
-          const reviewData = {
-            appointmentId: targetApt.id,
-            groomerName: targetApt.groomer, // 關鍵：關聯美容師
-            rating: this.reviewRating,
-            comment: this.reviewComment,
-            date: new Date().toISOString()
-          };
-          
-          await submitGroomingReview(reviewData);
-          
-          targetApt.isReviewed = true;
-          targetApt.reviewRating = this.reviewRating; // 暫存資料供查看
-          targetApt.reviewComment = this.reviewComment;
-        }
-        
-        alert('感謝您的評價！我們會繼續努力。');
-        this.closeReviewModal();
-      } catch (error) {
-        alert('評價提交失敗，請重試。');
-      }
+    goToReview(apt) {
+      // 評價表單統一在 Reviews.vue，這裡帶上 appointmentId，讓那邊自動選定這筆預約
+      this.$router.push({ path: '/grooming/reviews', query: { appointmentId: apt.id } });
     },
     canReview(apt) {
-      // 1. 狀態必須是「已完成」且「尚未評價」
-      if (apt.status !== 1 || apt.isReviewed) return false;
+      // 1. 狀態必須是「已完成」(3) 且「尚未評價」
+      if (apt.status !== 3 || apt.isReviewed) return false;
 
       // 2. 計算時間差（毫秒轉天數）
       const aptDate = new Date(apt.date);
@@ -462,8 +391,8 @@ export default {
       return diffInDays >= 0 && diffInDays <= 7;
     },
     isReviewExpired(apt) {
-      // 1. 狀態必須是「已完成」且「尚未評價」
-      if (apt.status !== 1 || apt.isReviewed) return false;
+      // 1. 狀態必須是「已完成」(3) 且「尚未評價」
+      if (apt.status !== 3 || apt.isReviewed) return false;
 
       const aptDate = new Date(apt.date);
       const now = new Date();

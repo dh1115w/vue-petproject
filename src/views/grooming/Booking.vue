@@ -76,9 +76,9 @@
             <label for="petSize">毛孩體型 (Size)</label>
             <select id="petSize" v-model="form.pet_size" required>
               <option value="" disabled>-- 請選擇體型 --</option>
-              <option value="S">小型 (S) - 5kg 以下</option>
-              <option value="M">中型 (M) - 5-15kg</option>
-              <option value="L">大型 (L) - 15kg 以上</option>
+              <option value="small">小型 - 5kg 以下</option>
+              <option value="mid">中型 - 5-15kg</option>
+              <option value="big">大型 - 15kg 以上</option>
             </select>
           </div>
           <div class="form-group">
@@ -130,13 +130,8 @@
           </div>
 
           <div class="form-group">
-            <label for="paymentMethod">訂金預付方式</label>
-            <select id="paymentMethod" v-model="form.payment_method" required>
-              <option value="credit_card">信用卡 / Google Pay</option>
-              <option value="line_pay">LINE Pay</option>
-              <option value="atm">虛擬帳號轉帳</option>
-              <option value="store_credit">儲值金扣款</option>
-            </select>
+            <label>訂金預付方式</label>
+            <p style="margin: 0;">PayPal（線上刷卡）</p>
           </div>
 
           <div class="form-group">
@@ -177,7 +172,7 @@
           <h3 class="modal-title">確認您的預約資訊</h3>
           <div class="modal-body">
             <p>毛孩：<strong>{{ selectedPetName }}</strong></p>
-            <p>體型：<strong>{{ form.pet_size === 'S' ? '小型' : form.pet_size === 'M' ? '中型' : '大型' }}</strong></p>
+            <p>體型：<strong>{{ form.pet_size === 'small' ? '小型' : form.pet_size === 'mid' ? '中型' : '大型' }}</strong></p>
             <p>服務：<strong>{{ selectedService ? selectedService.title : '未選擇' }}</strong></p>
             <p>美容師：<strong>{{ selectedGroomerName }}</strong></p>
             <p>日期：<strong>{{ form.apt_date_date }}</strong></p>
@@ -192,11 +187,16 @@
             <p style="font-size: 0.9rem; color: #888;">到店支付尾款：NT$ {{ finalPrice - depositAmount }}</p>
             <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">付款方式：<strong>{{ paymentMethodLabel }}</strong></p>
           </div>
-          <div class="modal-actions">
+          <div class="modal-actions" v-if="!paypalOrderId">
             <button type="button" @click="confirmBooking" class="btn btn-primary flex-1" :disabled="isProcessingPayment">
-              {{ isProcessingPayment ? '處理金流中...' : '前往付款' }}
+              {{ isProcessingPayment ? '處理中...' : '前往付款' }}
             </button>
             <button type="button" @click="isConfirmModalOpen = false" class="btn btn-cancel flex-1">取消</button>
+          </div>
+          <!-- 後端已經建立好 PayPal 訂單，這裡渲染 PayPal 官方按鈕讓使用者真正付款 -->
+          <div v-else class="modal-actions" style="flex-direction: column; align-items: stretch;">
+            <div id="paypal-button-container"></div>
+            <button type="button" @click="cancelPayPalPayment" class="btn btn-cancel flex-1" style="margin-top: 10px;">取消付款</button>
           </div>
         </div>
       </div>
@@ -215,7 +215,8 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, createAppointment, getAllServices, validateCoupon } from './groomingApi'
+import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment } from './groomingApi'
+import useUserStore from '@/stores/user.js'
 
 export default {
   name: 'BookingPage',
@@ -234,26 +235,20 @@ export default {
         timeSlot: '',
         notes: '',
         coupon_code: '',
-        payment_method: 'credit_card'
+        payment_method: 'paypal'
       },
       isConfirmModalOpen: false, // 控制確認預約彈窗顯示
       showToast: false,          // 控制 Toast 顯示
       toastMessage: '',          // Toast 顯示文字
       toastType: 'success',      // Toast 類型 (success / error)
-      isProcessingPayment: false, // 模擬金流處理狀態
+      isProcessingPayment: false, // 是否正在處理金流（true 時按鈕要顯示 loading、不能再按）
+      paypalOrderId: null,       // 跟後端建立好的 PayPal 訂單 id，PayPal 按鈕要用這個
+      pendingAppointmentData: null, // 暫存剛建立的預約資料，付款成功後要拿來發 Line 通知
       apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
       couponTimer: null,         // 用於 debounce 請求 (防抖)
       couponError: null,         // 新增：儲存優惠碼錯誤訊息
-      pets: [ // Mock pet data
-        { id: 1, name: '巧克力', breed: '貴賓', age: 3, type: 'dog', size: 'S' },
-        { id: 2, name: 'Mimi', breed: '波斯貓', age: 2, type: 'cat', size: 'S' }
-      ],
-      groomers: [ // Mock groomer data
-        { id: 1, name: 'Andy (大型犬專家)' },
-        { id: 2, name: 'Emily (貓咪/造型專家)' },
-        { id: 3, name: 'Jason (皮膚藥浴專家)' },
-        { id: 4, name: 'Sophie (SPA/貓咪專家)' }
-      ],
+      pets: [], // 改成從 user.js 共用資料源撈，見 mounted()
+      groomers: [], // 改成從後端 fetchGroomers() 撈，見 mounted()
       services: [],
       availableTimeSlots: [], // 儲存可用的預約時段
       isLoadingTimeSlots: false, // 載入時段的狀態
@@ -267,6 +262,17 @@ export default {
   },
   async mounted() {
     await this.fetchServices();
+    await this.fetchGroomers();
+
+    // 讀 user.js 共用資料源：寵物清單 + 目前切換的寵物，預設帶入這隻
+    const userStore = useUserStore();
+    this.pets = userStore.pets.map(pet => ({
+      ...pet,
+      type: this.speciesToType(pet.species)
+    }));
+    if (userStore.selectPetId) {
+      this.form.pet_id = userStore.selectPetId;
+    }
 
     // 檢查網址是否有傳遞 petId 參數，如果有則自動選取該毛孩
     if (this.$route.query.petId) {
@@ -295,7 +301,8 @@ export default {
       // 如果尚未選擇毛孩（例如從服務頁面直接跳轉過來），顯示所有服務，確保自動填入功能正常
       if (!this.form.pet_id) return this.services;
       const pet = this.pets.find(p => p.id == this.form.pet_id);
-      if (!pet) return this.services;
+      // pet.type 判斷不出來（物種文字看不出貓狗）時，先顯示全部服務，不要整個擋掉
+      if (!pet || !pet.type) return this.services;
       return this.services.filter(s => s.allowedSpecies.includes(pet.type));
     },
     // 新增：動態計算預估價格
@@ -346,15 +353,9 @@ export default {
     depositAmount() {
       return this.finalPrice ? Math.round(this.finalPrice * 0.3) : 0;
     },
-    // 取得付款方式的中文顯示
+    // 取得付款方式的中文顯示（目前只有 PayPal 這個真的選項）
     paymentMethodLabel() {
-      const methods = {
-        credit_card: '信用卡 / Google Pay',
-        line_pay: 'LINE Pay',
-        atm: '虛擬帳號轉帳',
-        store_credit: '儲值金扣款'
-      };
-      return methods[this.form.payment_method] || '未選擇';
+      return 'PayPal';
     }
     // 新增：根據選定日期判斷是否為店休
     ,isDateHoliday() {
@@ -368,17 +369,22 @@ export default {
     }
   },
   watch: {
-    // 新增：當切換毛孩時，若原選服務不適用該種類，則重設服務
+    // 新增：當切換毛孩時，自動帶入體型；若原選服務不適用該種類，則重設服務
     'form.pet_id'(newPetId, oldPetId) {
       // 清除任何先前的警告訊息
       this.incompatibleServiceWarning = '';
 
       const pet = this.pets.find(p => p.id == newPetId);
-      // 只有當有選擇毛孩且之前有選服務時才檢查
-      if (pet && this.form.service_id) {
-        // 自動根據毛孩檔案預填體型，但使用者仍可手動更改
-        this.form.pet_size = pet.size;
+      if (!pet) return;
 
+      // 自動根據毛孩檔案預填體型，但使用者仍可手動更改
+      // 寵物資料庫沒填過體型的話 pet.size 會是 null，這種情況就不帶入，維持讓客人自己選
+      if (pet.size) {
+        this.form.pet_size = pet.size;
+      }
+
+      // 只有「之前已經選過服務」才需要檢查現在這隻寵物還適不適用
+      if (this.form.service_id) {
         const previouslySelectedService = this.services.find(s => s.id == this.form.service_id);
         if (previouslySelectedService && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
           this.incompatibleServiceWarning = `您選擇的毛孩 (${pet.name}) 不適用「${previouslySelectedService.title}」服務，請重新選擇。`;
@@ -386,9 +392,11 @@ export default {
         }
       }
     },
-    // 當預約日期或美容師改變時，重新獲取可用時段 
+    // 當預約日期或美容師改變時，重新獲取可用時段
     'form.apt_date_date': 'handleDateOrGroomerChange',
     'form.groomer_id': 'handleDateOrGroomerChange',
+    // 體型會影響服務要花多久（duration），所以也要重新查可用時段
+    'form.pet_size': 'fetchAvailableTimeSlots',
     // 新增：監控服務項目，若切換服務後目前的美容師不符合資格，則重設美容師選擇
     // 同時，當服務被手動更改時，清除不相容服務的警告
     'form.service_id'(newServiceId) {
@@ -397,6 +405,8 @@ export default {
       if (service && service.allowedGroomers && !service.allowedGroomers.includes(this.form.groomer_id)) {
         this.form.groomer_id = '';
       }
+      // 服務改變也會影響時長，重新查可用時段
+      this.fetchAvailableTimeSlots();
     },
     // 新增：監控優惠碼輸入，自動呼叫 API 驗證
     'form.coupon_code'(newCode) {
@@ -422,13 +432,14 @@ export default {
         console.error('Failed to fetch services:', error);
       }
     },
-    async fetchPets() {
-      try {
-        const response = await getPets({ member_id: this.form.member_id });
-        this.pets = response.data;
-      } catch (error) {
-        console.error('Failed to fetch pets:', error);
-      }
+    // 把寵物的 species（自由填寫文字，例如「貓」「狗」）轉成 'cat'/'dog'，
+    // 抓不出來就回傳 null，filteredServices 那邊會處理（顯示全部服務，不會擋住）
+    speciesToType(species) {
+      if (!species) return null;
+      const lower = species.toLowerCase();
+      if (species.includes('貓') || lower.includes('cat')) return 'cat';
+      if (species.includes('狗') || lower.includes('dog')) return 'dog';
+      return null;
     },
     async fetchGroomers() {
       try {
@@ -441,8 +452,14 @@ export default {
     // 新增：呼叫 API 驗證優惠碼
     async verifyCoupon(code) {
       this.couponError = null; // 每次驗證前先清除錯誤訊息
+      if (!this.estimatedPrice) {
+        // 還沒選好服務項目，沒有金額可以拿去檢查最低消費門檻，先不要送出去
+        this.apiCoupon = null;
+        this.couponError = '請先選擇服務項目，才能套用優惠碼';
+        return;
+      }
       try {
-        const response = await validateCoupon(code);
+        const response = await validateCoupon(code, this.estimatedPrice);
         if (response.data.success) {
           this.apiCoupon = response.data.data;
           this.couponError = null; // 成功驗證則清除錯誤
@@ -461,10 +478,19 @@ export default {
       }
     },
     async fetchAvailableTimeSlots() {
-      const { apt_date_date, groomer_id } = this.form;
+      const { apt_date_date, groomer_id, service_id, pet_size } = this.form;
 
-      // 只有當日期和美容師都選定時才發送請求
-      if (!apt_date_date || !groomer_id) {
+      // 日期、美容師、服務、體型都要選好，才知道要算哪個服務的可用時段
+      if (!apt_date_date || !groomer_id || !service_id || !pet_size) {
+        this.availableTimeSlots = [];
+        this.timeSlotsError = null;
+        return;
+      }
+
+      // 用服務 + 體型找出對應的 pricingId（送給後端用來查時長）
+      const service = this.services.find(s => s.id == service_id);
+      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[pet_size] : null;
+      if (!pricingId) {
         this.availableTimeSlots = [];
         this.timeSlotsError = null;
         return;
@@ -474,9 +500,10 @@ export default {
       this.timeSlotsError = null;
 
       try {
-        const response = await getAvailableTimeSlots({ 
-          date: apt_date_date, 
-          groomer_id 
+        const response = await getAvailableTimeSlots({
+          date: apt_date_date,
+          groomer_id,
+          pricing_id: pricingId
         });
         this.availableTimeSlots = response.data;
 
@@ -523,32 +550,102 @@ export default {
     },
     async confirmBooking() {
       this.isProcessingPayment = true;
-      
+
+      // 用服務 + 體型找出對應的 pricingId，後端要靠這個查價格、時長
+      const service = this.services.find(s => s.id == this.form.service_id);
+      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[this.form.pet_size] : null;
+
       const appointmentData = {
-        member_id: this.form.member_id,
-        pet_id: parseInt(this.form.pet_id),
-        service_id: parseInt(this.form.service_id),
-        groomer_id: parseInt(this.form.groomer_id),
-        apt_date: `${this.form.apt_date_date} ${this.form.timeSlot}:00`,
-        total_price: this.finalPrice || this.estimatedPrice,
-        deposit_paid: this.depositAmount,
-        payment_method: this.form.payment_method,
-        coupon_used: this.form.coupon_code,
-        status: 1, // 假設 1 代表「已付訂金，待服務」
-        notes: this.form.notes
+        petId: parseInt(this.form.pet_id),
+        groomerId: parseInt(this.form.groomer_id),
+        pricingId: pricingId,
+        appointmentDate: this.form.apt_date_date,
+        startTime: this.form.timeSlot,
+        note: this.form.notes
       };
-      
+      // 留著給付款成功後的 Line 通知用
+      this.pendingAppointmentData = appointmentData;
+
+      let appointmentId;
       try {
-        // 呼叫 API 建立預約
-        await createAppointment(appointmentData);
+        const response = await createAppointment(appointmentData);
+        appointmentId = response.data.id;
       } catch (error) {
-        console.error('預約提交失敗:', error);
+        this.isProcessingPayment = false;
+        // 後端驗證沒通過時（例如時段被搶走了），把原因顯示給使用者看，不要靜默失敗
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, '預約失敗，請重新嘗試')}`, 'error');
+        return;
+      }
+
+      // 預約建立成功後，跟後端建立 PayPal 訂單（付訂金，不是全額）
+      try {
+        const paymentResponse = await createGroomingPayment({
+          appointmentId,
+          amount: this.depositAmount,
+          couponCode: this.appliedCoupon ? this.form.coupon_code : null
+        });
+        this.paypalOrderId = paymentResponse.data.paypalOrderId;
+      } catch (error) {
+        this.isProcessingPayment = false;
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, 'PayPal 訂單建立失敗，請重新嘗試')}`, 'error');
+        return;
       }
 
       this.isProcessingPayment = false;
 
+      // 等畫面把 #paypal-button-container 渲染出來後，才能掛 PayPal 按鈕上去
+      await this.$nextTick();
+      await this.renderPayPalButton();
+    },
+    // 動態載入 PayPal 官方提供的 JS SDK（只有要用到的時候才載入，不放在 index.html 裡）
+    loadPayPalScript() {
+      if (window.paypal) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        // Client ID 是設計給前端公開使用的（跟密碼性質的 Secret 不一樣），可以直接寫在這裡
+        script.src = 'https://www.paypal.com/sdk/js?client-id=AZaFFX3VraF12lhqkQiNJ9V3i8OkFQa5XBuLG9VAQRcwtG-DXRtGKDMLSl7uz8CzxkJyBp9GjlngWjsU&currency=TWD';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    },
+    // 把 PayPal 官方的付款按鈕渲染到 #paypal-button-container 裡
+    async renderPayPalButton() {
+      try {
+        await this.loadPayPalScript();
+      } catch (error) {
+        this.triggerToast('❌ PayPal 按鈕載入失敗，請檢查網路連線', 'error');
+        return;
+      }
+
+      window.paypal.Buttons({
+        // 訂單已經在後端建立好了，這裡只要回傳訂單 id，不用重新建立
+        createOrder: () => this.paypalOrderId,
+        onApprove: async (data) => {
+          await this.handlePayPalApprove(data.orderID);
+        },
+        onError: (err) => {
+          // 印到 console 方便除錯（按 F12 看 Console 分頁）
+          console.error('PayPal Buttons onError:', err);
+          this.triggerToast('❌ PayPal 付款發生錯誤，請重新嘗試', 'error');
+        }
+      }).render('#paypal-button-container');
+    },
+    // 使用者在 PayPal 視窗按確認後，呼叫後端真正請款
+    async handlePayPalApprove(paypalOrderId) {
+      try {
+        await captureGroomingPayment(paypalOrderId);
+      } catch (error) {
+        console.error('captureGroomingPayment 失敗:', error);
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, '付款失敗，請重新嘗試')}`, 'error');
+        return;
+      }
+
       // 關閉確認彈窗
       this.isConfirmModalOpen = false;
+      this.paypalOrderId = null;
 
       // 顯示 Toast 成功通知
       this.triggerToast(`✅ 訂金 NT$ ${this.depositAmount} 支付成功！預約已確認。`, 'success');
@@ -560,9 +657,13 @@ export default {
         // 重置表單 (在跳轉後進行，避免影響 Toast 訊息的顯示)
         this.form = { pet_id: '', service_id: '', groomer_id: '', apt_date_date: '', timeSlot: '', notes: '', coupon_code: '' };
       }, 1500); // 1.5 秒後跳轉
-      
+
       // 呼叫 Line 通知方法 (這部分通常由後端處理更安全)
-      this.sendLineNotification(appointmentData);
+      this.sendLineNotification(this.pendingAppointmentData);
+    },
+    // 使用者在 PayPal 按鈕渲染出來後反悔，取消這次付款，回到「前往付款」畫面
+    cancelPayPalPayment() {
+      this.paypalOrderId = null;
     },
     triggerToast(message, type = 'success') {
       this.toastMessage = message;
@@ -571,6 +672,15 @@ export default {
       setTimeout(() => {
         this.showToast = false;
       }, 3000); // 3秒後自動消失
+    },
+    // 把後端回傳的錯誤內容轉成「一定是字串」的訊息，不要讓畫面顯示 [object Object]
+    // （後端有時候回的是純文字，但 Spring 系統發生未預期的錯誤時，回的會是一個物件）
+    extractErrorMessage(error, fallback) {
+      const data = error.response ? error.response.data : null;
+      if (!data) return fallback;
+      if (typeof data === 'string') return data;
+      if (data.message) return data.message;
+      return fallback;
     },
     async sendLineNotification(appointmentData) {
       // 實際應用中，這裡應該向您的後端 API 發送請求，由後端負責發送 Line 通知

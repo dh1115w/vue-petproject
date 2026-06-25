@@ -1,115 +1,75 @@
-// 暫時的 mock 版本，純粹讓本機可以正常開發/測試畫面
-// 等組員把真正串接後端的版本寫好、push 上來之後，這個檔案就可以刪掉
-// ⚠️ 記得把 src/api/groomingApi.js 加進 .gitignore，避免明天合併時互相干擾
+import axios from '@/plugins/axios.js';
+import adminAxios from '@/plugins/grooming/adminAxios.js';
+
+// 還剩 StaffDashboard.vue 的「排班表格、統計數字、黑名單」幾個 function 是 mock，其他都已經改成真正打後端 API
+// （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
+//   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon、
+//   getAdminOrders、updateAdminOrder、submitGroomingReview）
 
 // ===== 共用假資料 =====
-const mockGroomers = [
-  { id: 1, name: 'Andy', specialty: '大型犬專家', rating: 4.8, isOnDuty: true, desc: '擁有10年大型犬美容經驗，手法穩定細心。', experience: '從業10年', image: '' },
-  { id: 2, name: 'Emily', specialty: '貓咪/造型專家', rating: 4.9, isOnDuty: true, desc: '擅長貓咪安撫與創意造型剪裁。', experience: '從業7年', image: '' },
-  { id: 3, name: 'Jason', specialty: '皮膚藥浴專家', rating: 4.7, isOnDuty: false, desc: '專精敏感肌膚與藥浴療程規劃。', experience: '從業5年', image: '' },
-  { id: 4, name: 'Sophie', specialty: 'SPA/貓咪專家', rating: 4.9, isOnDuty: true, desc: '提供高端SPA護理，深受毛孩家長喜愛。', experience: '從業8年', image: '' }
-];
-
 const mockAppointments = [
   { id: 1001, petName: '巧克力', serviceName: '基礎洗護', price: 600, date: '2026-06-22 10:00', groomer: 'Andy', status: 0, isReviewed: false },
   { id: 1002, petName: 'Mimi', serviceName: '全套美容造型', price: 1200, date: '2026-06-15 14:00', groomer: 'Emily', status: 1, isReviewed: false },
   { id: 1003, petName: '豆豆', serviceName: '藥浴護理', price: 900, date: '2026-06-10 11:00', groomer: 'Jason', status: 1, isReviewed: true }
 ];
 
-// ===== Booking.vue 用 =====
+// ===== Booking.vue、Services.vue 用 =====
+// 已串接真正後端 API：GET /api/services
+// 註：後端目前還沒有 features（服務特色文字）、allowedGroomers（指定美容師）這兩個欄位，
+// 回傳資料裡不會有這兩個值，畫面上對應的地方會先顯示空白/全部美容師，之後後端補上再串。
 export const getAllServices = () => {
-  console.log('[mock] getAllServices 被呼叫');
-  return Promise.resolve({
-    data: [
-      {
-        id: 1,
-        title: '基礎洗護',
-        minPrice: 600,
-        duration: 60,
-        allowedSpecies: ['dog', 'cat'],
-        allowedGroomers: [1, 2, 3, 4],
-        priceMap: { S: 600, M: 800, L: 1000 },
-        durationMap: { S: 60, M: 75, L: 90 },
-        features: ['洗澡', '吹整', '清耳', '剪指甲']
-      },
-      {
-        id: 2,
-        title: '全套美容造型',
-        minPrice: 1200,
-        duration: 120,
-        allowedSpecies: ['dog'],
-        allowedGroomers: [1, 2],
-        priceMap: { S: 1200, M: 1500, L: 1800 },
-        durationMap: { S: 120, M: 140, L: 160 },
-        features: ['剪毛造型', 'SPA護膚', '香氛護理']
-      },
-      {
-        id: 3,
-        title: '藥浴護理',
-        minPrice: 900,
-        duration: 90,
-        allowedSpecies: ['dog', 'cat'],
-        allowedGroomers: [3, 4],
-        priceMap: { S: 900, M: 1100, L: 1300 },
-        durationMap: { S: 90, M: 100, L: 110 },
-        features: ['專業藥浴', '皮膚檢測', '低敏配方']
-      }
-    ]
-  });
+  return axios.get('/api/services');
 };
 
+// 已串接真正後端 API：GET /api/available-slots
+// params 要帶 { groomer_id, date, pricing_id }，後端會依排班、已有預約、服務時長算出空檔
 export const getAvailableTimeSlots = (params) => {
-  console.log('[mock] getAvailableTimeSlots 被呼叫，參數：', params);
-  return Promise.resolve({
-    data: [
-      { value: '10:00', label: '10:00 AM' },
-      { value: '13:00', label: '01:00 PM' },
-      { value: '15:30', label: '03:30 PM' }
-    ]
-  });
+  return axios.get('/api/available-slots', { params });
 };
 
+// 已串接真正後端 API：POST /api/secure/appointments（要登入會員才能用）
+// data 要帶 { petId, groomerId, pricingId, appointmentDate, startTime, note }
 export const createAppointment = (data) => {
-  console.log('[mock] createAppointment 被呼叫，內容：', data);
-  return Promise.resolve({ data: { success: true, id: Date.now() } });
+  return axios.post('/api/secure/appointments', data);
 };
 
-export const validateCoupon = (code) => {
-  console.log('[mock] validateCoupon 被呼叫，代碼：', code);
-  if (code && code.toUpperCase() === 'PET80') {
-    return Promise.resolve({
-      data: { success: true, data: { label: '夏日優惠 8 折', type: 'percent', discount: 0.8 } }
-    });
-  }
-  return Promise.resolve({
-    data: { success: false, message: '優惠碼無效或已過期' }
-  });
+// 已串接真正後端 API：POST /api/secure/payments/create（要登入會員才能用）
+// data 要帶 { appointmentId, amount, couponCode }，amount 是這次要付的金額（例如訂金 30%），
+// couponCode 有套用優惠碼才要帶，沒套用就是 null（後端會用這個扣掉優惠券的使用次數）
+// 回傳 { id, paypalOrderId, status }，paypalOrderId 是 PayPal 按鈕要用的訂單 id
+export const createGroomingPayment = (data) => {
+  return axios.post('/api/secure/payments/create', data);
+};
+
+// 已串接真正後端 API：POST /api/secure/payments/{paypalOrderId}/capture
+// 使用者在 PayPal 視窗按確認後呼叫，真正請款
+export const captureGroomingPayment = (paypalOrderId) => {
+  return axios.post(`/api/secure/payments/${paypalOrderId}/capture`);
+};
+
+// 已串接真正後端 API：GET /api/coupons/validate
+// amount 是目前訂單金額（折扣前），後端要用這個檢查最低消費門檻
+export const validateCoupon = (code, amount) => {
+  return axios.get('/api/coupons/validate', { params: { code, amount } });
 };
 
 // ===== Appointments.vue 用 =====
+// 已串接真正後端 API：GET /api/secure/appointments（要登入會員才能用，只會看到自己的）
 export const getAppointments = (params) => {
-  console.log('[mock] getAppointments 被呼叫，參數：', params);
-  let result = mockAppointments;
-  if (params && params.status !== undefined && params.status !== 'all') {
-    result = result.filter(a => a.status === parseInt(params.status));
-  }
-  return Promise.resolve({ data: result });
+  return axios.get('/api/secure/appointments', { params });
 };
 
+// 已串接真正後端 API：POST /api/secure/appointments/{id}/cancel
 export const cancelAppointment = (id) => {
-  console.log('[mock] cancelAppointment 被呼叫，id：', id);
-  return Promise.resolve({ data: { success: true } });
-};
-
-export const updateAppointmentStatus = (id, status) => {
-  console.log('[mock] updateAppointmentStatus 被呼叫，id：', id, '新狀態：', status);
-  return Promise.resolve({ data: { success: true } });
+  return axios.post(`/api/secure/appointments/${id}/cancel`);
 };
 
 // ===== Staff.vue 用 =====
+// 已串接真正後端 API：GET /api/groomers
+// 註：後端目前還沒有 rating（評分，要等 Review 表）、isOnDuty（今日有沒有上班，要等 GroomerSchedule 表），
+// 這兩個欄位後端會先回傳 null，畫面上對應的地方會先顯示空白/休假狀態，之後後端補上再串。
 export const getGroomers = () => {
-  console.log('[mock] getGroomers 被呼叫');
-  return Promise.resolve({ data: mockGroomers });
+  return axios.get('/api/groomers');
 };
 
 // ===== StaffDashboard.vue 用 =====
@@ -123,22 +83,16 @@ export const getAdminSchedule = () => {
   return Promise.resolve({ data: mockAppointments });
 };
 
+// 已串接真正後端 API：GET /api/admin/appointments（要登入管理員才能用，看全部會員的預約）
+// 註：後端回傳的資料沒有 userId 這個欄位，「加入黑名單」按鈕還是要等後續處理
 export const getAdminOrders = () => {
-  console.log('[mock] getAdminOrders 被呼叫');
-  return Promise.resolve({
-    data: mockAppointments.map(a => ({
-      id: a.id,
-      petName: a.petName,
-      serviceName: a.serviceName,
-      status: a.status,
-      userId: 'user_' + a.id
-    }))
-  });
+  return adminAxios.get('/api/admin/appointments');
 };
 
-export const updateAdminOrder = (id, status) => {
-  console.log('[mock] updateAdminOrder 被呼叫，id：', id, '新狀態：', status);
-  return Promise.resolve({ data: { success: true } });
+// 已串接真正後端 API：POST /api/admin/appointments/{id}/status
+// newStatus 是數字 0~5（待確認/已確認/進行中/已完成/已取消/未到店），改成取消(4)時可以多帶 cancelReason
+export const updateAdminOrder = (id, newStatus, cancelReason = null) => {
+  return adminAxios.post(`/api/admin/appointments/${id}/status`, { status: newStatus, cancelReason });
 };
 
 export const getBlacklist = () => {
@@ -207,98 +161,18 @@ export const getActivePromotion = () => {
   });
 };
 
-export const getReviews = (params) => {
-  console.log('[mock] getReviews 被呼叫，參數：', params);
-
-  const mockReviews = [
-    {
-      id: 1,
-      userName: '王小明',
-      groomerName: 'Andy',
-      rating: 5,
-      comment: '服務很細心，毛孩剪完整個變超帥！下次還會再來。',
-      date: '2026-06-18',
-      image: ''
-    },
-    {
-      id: 2,
-      userName: '陳小華',
-      groomerName: 'Emily',
-      rating: 4,
-      comment: '整體不錯，洗得很乾淨，毛孩看起來很放鬆。',
-      date: '2026-06-15',
-      image: ''
-    },
-    {
-      id: 3,
-      userName: '林小美',
-      groomerName: 'Jason',
-      rating: 5,
-      comment: '美容師很有耐心，狗狗平常很怕剪毛但這次很乖。',
-      date: '2026-06-10',
-      image: ''
-    },
-    {
-      id: 4,
-      userName: '張大同',
-      groomerName: 'Sophie',
-      rating: 3,
-      comment: '還可以，但等待時間有點久。',
-      date: '2026-06-05',
-      image: ''
-    },
-    {
-      id: 5,
-      userName: '李小芳',
-      groomerName: 'Andy',
-      rating: 5,
-      comment: '每次都指定同一位美容師，技術真的很穩。',
-      date: '2026-05-28',
-      image: ''
-    }
-  ];
-
-  // 簡單模擬後端的篩選邏輯，行為盡量貼近真正 API
-  let result = mockReviews;
-  if (params && params.groomer && params.groomer !== 'all') {
-    result = result.filter(r => r.groomerName === params.groomer);
-  }
-
-  return Promise.resolve({ data: result });
+// 已串接真正後端 API：GET /api/reviews
+// 註：Reviews.vue 自己有用 sortedReviews 在前端依 groomerName 篩選跟排序，
+// 所以這裡單純把資料整批抓回來即可，不用真的把 params 傳給後端。
+export const getReviews = () => {
+  return axios.get('/api/reviews');
 };
 
-export const getUnreviewedAppointments = () => {
-  console.log('[mock] getUnreviewedAppointments 被呼叫');
-
-  return Promise.resolve({
-    data: [
-      {
-        id: 101,
-        date: '2026-06-20',
-        serviceName: '基礎洗護',
-        groomer: 'Andy'
-      },
-      {
-        id: 102,
-        date: '2026-06-19',
-        serviceName: '全套美容造型',
-        groomer: 'Emily'
-      }
-    ]
-  });
-};
-
+// 已串接真正後端 API：POST /api/secure/reviews（要登入會員才能用）
+// data 要帶 { appointmentId, overallRating, serviceRating, envRating, priceRating, comment, isAnonymous }
+// 後端會檢查：這筆預約是不是你自己的、狀態是不是「已完成」、是不是已經評價過
 export const submitGroomingReview = (data) => {
-  console.log('[mock] submitGroomingReview 被呼叫，內容：');
-  // 相容兩種呼叫方式：Reviews.vue 傳 FormData，Appointments.vue 傳一般物件
-  if (data instanceof FormData) {
-    for (const pair of data.entries()) {
-      console.log(`  ${pair[0]}: ${pair[1]}`);
-    }
-  } else {
-    console.log(data);
-  }
-  return Promise.resolve({ data: { success: true } });
+  return axios.post('/api/secure/reviews', data);
 };
 // import axios from '@/api/axios'; // 確保此路徑指向您的 axios 實例
 // import useUserStore from '@/stores/user.js';
@@ -350,19 +224,7 @@ export const submitGroomingReview = (data) => {
 //   return axios.get('/api/active-promotion');
 // };
 
-// /**
-//  * 取得所有美容服務項目與詳細價格表
-//  */
-// export const getAllServices = (params) => {
-//   return axios.get('/api/services', { params });
-// };
-
-// /**
-//  * 取得所有美容師團隊成員資訊
-//  */
-// export const getGroomers = () => {
-//   return axios.get('/api/groomers');
-// };
+// getAllServices、getGroomers 已經在上面改成真正打後端 API 了，這裡不用留參考版本
 
 // /**
 //  * 【毛孩與會員管理】
@@ -401,39 +263,8 @@ export const submitGroomingReview = (data) => {
 //   return axios.post('/api/notifications/line', data);
 // };
 
-// /**
-//  * 【預約流程】
-//  */
-// /**
-//  * 取得特定日期與美容師的可用預約時段
-//  */
-// export const getAvailableTimeSlots = (params) => {
-//   return axios.get('/api/available-slots', { params });
-// };
-
-// /**
-//  * 提交新的美容預約
-//  */
-// export const createAppointment = (appointmentData) => {
-//   return axios.post('/api/appointments', appointmentData);
-// };
-
-// /**
-//  * 【預約紀錄管理】
-//  */
-// /**
-//  * 取得會員的美容預約紀錄 (支援篩選狀態)
-//  */
-// export const getAppointments = (params) => {
-//   return axios.get('/api/appointments', { params });
-// };
-
-// /**
-//  * 取消特定的美容預約
-//  */
-// export const cancelAppointment = (appointmentId) => {
-//   return axios.post(`/api/appointments/${appointmentId}/cancel`);
-// };
+// getAvailableTimeSlots、createAppointment、getAppointments、cancelAppointment
+// 都已經在上面改成真正打後端 API 了，這裡不用留參考版本
 
 // /**
 //  * 更新預約狀態 (用於模擬美容進度切換)
@@ -445,12 +276,7 @@ export const submitGroomingReview = (data) => {
 // /**
 //  * 【評價系統】
 //  */
-// /**
-//  * 取得評論列表 (支援篩選美容師與排序)
-//  */
-// export const getReviews = (params) => {
-//   return axios.get('/api/reviews', { params });
-// };
+// getReviews 已經在上面改成真正打後端 API 了，這裡不用留參考版本
 
 // /**
 //  * 取得會員目前可進行評價的已完成預約

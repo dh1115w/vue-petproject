@@ -1,7 +1,7 @@
 <template>
   <header class="site-header">
     <div class="header-inner">
-      <RouterLink to="/" class="brand">PetCare</RouterLink>
+      <RouterLink to="/" class="brand">PetCare寵伴生活</RouterLink>
 
       <nav class="nav-links">
         <RouterLink to="/" class="nav-link">首頁</RouterLink>

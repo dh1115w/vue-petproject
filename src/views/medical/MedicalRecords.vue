@@ -1,7 +1,7 @@
 <template>
   <!-- 最外層容器 -->
   <div class="records-container page-enter">
-    <!-- 新增的病歷紀錄 Banner 區塊 -->
+    <!-- 病歷紀錄 Banner 區塊 -->
     <div class="medical-records-banner">
       <img
         src="@/images/medical-records-banner.jpg"
@@ -22,7 +22,7 @@
       </header>
     </div>
 
-    <!-- AI 辨識確認表單（上傳後才顯示，與 Banner 等寬） -->
+    <!-- AI 辨識確認表單（只在「有結果 且 還沒儲存」時顯示） -->
     <div v-if="parsedResult && !savedRecordId" class="ai-confirm-form-wrap">
       <div class="ai-confirm-form-card">
         <h3 class="ai-form-title">資訊結果確認</h3>
@@ -99,27 +99,34 @@
           </div>
         </div>
 
-        <!-- AI 不確定提醒
-        <p v-if="parsedResult.aiConfidenceNote" class="ai-form-note">
-          ⚠️ {{ parsedResult.aiConfidenceNote }}
-        </p> -->
-
         <!-- 按鈕列 -->
         <div class="ai-form-actions">
           <button class="ai-form-cancel-btn" @click="parsedResult = null">
             取消
           </button>
           <button class="ai-form-save-btn" @click="handleSaveRecord">
-            確認儲存病歷
+            確認儲存
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- 健康建議區塊獨立在確認表單外，條件與 parsedResult 完全無關 -->
+    <!-- isAnalyzing = true 時顯示「分析中」；healthAdvice 有內容時顯示建議 -->
+    <div v-if="isAnalyzing || healthAdvice" class="ai-confirm-form-wrap">
+      <div class="ai-confirm-form-card">
+        <h3 class="ai-form-title">🐾 健康照護建議</h3>
+        <p v-if="isAnalyzing && !healthAdvice" class="ai-form-subtitle">
+          AI 分析中，請稍候...
+        </p>
+        <pre class="health-advice-text">{{ healthAdvice }}</pre>
       </div>
     </div>
 
     <!-- 主排版區：左側面板 + 右側列表區 -->
     <div class="records-main-grid stagger-children">
       <!-- ==========================================
-           【左側欄】：上傳區 + 統計數 + 插圖區
+           【左側欄】：上傳區 + 統計數
            ========================================== -->
       <div class="left-panel-column">
         <!-- 1. 拖曳檔案上傳虛線盒 -->
@@ -145,12 +152,6 @@
               {{ isParsingAI ? "辨識中..." : "選擇檔案" }}
             </button>
 
-            <!-- 健康建議區塊 -->
-            <div v-if="healthAdvice" class="pawcare-card ai-advice-card">
-              <h3 class="panel-small-title">🐾 健康照護建議</h3>
-              <pre class="health-advice-text">{{ healthAdvice }}</pre>
-            </div>
-
             <!-- 隱藏的檔案選擇器 -->
             <input
               type="file"
@@ -173,31 +174,6 @@
             <p class="ai-loading-text">AI 辨識中，請稍候...</p>
           </div>
         </teleport>
-
-        <!-- 同時讓上傳按鈕在辨識中時 disabled
-          <button
-            class="select-file-btn"
-            @click="handleFileSelect"
-            :disabled="isParsingAI"
-          >
-            {{ isParsingAI ? "辨識中..." : "選擇檔案" }}
-          </button>
-        </div> -->
-
-        <!-- 2. 插圖展示卡
-        <div class="pawcare-card illustration-card">
-          <img
-            src="https://manuscdn.com"
-            alt="醫療紀錄插圖"
-            class="illustration-img"
-          />
-          <div class="illustration-footer-info">
-            <p>
-              共 {{ medicalRecordsList.length }} 筆病歷 ·
-              {{ totalFilesCount }} 個檔案
-            </p>
-          </div>
-        </div> -->
 
         <!-- 3. 紀錄類別分類統計小卡 -->
         <div class="pawcare-card">
@@ -376,11 +352,12 @@ const expandedRecordId = ref(null);
 const dragging = ref(false);
 
 // AI 功能相關狀態
-const fileInputRef = ref(null); // 隱藏 input 的參考
-const isParsingAI = ref(false); // AI 辨識中的 loading 狀態
-const parsedResult = ref(null); // 存放 AI 辨識結果
-const healthAdvice = ref(""); // 存放健康建議串流文字
-const savedRecordId = ref(null); // 存放儲存後的 recordId
+const fileInputRef = ref(null);
+const isParsingAI = ref(false);
+const parsedResult = ref(null);
+const healthAdvice = ref("");
+const savedRecordId = ref(null);
+const isAnalyzing = ref(false); // 串流進行中的狀態
 
 // ==========================================================================
 // 2. 醫療紀錄五大類別設定檔
@@ -418,7 +395,6 @@ const typeConfig = {
   },
 };
 
-// 自動產生頂部分頁按鈕陣列
 const filterTabsList = computed(() => {
   const base = [{ key: "all", label: "全部" }];
   Object.entries(typeConfig).forEach(([k, v]) => {
@@ -428,7 +404,7 @@ const filterTabsList = computed(() => {
 });
 
 // ==========================================================================
-// 3. 醫療紀錄假資料（接後端前暫用）
+// 3. 醫療紀錄假資料
 // ==========================================================================
 const medicalRecordsList = ref([
   {
@@ -555,10 +531,8 @@ function getEventConfig(fileType) {
 // ==========================================================================
 // 6. AI 上傳辨識功能
 // ==========================================================================
-
-// 按「新增病歷」或「選擇檔案」按鈕時，觸發隱藏的 input
 function handleRecordInfo() {
-  fileInputRef.value.value = ""; // 清空 input 的值
+  fileInputRef.value.value = "";
   fileInputRef.value.click();
 }
 function handleFileSelect() {
@@ -566,7 +540,6 @@ function handleFileSelect() {
   fileInputRef.value.click();
 }
 
-// 拖曳放下時觸發
 async function handleFileDrop(event) {
   dragging.value = false;
   const file = event.dataTransfer.files[0];
@@ -574,21 +547,20 @@ async function handleFileDrop(event) {
   await uploadAndParse(file);
 }
 
-// 使用者選好檔案後觸發
 async function handleFileChosen(event) {
   const file = event.target.files[0];
   if (!file) return;
   await uploadAndParse(file);
 }
 
-// 上傳給後端 AI 辨識
 async function uploadAndParse(file) {
-  if (isParsingAI.value) return; // 防止重複觸發
+  if (isParsingAI.value) return;
 
   isParsingAI.value = true;
   parsedResult.value = null;
   healthAdvice.value = "";
   savedRecordId.value = null;
+  isAnalyzing.value = false; // 重置分析狀態
 
   try {
     const formData = new FormData();
@@ -598,9 +570,7 @@ async function uploadAndParse(file) {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    // 辨識結果存起來，同時暫存檔案物件（儲存時要用）
     parsedResult.value = response.data;
-    // 把 AI 回傳的字串 "null" 清成空字串，避免畫面直接顯示 "null"
     const 要清洗的欄位 = [
       "clinicName",
       "vetName",
@@ -616,7 +586,7 @@ async function uploadAndParse(file) {
         parsedResult.value[欄位名稱] === "null" ||
         parsedResult.value[欄位名稱] === null
       ) {
-        parsedResult.value[欄位名稱] = ""; // 空字串會讓 placeholder 顯示出來
+        parsedResult.value[欄位名稱] = "";
       }
     });
     parsedResult.value._file = file;
@@ -624,18 +594,16 @@ async function uploadAndParse(file) {
     console.error("AI 辨識失敗：", error);
     alert("❌ 辨識失敗，請確認檔案格式或稍後再試。");
   } finally {
-    isParsingAI.value = false; // 確保一定會重置
+    isParsingAI.value = false;
   }
 }
 
-// 用戶確認後儲存病歷
 async function handleSaveRecord() {
-  console.log("handleSaveRecord 被呼叫了，parsedResult =", parsedResult.value);
   if (!parsedResult.value) return;
 
   try {
     const formData = new FormData();
-    formData.append("petId", 1); // 之後從 store 取得真實 petId
+    formData.append("petId", 1);
     formData.append("file", parsedResult.value._file);
     formData.append("diagnosis", parsedResult.value.diagnosis || "待確認");
     formData.append("clinicName", parsedResult.value.clinicName || "");
@@ -663,11 +631,8 @@ async function handleSaveRecord() {
     });
 
     savedRecordId.value = response.data;
-    alert("✅ 病歷儲存成功！正在產生健康建議...");
+    console.log("儲存成功，recordId =", savedRecordId.value);
 
-    console.log("準備呼叫 analyze，recordId =", savedRecordId.value);
-
-    // 儲存成功後自動開始串流健康建議
     await startHealthAnalysis(savedRecordId.value);
   } catch (error) {
     console.error("儲存失敗：", error);
@@ -675,39 +640,38 @@ async function handleSaveRecord() {
   }
 }
 
-// 串流健康建議（打字機效果）
-// 串流健康建議（打字機效果）
 async function startHealthAnalysis(recordId) {
   console.log("startHealthAnalysis 開始，recordId =", recordId);
   healthAdvice.value = "";
+  isAnalyzing.value = true; // 開始：顯示「分析中」
 
-  // 改用 XMLHttpRequest 處理 SSE，避免 CORS 問題
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", `http://localhost:8080/api/medical/analyze/${recordId}`);
     xhr.setRequestHeader("Accept", "text/event-stream");
 
-    // 每次收到資料就觸發（打字機效果）
     xhr.onprogress = function () {
       const text = xhr.responseText;
       const lines = text.split("\n");
-      healthAdvice.value = ""; // 重設後重新組裝
+      let assembled = "";
       for (const line of lines) {
         if (line.startsWith("data:")) {
-          healthAdvice.value += line.replace("data:", "") + "\n";
+          const content = line.slice(5); //
+          if (content.trim()) assembled += content;
         }
       }
+      healthAdvice.value = assembled;
     };
 
-    // 串流結束
     xhr.onload = function () {
       console.log("串流結束");
+      isAnalyzing.value = false; // 結束
       resolve();
     };
 
-    // 發生錯誤
     xhr.onerror = function () {
       console.error("串流請求失敗");
+      isAnalyzing.value = false; // 結束（請求失敗狀態）
       resolve();
     };
 

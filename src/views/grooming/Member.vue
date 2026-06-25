@@ -16,9 +16,8 @@
 
       <div class="grid grid-3 member-grid">
         <div class="card member-profile-card">
-          <div class="profile-avatar">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" alt="Avatar" />
-          </div>
+          <!-- 頭像改成跟 header 一樣：顯示帳號前四碼（slice(0, 4) 只取前四個字）-->
+          <div class="profile-avatar">{{ memberInfo.account.slice(0, 4) }}</div>
           <h3 class="profile-name">{{ memberInfo.name }} <span class="badge badge-success profile-badge">驗證會員</span></h3>
           <div class="info-list">
             <div class="info-list-item"><span>登入帳號 (account)</span><strong>{{ memberInfo.account }}</strong></div>

@@ -519,7 +519,7 @@ async function handleRegister() {
 }
 
 function toMember() {
-  router.push('/grooming/member')
+  router.push('/')
 }
 </script>
 

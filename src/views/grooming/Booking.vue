@@ -167,7 +167,7 @@
       </div>
 
       <!-- 確認預約彈窗 (Modal) -->
-      <div v-if="isConfirmModalOpen" class="modal-overlay" @click.self="isConfirmModalOpen = false">
+      <div v-if="isConfirmModalOpen" class="modal-overlay" @click.self="closeConfirmModal">
         <div class="card modal-content">
           <h3 class="modal-title">確認您的預約資訊</h3>
           <div class="modal-body">
@@ -191,7 +191,7 @@
             <button type="button" @click="confirmBooking" class="btn btn-primary flex-1" :disabled="isProcessingPayment">
               {{ isProcessingPayment ? '處理中...' : '前往付款' }}
             </button>
-            <button type="button" @click="isConfirmModalOpen = false" class="btn btn-cancel flex-1">取消</button>
+            <button type="button" @click="closeConfirmModal" class="btn btn-cancel flex-1">取消</button>
           </div>
           <!-- 後端已經建立好 PayPal 訂單，這裡渲染 PayPal 官方按鈕讓使用者真正付款 -->
           <div v-else class="modal-actions" style="flex-direction: column; align-items: stretch;">
@@ -215,7 +215,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment } from './groomingApi'
+import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment, cancelAppointment } from './groomingApi'
 import useUserStore from '@/stores/user.js'
 
 export default {
@@ -243,6 +243,7 @@ export default {
       toastType: 'success',      // Toast 類型 (success / error)
       isProcessingPayment: false, // 是否正在處理金流（true 時按鈕要顯示 loading、不能再按）
       paypalOrderId: null,       // 跟後端建立好的 PayPal 訂單 id，PayPal 按鈕要用這個
+      createdAppointmentId: null, // 「已建立但還沒付款」的預約 id；使用者若放棄付款，要靠它叫後端取消、釋放時段
       pendingAppointmentData: null, // 暫存剛建立的預約資料，付款成功後要拿來發 Line 通知
       apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
       couponTimer: null,         // 用於 debounce 請求 (防抖)
@@ -570,6 +571,8 @@ export default {
       try {
         const response = await createAppointment(appointmentData);
         appointmentId = response.data.id;
+        // 記下這筆預約 id：它現在已經佔住時段了，等一下如果使用者放棄付款，要靠它叫後端取消
+        this.createdAppointmentId = appointmentId;
       } catch (error) {
         this.isProcessingPayment = false;
         // 後端驗證沒通過時（例如時段被搶走了），把原因顯示給使用者看，不要靜默失敗
@@ -587,6 +590,8 @@ export default {
         this.paypalOrderId = paymentResponse.data.paypalOrderId;
       } catch (error) {
         this.isProcessingPayment = false;
+        // PayPal 訂單沒建成功，等於沒辦法付款了，把剛剛建立的預約取消掉，不要留一筆卡住時段
+        await this.cancelPendingAppointment();
         this.triggerToast(`❌ ${this.extractErrorMessage(error, 'PayPal 訂單建立失敗，請重新嘗試')}`, 'error');
         return;
       }
@@ -626,6 +631,13 @@ export default {
         onApprove: async (data) => {
           await this.handlePayPalApprove(data.orderID);
         },
+        // 使用者在 PayPal 視窗按「取消」或直接關掉視窗時會進到這裡：
+        // 把剛建立的預約取消掉，釋放時段，不要留一筆沒付款的卡在那
+        onCancel: async () => {
+          await this.cancelPendingAppointment();
+          this.paypalOrderId = null;
+          this.triggerToast('已取消付款，這筆預約未成立', 'error');
+        },
         onError: (err) => {
           // 印到 console 方便除錯（按 F12 看 Console 分頁）
           console.error('PayPal Buttons onError:', err);
@@ -642,6 +654,9 @@ export default {
         this.triggerToast(`❌ ${this.extractErrorMessage(error, '付款失敗，請重新嘗試')}`, 'error');
         return;
       }
+
+      // 付款成功了，這筆預約正式成立，清掉「待取消」的記號（不可以再被當成棄單去取消）
+      this.createdAppointmentId = null;
 
       // 關閉確認彈窗
       this.isConfirmModalOpen = false;
@@ -661,9 +676,29 @@ export default {
       // 呼叫 Line 通知方法 (這部分通常由後端處理更安全)
       this.sendLineNotification(this.pendingAppointmentData);
     },
-    // 使用者在 PayPal 按鈕渲染出來後反悔，取消這次付款，回到「前往付款」畫面
-    cancelPayPalPayment() {
+    // 使用者在 PayPal 按鈕渲染出來後反悔，按「取消付款」：
+    // 先把剛建立、還沒付款的預約取消掉（釋放時段），再回到「前往付款」畫面
+    async cancelPayPalPayment() {
+      await this.cancelPendingAppointment();
       this.paypalOrderId = null;
+    },
+    // 共用：把「已建立但還沒付款」的預約叫後端取消，釋放它佔住的時段。
+    // 取消成功或這筆本來就不存在都沒關係；取消失敗也不擋使用者操作（只記在 console）。
+    async cancelPendingAppointment() {
+      if (!this.createdAppointmentId) return;
+      const idToCancel = this.createdAppointmentId;
+      this.createdAppointmentId = null; // 先清掉，避免同一筆被重複取消
+      try {
+        await cancelAppointment(idToCancel);
+      } catch (error) {
+        console.error('取消未付款預約失敗:', error);
+      }
+    },
+    // 關閉確認彈窗：如果裡面有「已建立但還沒付款」的預約，一起取消掉，避免關掉視窗就留下孤兒預約卡住時段
+    async closeConfirmModal() {
+      await this.cancelPendingAppointment();
+      this.paypalOrderId = null;
+      this.isConfirmModalOpen = false;
     },
     triggerToast(message, type = 'success') {
       this.toastMessage = message;

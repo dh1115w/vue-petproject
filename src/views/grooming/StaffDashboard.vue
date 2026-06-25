@@ -155,10 +155,12 @@
         <input v-model="searchQuery" type="text" placeholder="搜尋寵物名稱..." class="search-input" />
         <select v-model="statusFilter" class="filter-select">
           <option value="all">所有狀態</option>
-          <option value="待處理">待處理</option>
-          <option value="進行中">進行中</option>
-          <option value="已完成">已完成</option>
-          <option value="已取消">已取消</option>
+          <option value="0">待確認</option>
+          <option value="1">已確認</option>
+          <option value="2">美容進行中</option>
+          <option value="3">服務已完成</option>
+          <option value="4">預約已取消</option>
+          <option value="5">未到店</option>
         </select>
       </div>
 
@@ -178,11 +180,11 @@
             <td>{{ order.id }}</td>
             <td>{{ order.petName }}</td>
             <td>{{ order.service }}</td>
-            <td>{{ order.status }}</td>
+            <td>{{ orderStatusMap[order.status]?.label || '未知' }}</td>
             <td>
-              <button v-if="order.status === '待處理'" @click="updateOrderStatus(order.id, '進行中')" class="btn-primary">開始</button>
-              <button v-if="order.status === '待處理'" @click="updateOrderStatus(order.id, '已取消')" class="btn-cancel">取消</button>
-              <button v-if="order.status === '進行中'" @click="updateOrderStatus(order.id, '已完成')" class="btn-success">完成</button>
+              <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 2)" class="btn-primary">開始美容</button>
+              <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 4)" class="btn-cancel">取消</button>
+              <button v-if="order.status === 2" @click="updateOrderStatus(order.id, 3)" class="btn-success">完成美容</button>
               <button class="btn-blacklist" @click="addToBlacklist(order.userId)">加入黑名單</button>
             </td>
           </tr>
@@ -231,10 +233,19 @@ import {
   updateAdminOrder,
   getBlacklist,
   addToBlacklist as apiAddToBlacklist,
-  updateAppointmentStatus,
   exportTodayAppointments,
   getGroomers
 } from './groomingApi';
+
+// 訂單狀態對照表（跟 Appointments.vue 用同一套，數字才是後端真正的狀態）
+const orderStatusMap = {
+  0: { label: '待確認', value: 0 },
+  1: { label: '已確認', value: 1 },
+  2: { label: '美容進行中', value: 2 },
+  3: { label: '服務已完成', value: 3 },
+  4: { label: '預約已取消', value: 4 },
+  5: { label: '未到店', value: 5 }
+};
 
 // 頁籤狀態
 const currentTab = ref('schedule');
@@ -333,11 +344,9 @@ const fetchData = async () => {
       isOpen: false
     }));
     
-    // 格式化 orders (將 status 轉為中文顯示)
-    const statusTextMap = { 0: '待處理', 1: '已完成', 2: '已取消', 3: '進行中' };
+    // 格式化 orders（status 保留後端原本的數字 0~5，畫面顯示用 orderStatusMap 轉文字）
     orders.value = ordersRes.data.map(o => ({
       ...o,
-      status: statusTextMap[o.status] || '未知',
       service: o.serviceName
     }));
     
@@ -358,7 +367,7 @@ const filteredSchedule = computed(() => {
 const filteredOrders = computed(() => {
   return orders.value.filter(order => {
     const matchesSearch = order.petName.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesStatus = statusFilter.value === 'all' || order.status === statusFilter.value;
+    const matchesStatus = statusFilter.value === 'all' || order.status === parseInt(statusFilter.value);
     return matchesSearch && matchesStatus;
   });
 });
@@ -381,9 +390,9 @@ watch([searchQuery, statusFilter], () => {
   ordersPage.value = 1;
 });
 
-// 功能邏輯
+// 功能邏輯（newStatus 是數字：0待確認 1已確認 2進行中 3已完成 4已取消 5未到店）
 const updateOrderStatus = async (id, newStatus) => {
-  if (newStatus === '已取消' && !confirm('確定要取消這筆預約嗎？這將會釋放排班時段供其他客戶預約。')) {
+  if (newStatus === 4 && !confirm('確定要取消這筆預約嗎？這將會釋放排班時段供其他客戶預約。')) {
     return;
   }
 
@@ -391,7 +400,8 @@ const updateOrderStatus = async (id, newStatus) => {
     await updateAdminOrder(id, newStatus);
     await fetchData(); // 重新整理資料
   } catch (err) {
-    alert('更新訂單失敗');
+    const message = err.response && err.response.data ? err.response.data : '更新訂單失敗';
+    alert(message);
   }
 };
 
@@ -497,7 +507,7 @@ const setGroomerDayStatus = (isOpen) => {
 const getSlotStatusText = (slot) => {
   if (slot.appointmentId) {
     const order = getOrderById(slot.appointmentId);
-    return order?.status === '已完成' ? '服務完成' : '已預約';
+    return order?.status === 3 ? '服務完成' : '已預約'; // 3 = 已完成
   }
   return slot.isOpen ? '可排班' : '維修/休息';
 };
@@ -506,7 +516,7 @@ const getSlotStatusClass = (slot) => {
   if (slot.appointmentId) {
     const order = getOrderById(slot.appointmentId);
     // 若已完成則顯示成功顏色（假設 CSS 有 status-success），否則顯示預約色
-    if (order?.status === '已完成') return 'status-badge status-success';
+    if (order?.status === 3) return 'status-badge status-success'; // 3 = 已完成
     return 'status-badge status-completed';
   }
   return slot.isOpen ? 'status-badge status-pending' : 'status-badge status-closed';

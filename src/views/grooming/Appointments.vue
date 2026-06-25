@@ -60,22 +60,12 @@
                     @click="openCancelModal(apt)"
                     class="mini-page-btn danger-border"
                   >取消</button>
-                  <button
-                    v-if="apt.status === 0"
-                    @click="updateStatus(apt.id, 2)"
-                    class="mini-page-btn"
-                    style="border-color: #f39c12; color: #f39c12; margin-left: 5px;"
-                  >開始美容</button>
-                  <button
-                    v-if="apt.status === 2"
-                    @click="updateStatus(apt.id, 3)"
-                    class="mini-page-btn"
-                    style="border-color: #27ae60; color: #27ae60;"
-                  >完成美容</button>
+                  <!-- 「開始美容/完成美容」是店家標記服務進度的動作，不該由客人自己按，
+                       已經移到管理員後台（StaffDashboard.vue 的「訂單管理」分頁）去做 -->
 
                   <button
-                    v-if="canReview(apt)" 
-                    @click="openReviewModal(apt)" 
+                    v-if="canReview(apt)"
+                    @click="goToReview(apt)"
                     class="mini-page-btn"
                     style="border-color: #f39c12; color: #f39c12;"
                   >評價服務</button>
@@ -114,30 +104,8 @@
 
     </main>
 
-    <!-- 評價預約彈窗 (Modal) -->
-    <div v-if="isReviewModalOpen" class="modal-overlay" @click.self="closeReviewModal">
-      <div class="card modal-content">
-        <h3 class="modal-title">評價您的美容服務</h3>
-        <div class="modal-body">
-          <p class="text-center">毛孩：<strong>{{ appointmentToReview?.petName }}</strong></p>
-          <p class="text-center">服務：<strong>{{ appointmentToReview?.serviceName }}</strong></p>
-          <div class="modal-form-group">
-            <label>評分 (1-5 星)</label>
-            <select v-model="reviewRating" class="modal-select">
-              <option v-for="n in 5" :key="n" :value="n">{{ n }} 星</option>
-            </select>
-          </div>
-          <div class="modal-form-group">
-            <label>評價內容</label>
-            <textarea v-model="reviewComment" rows="3" class="modal-textarea" placeholder="分享您的美容心得..."></textarea>
-          </div>
-        </div>
-        <div class="modal-actions mt-20">
-          <button type="button" @click="submitReview" class="btn btn-primary flex-1">送出評價</button>
-          <button type="button" @click="closeReviewModal" class="btn btn-cancel flex-1">返回</button>
-        </div>
-      </div>
-    </div>
+    <!-- 評價表單已經統一搬到 Reviews.vue（避免兩個地方各維護一份評價表單），
+         這裡的「評價服務」按鈕改成直接導去那個頁面 -->
 
     <!-- 取消預約確認彈窗 (Modal) -->
     <div v-if="isCancelModalOpen" class="modal-overlay" @click.self="closeCancelModal">
@@ -259,7 +227,7 @@
 
 <script>
 import NavBar from './NavBar.vue'; // 假設 NavBar 路徑正確
-import { getAppointments, cancelAppointment, submitGroomingReview, updateAppointmentStatus } from './groomingApi';
+import { getAppointments, cancelAppointment } from './groomingApi';
 
 export default {
   name: 'Appointments',
@@ -284,10 +252,6 @@ export default {
       error: null, // 已修正：這裡原本漏了逗點
       isCancelModalOpen: false, // 控制取消預約彈窗顯示
       appointmentToCancel: null, // 儲存要取消的預約
-      isReviewModalOpen: false, // 控制評價彈窗
-      appointmentToReview: null, // 儲存要評價的預約
-      reviewRating: 5,
-      reviewComment: '',
       sortKey: 'date', // 預設排序欄位
       sortOrder: 'desc' // 預設降冪排序 (最新的在前)
     }
@@ -410,52 +374,9 @@ export default {
         this.closeCancelModal();
       }
     },
-    async updateStatus(id, newStatus) {
-      try {
-        const actionName = newStatus === 2 ? '開始美容' : '完成美容';
-        await updateAppointmentStatus(id, newStatus);
-        alert(`預約編號 ${id} 已切換至 ${actionName}！`);
-        this.fetchAppointments(); // 重新載入列表以確保畫面同步
-      } catch (error) {
-        console.error('更新狀態失敗:', error);
-        alert('狀態更新失敗，請稍後再試。');
-      }
-    },
-    openReviewModal(appointment) {
-      this.appointmentToReview = appointment;
-      this.isReviewModalOpen = true;
-    },
-    closeReviewModal() {
-      this.isReviewModalOpen = false;
-      this.appointmentToReview = null;
-      this.reviewComment = '';
-      this.reviewRating = 5;
-    },
-    async submitReview() {
-      try {
-        const targetApt = this.appointments.find(a => a.id === this.appointmentToReview.id);
-        if (targetApt) {
-          // 建立評價數據物件
-          const reviewData = {
-            appointmentId: targetApt.id,
-            groomerName: targetApt.groomer, // 關鍵：關聯美容師
-            rating: this.reviewRating,
-            comment: this.reviewComment,
-            date: new Date().toISOString()
-          };
-          
-          await submitGroomingReview(reviewData);
-          
-          targetApt.isReviewed = true;
-          targetApt.reviewRating = this.reviewRating; // 暫存資料供查看
-          targetApt.reviewComment = this.reviewComment;
-        }
-        
-        alert('感謝您的評價！我們會繼續努力。');
-        this.closeReviewModal();
-      } catch (error) {
-        alert('評價提交失敗，請重試。');
-      }
+    goToReview(apt) {
+      // 評價表單統一在 Reviews.vue，這裡帶上 appointmentId，讓那邊自動選定這筆預約
+      this.$router.push({ path: '/grooming/reviews', query: { appointmentId: apt.id } });
     },
     canReview(apt) {
       // 1. 狀態必須是「已完成」(3) 且「尚未評價」

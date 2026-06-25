@@ -1,8 +1,10 @@
 import axios from '@/plugins/axios.js';
+import adminAxios from '@/plugins/grooming/adminAxios.js';
 
-// 還剩 StaffDashboard.vue 用的幾個 function 是 mock，其他都已經改成真正打後端 API
+// 還剩 StaffDashboard.vue 的「排班表格、統計數字、黑名單」幾個 function 是 mock，其他都已經改成真正打後端 API
 // （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
-//   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon）
+//   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon、
+//   getAdminOrders、updateAdminOrder、submitGroomingReview）
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -62,11 +64,6 @@ export const cancelAppointment = (id) => {
   return axios.post(`/api/secure/appointments/${id}/cancel`);
 };
 
-export const updateAppointmentStatus = (id, status) => {
-  console.log('[mock] updateAppointmentStatus 被呼叫，id：', id, '新狀態：', status);
-  return Promise.resolve({ data: { success: true } });
-};
-
 // ===== Staff.vue 用 =====
 // 已串接真正後端 API：GET /api/groomers
 // 註：後端目前還沒有 rating（評分，要等 Review 表）、isOnDuty（今日有沒有上班，要等 GroomerSchedule 表），
@@ -86,22 +83,16 @@ export const getAdminSchedule = () => {
   return Promise.resolve({ data: mockAppointments });
 };
 
+// 已串接真正後端 API：GET /api/admin/appointments（要登入管理員才能用，看全部會員的預約）
+// 註：後端回傳的資料沒有 userId 這個欄位，「加入黑名單」按鈕還是要等後續處理
 export const getAdminOrders = () => {
-  console.log('[mock] getAdminOrders 被呼叫');
-  return Promise.resolve({
-    data: mockAppointments.map(a => ({
-      id: a.id,
-      petName: a.petName,
-      serviceName: a.serviceName,
-      status: a.status,
-      userId: 'user_' + a.id
-    }))
-  });
+  return adminAxios.get('/api/admin/appointments');
 };
 
-export const updateAdminOrder = (id, status) => {
-  console.log('[mock] updateAdminOrder 被呼叫，id：', id, '新狀態：', status);
-  return Promise.resolve({ data: { success: true } });
+// 已串接真正後端 API：POST /api/admin/appointments/{id}/status
+// newStatus 是數字 0~5（待確認/已確認/進行中/已完成/已取消/未到店），改成取消(4)時可以多帶 cancelReason
+export const updateAdminOrder = (id, newStatus, cancelReason = null) => {
+  return adminAxios.post(`/api/admin/appointments/${id}/status`, { status: newStatus, cancelReason });
 };
 
 export const getBlacklist = () => {
@@ -177,38 +168,11 @@ export const getReviews = () => {
   return axios.get('/api/reviews');
 };
 
-export const getUnreviewedAppointments = () => {
-  console.log('[mock] getUnreviewedAppointments 被呼叫');
-
-  return Promise.resolve({
-    data: [
-      {
-        id: 101,
-        date: '2026-06-20',
-        serviceName: '基礎洗護',
-        groomer: 'Andy'
-      },
-      {
-        id: 102,
-        date: '2026-06-19',
-        serviceName: '全套美容造型',
-        groomer: 'Emily'
-      }
-    ]
-  });
-};
-
+// 已串接真正後端 API：POST /api/secure/reviews（要登入會員才能用）
+// data 要帶 { appointmentId, overallRating, serviceRating, envRating, priceRating, comment, isAnonymous }
+// 後端會檢查：這筆預約是不是你自己的、狀態是不是「已完成」、是不是已經評價過
 export const submitGroomingReview = (data) => {
-  console.log('[mock] submitGroomingReview 被呼叫，內容：');
-  // 相容兩種呼叫方式：Reviews.vue 傳 FormData，Appointments.vue 傳一般物件
-  if (data instanceof FormData) {
-    for (const pair of data.entries()) {
-      console.log(`  ${pair[0]}: ${pair[1]}`);
-    }
-  } else {
-    console.log(data);
-  }
-  return Promise.resolve({ data: { success: true } });
+  return axios.post('/api/secure/reviews', data);
 };
 // import axios from '@/api/axios'; // 確保此路徑指向您的 axios 實例
 // import useUserStore from '@/stores/user.js';

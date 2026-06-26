@@ -249,7 +249,7 @@ export default {
           return b.rating - a.rating; // 由高到低
         }
         // 預設為最新發布 (newest)
-        return new Date(b.date) - new Date(a.date);
+        return this.parseApiDate(b.date) - this.parseApiDate(a.date);
       });
     },
     totalPages() {
@@ -268,6 +268,11 @@ export default {
     filterGroomer: 'fetchReviews'
   },
   methods: {
+    // 把後端日期字串（如 "2026-06-22 10:00"，空格分隔）轉成 Date 物件：
+    // 換成 ISO 的 'T' 才能在 Safari/Firefox 正確解析；null/空字串回 Invalid Date（不丟錯）
+    parseApiDate(dateStr) {
+      return new Date((dateStr || '').replace(' ', 'T'));
+    },
     async fetchReviews() {
       try {
         const response = await getReviews({

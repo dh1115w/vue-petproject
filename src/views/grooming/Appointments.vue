@@ -274,7 +274,7 @@ export default {
         let bVal = b[key];
 
         // 日期排序特殊處理
-        if (key === 'date') { aVal = new Date(aVal); bVal = new Date(bVal); }
+        if (key === 'date') { aVal = this.parseApiDate(aVal); bVal = this.parseApiDate(bVal); }
         if (aVal < bVal) return -1 * order;
         if (aVal > bVal) return 1 * order;
         return 0;
@@ -387,12 +387,17 @@ export default {
       // 評價表單統一在 Reviews.vue，這裡帶上 appointmentId，讓那邊自動選定這筆預約
       this.$router.push({ path: '/grooming/reviews', query: { appointmentId: apt.id } });
     },
+    // 把後端日期字串（如 "2026-06-22 10:00"，空格分隔）轉成 Date 物件：
+    // 換成 ISO 的 'T' 才能在 Safari/Firefox 正確解析；null/空字串回 Invalid Date（不丟錯）
+    parseApiDate(dateStr) {
+      return new Date((dateStr || '').replace(' ', 'T'));
+    },
     canReview(apt) {
       // 1. 狀態必須是「已完成」(3) 且「尚未評價」
       if (apt.status !== 3 || apt.isReviewed) return false;
 
       // 2. 計算時間差（毫秒轉天數）
-      const aptDate = new Date(apt.date);
+      const aptDate = this.parseApiDate(apt.date);
       const now = new Date();
       const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
 
@@ -403,7 +408,7 @@ export default {
       // 1. 狀態必須是「已完成」(3) 且「尚未評價」
       if (apt.status !== 3 || apt.isReviewed) return false;
 
-      const aptDate = new Date(apt.date);
+      const aptDate = this.parseApiDate(apt.date);
       const now = new Date();
       const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
       return diffInDays > 7;

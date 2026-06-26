@@ -368,11 +368,20 @@ export default {
       } catch (error) {
         console.error('取消預約失敗:', error);
         // 後端有給原因的話（例如「這筆預約目前的狀態不能取消」），顯示真正的原因
-        const message = error.response && error.response.data ? error.response.data : '取消預約失敗，請稍後再試。';
+        const message = this.extractErrorMessage(error, '取消預約失敗，請稍後再試。');
         alert(message);
       } finally {
         this.closeCancelModal();
       }
+    },
+    // 把後端回傳的錯誤轉成可讀字串：字串直接用、物件取 message、否則用預設訊息
+    // （跟 Booking.vue 的同名方法一致，避免錯誤訊息顯示成「[object Object]」）
+    extractErrorMessage(error, fallback) {
+      const data = error.response ? error.response.data : null;
+      if (!data) return fallback;
+      if (typeof data === 'string') return data;
+      if (data.message) return data.message;
+      return fallback;
     },
     goToReview(apt) {
       // 評價表單統一在 Reviews.vue，這裡帶上 appointmentId，讓那邊自動選定這筆預約

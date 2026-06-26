@@ -58,7 +58,7 @@
 
           <!-- 新增連結至預約紀錄 -->
           <div style="margin-top: 20px; text-align: center;">
-            <router-link to="/grooming/Appointments" class="btn btn-outline-alt" style="width: 100%; display: block; text-decoration: none;">
+            <router-link to="/grooming/appointments" class="btn btn-outline-alt" style="width: 100%; display: block; text-decoration: none;">
               📋 查看我的預約紀錄
             </router-link>
           </div>
@@ -304,7 +304,7 @@ export default {
       const pet = this.pets.find(p => p.id == this.form.pet_id);
       // pet.type 判斷不出來（物種文字看不出貓狗）時，先顯示全部服務，不要整個擋掉
       if (!pet || !pet.type) return this.services;
-      return this.services.filter(s => s.allowedSpecies.includes(pet.type));
+      return this.services.filter(s => !s.allowedSpecies || s.allowedSpecies.includes(pet.type));
     },
     // 新增：動態計算預估價格
     estimatedPrice() {
@@ -387,7 +387,7 @@ export default {
       // 只有「之前已經選過服務」才需要檢查現在這隻寵物還適不適用
       if (this.form.service_id) {
         const previouslySelectedService = this.services.find(s => s.id == this.form.service_id);
-        if (previouslySelectedService && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
+        if (previouslySelectedService && previouslySelectedService.allowedSpecies && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
           this.incompatibleServiceWarning = `您選擇的毛孩 (${pet.name}) 不適用「${previouslySelectedService.title}」服務，請重新選擇。`;
           this.form.service_id = ''; // 清空不相容的服務
         }
@@ -668,7 +668,7 @@ export default {
       // 延遲跳轉頁面，讓使用者有時間看到 Toast 通知
       setTimeout(() => {
         // 預約成功後跳轉至紀錄頁面
-        this.$router.push('/grooming/Appointments');
+        this.$router.push('/grooming/appointments');
         // 重置表單 (在跳轉後進行，避免影響 Toast 訊息的顯示)
         this.form = { pet_id: '', service_id: '', groomer_id: '', apt_date_date: '', timeSlot: '', notes: '', coupon_code: '' };
       }, 1500); // 1.5 秒後跳轉

@@ -319,16 +319,6 @@ export default {
         const response = await getAppointments(params);
         let remoteData = response.data;
 
-        // 檢查路由 state 中是否有剛產生的預約
-        if (window.history.state && window.history.state.newAppointment) {
-          const newApt = window.history.state.newAppointment;
-          // 檢查是否已經存在於遠端資料中（避免重複顯示）
-          const isDuplicate = remoteData.some(apt => apt.date === newApt.date && apt.petName === newApt.petName);
-          if (!isDuplicate) {
-            remoteData = [newApt, ...remoteData];
-          }
-        }
-
         this.appointments = remoteData; 
       } catch (err) {
         console.error('Error fetching appointments:', err);

@@ -395,16 +395,10 @@ import {
   createCoupon as apiCreateCoupon,
   updateCoupon as apiUpdateCoupon
 } from './groomingApi';
+import { appointmentStatusMap } from './groomingStatus';
 
 // 訂單狀態對照表（跟 Appointments.vue 用同一套，數字才是後端真正的狀態）
-const orderStatusMap = {
-  0: { label: '待確認', value: 0 },
-  1: { label: '已確認', value: 1 },
-  2: { label: '美容進行中', value: 2 },
-  3: { label: '服務已完成', value: 3 },
-  4: { label: '預約已取消', value: 4 },
-  5: { label: '未到店', value: 5 }
-};
+const orderStatusMap = appointmentStatusMap;
 
 // 排班狀態對照表（對應後端 GroomerSchedule.status；dot 是月曆上的顏色 class）
 const scheduleStatusMap = {

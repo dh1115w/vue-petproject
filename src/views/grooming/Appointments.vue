@@ -226,6 +226,7 @@
 <script>
 import NavBar from './NavBar.vue'; // 假設 NavBar 路徑正確
 import { getAppointments, cancelAppointment } from './groomingApi';
+import { appointmentStatusMap } from './groomingStatus';
 
 export default {
   name: 'Appointments',
@@ -235,14 +236,7 @@ export default {
       appointments: [], // 將預約資料初始化為空陣列
       // 註：後端真正的狀態是 0~5（待確認/已確認/進行中/已完成/已取消/未到店），
       // 跟舊版的 0~3（已收到預約/已完成/已取消/進行中）對不起來，已經改成跟後端一致
-      statusMap: {
-        0: { label: '待確認', class: 'badge-info' },
-        1: { label: '已確認', class: 'badge-info' },
-        2: { label: '美容進行中', class: 'badge-warning' },
-        3: { label: '服務已完成', class: 'badge-success' },
-        4: { label: '預約已取消', class: 'badge-secondary' },
-        5: { label: '未到店', class: 'badge-secondary' }
-      },
+      statusMap: appointmentStatusMap,
       filterStatus: 'all',
       currentAptPage: 1,
       aptPageSize: 5,

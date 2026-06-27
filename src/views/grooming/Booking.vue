@@ -476,6 +476,11 @@ export default {
         }
       }
     },
+    // 用服務 id + 體型找出對應的 pricingId（後端要靠這個查價格、時長）；找不到回 null
+    findPricingId(serviceId, size) {
+      const service = this.services.find(s => s.id == serviceId);
+      return service && service.pricingIdMap ? service.pricingIdMap[size] : null;
+    },
     async fetchAvailableTimeSlots() {
       const { appointmentDate, groomerId, serviceId, size } = this.form;
 
@@ -487,8 +492,7 @@ export default {
       }
 
       // 用服務 + 體型找出對應的 pricingId（送給後端用來查時長）
-      const service = this.services.find(s => s.id == serviceId);
-      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[size] : null;
+      const pricingId = this.findPricingId(serviceId, size);
       if (!pricingId) {
         this.availableTimeSlots = [];
         this.timeSlotsError = null;
@@ -551,8 +555,7 @@ export default {
       this.isProcessingPayment = true;
 
       // 用服務 + 體型找出對應的 pricingId，後端要靠這個查價格、時長
-      const service = this.services.find(s => s.id == this.form.serviceId);
-      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[this.form.size] : null;
+      const pricingId = this.findPricingId(this.form.serviceId, this.form.size);
 
       const appointmentData = {
         petId: parseInt(this.form.petId),

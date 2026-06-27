@@ -181,3 +181,21 @@ export const getReviews = () => {
 export const submitGroomingReview = (data) => {
   return axios.post('/api/secure/reviews', data);
 };
+
+// ===== StaffDashboard.vue 優惠券管理分頁用（管理員）=====
+// 已串接真正後端 API：GET /api/admin/coupons（查全部優惠券，新的在前）
+export const getCoupons = () => {
+  return adminAxios.get('/api/admin/coupons');
+};
+
+// 已串接真正後端 API：POST /api/admin/coupons（新增一張優惠券）
+// data 要帶 { code, name, description, discountType, discountValue, minOrderAmount,
+//            maxDiscount, totalQty, startDate, endDate, isActive }
+export const createCoupon = (data) => {
+  return adminAxios.post('/api/admin/coupons', data);
+};
+
+// 已串接真正後端 API：PUT /api/admin/coupons/{id}（編輯既有優惠券）
+export const updateCoupon = (id, data) => {
+  return adminAxios.put(`/api/admin/coupons/${id}`, data);
+};

@@ -24,6 +24,7 @@
       <button :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'">月曆視圖</button>
       <button :class="{ active: currentTab === 'orders' }" @click="currentTab = 'orders'">訂單管理</button>
       <button :class="{ active: currentTab === 'blacklist' }" @click="currentTab = 'blacklist'">黑名單管理</button>
+      <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
     </div>
 
     <!-- 1. 排班管理 (與線上預約關聯) -->
@@ -229,6 +230,99 @@
         </tbody>
       </table>
     </div>
+    <!-- 4. 優惠券管理 -->
+    <div v-if="currentTab === 'coupons'" class="content-section">
+      <h2>優惠券管理</h2>
+
+      <div class="tool-bar">
+        <button @click="openCreateCoupon" class="btn-primary">+ 新增優惠券</button>
+      </div>
+
+      <!-- 新增/編輯表單（couponFormVisible 為 true 才顯示）-->
+      <div v-if="couponFormVisible" class="coupon-form">
+        <h3>{{ editingCouponId ? '編輯優惠券' : '新增優惠券' }}</h3>
+        <div class="coupon-form-grid">
+          <label>優惠碼
+            <input v-model="couponForm.code" type="text" placeholder="例：PET80" />
+          </label>
+          <label>名稱
+            <input v-model="couponForm.name" type="text" placeholder="例：全品項8折" />
+          </label>
+          <label>折扣類型
+            <select v-model.number="couponForm.discountType">
+              <option :value="1">固定金額（折 NT$）</option>
+              <option :value="2">百分比（折掉幾 %）</option>
+            </select>
+          </label>
+          <label>折扣值
+            <input v-model.number="couponForm.discountValue" type="number" min="0"
+                   :placeholder="couponForm.discountType === 2 ? '例：20 代表打 8 折' : '例：100 代表折 100 元'" />
+          </label>
+          <label>最低消費門檻
+            <input v-model.number="couponForm.minOrderAmount" type="number" min="0" placeholder="沒有就填 0" />
+          </label>
+          <label>最高折抵金額
+            <input v-model.number="couponForm.maxDiscount" type="number" min="0" placeholder="不限就留空" />
+          </label>
+          <label>總發放數量
+            <input v-model.number="couponForm.totalQty" type="number" min="0" placeholder="不限就留空" />
+          </label>
+          <label>開始日期
+            <input v-model="couponForm.startDate" type="date" />
+          </label>
+          <label>結束日期
+            <input v-model="couponForm.endDate" type="date" />
+          </label>
+          <label>說明
+            <input v-model="couponForm.description" type="text" placeholder="選填" />
+          </label>
+          <label class="coupon-form-checkbox">
+            <input v-model="couponForm.isActive" type="checkbox" /> 啟用這張券
+          </label>
+        </div>
+        <div class="coupon-form-actions">
+          <button @click="submitCoupon" class="btn-primary">{{ editingCouponId ? '儲存修改' : '確定新增' }}</button>
+          <button @click="cancelCouponForm" class="btn-cancel">取消</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>優惠碼</th>
+            <th>名稱</th>
+            <th>折扣</th>
+            <th>最低消費</th>
+            <th>使用期間</th>
+            <th>已用/總量</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="coupons.length === 0">
+            <td colspan="8" style="text-align: center; color: #888;">目前沒有優惠券，按右上角「新增優惠券」建立一張</td>
+          </tr>
+          <tr v-for="c in coupons" :key="c.id">
+            <td>{{ c.code }}</td>
+            <td>{{ c.name }}</td>
+            <td>{{ formatCouponDiscount(c) }}</td>
+            <td>NT$ {{ c.minOrderAmount }}</td>
+            <td>{{ formatCouponDate(c.startDate) }} ~ {{ formatCouponDate(c.endDate) }}</td>
+            <td>{{ c.usedQty }} / {{ c.totalQty == null ? '不限' : c.totalQty }}</td>
+            <td>
+              <span :class="c.isActive ? 'status-badge status-pending' : 'status-badge status-closed'">
+                {{ c.isActive ? '啟用中' : '已停用' }}
+              </span>
+            </td>
+            <td><button @click="openEditCoupon(c)" class="btn-sm">編輯</button></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -244,7 +338,10 @@ import {
   addToBlacklist as apiAddToBlacklist,
   removeFromBlacklist,
   exportTodayAppointments,
-  getGroomers
+  getGroomers,
+  getCoupons,
+  createCoupon as apiCreateCoupon,
+  updateCoupon as apiUpdateCoupon
 } from './groomingApi';
 
 // 訂單狀態對照表（跟 Appointments.vue 用同一套，數字才是後端真正的狀態）
@@ -565,6 +662,96 @@ const removeBlacklist = async (item) => {
     alert(message);
   }
 };
+
+// ===== 優惠券管理分頁 =====
+const coupons = ref([]);
+const couponFormVisible = ref(false);
+const editingCouponId = ref(null); // null = 新增模式，有值 = 正在編輯第幾張券
+
+// 表單欄位的預設值（新增時用這個重置）
+const blankCouponForm = () => ({
+  code: '',
+  name: '',
+  description: '',
+  discountType: 1,
+  discountValue: null,
+  minOrderAmount: 0,
+  maxDiscount: null,
+  totalQty: null,
+  startDate: '',
+  endDate: '',
+  isActive: true
+});
+const couponForm = ref(blankCouponForm());
+
+// 載入優惠券清單（切到「優惠券管理」分頁時呼叫）
+const loadCoupons = async () => {
+  try {
+    const res = await getCoupons();
+    coupons.value = res.data;
+  } catch (err) {
+    console.error('載入優惠券失敗:', err);
+  }
+};
+
+// 打開「新增」表單
+const openCreateCoupon = () => {
+  editingCouponId.value = null;
+  couponForm.value = blankCouponForm();
+  couponFormVisible.value = true;
+};
+
+// 打開「編輯」表單，把那張券的資料帶進表單
+const openEditCoupon = (c) => {
+  editingCouponId.value = c.id;
+  couponForm.value = {
+    code: c.code,
+    name: c.name,
+    description: c.description,
+    discountType: c.discountType,
+    discountValue: c.discountValue,
+    minOrderAmount: c.minOrderAmount,
+    maxDiscount: c.maxDiscount,
+    totalQty: c.totalQty,
+    startDate: c.startDate ? c.startDate.split('T')[0] : '',
+    endDate: c.endDate ? c.endDate.split('T')[0] : '',
+    isActive: c.isActive
+  };
+  couponFormVisible.value = true;
+};
+
+const cancelCouponForm = () => {
+  couponFormVisible.value = false;
+};
+
+// 送出表單：依模式呼叫新增或編輯 API
+const submitCoupon = async () => {
+  try {
+    if (editingCouponId.value) {
+      await apiUpdateCoupon(editingCouponId.value, couponForm.value);
+    } else {
+      await apiCreateCoupon(couponForm.value);
+    }
+    couponFormVisible.value = false;
+    await loadCoupons();
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '儲存優惠券失敗';
+    alert(message);
+  }
+};
+
+// 把折扣資訊組成好讀的文字
+const formatCouponDiscount = (c) => {
+  if (c.discountType === 1) {
+    return '折 NT$ ' + c.discountValue;
+  }
+  return '折 ' + c.discountValue + '%';
+};
+
+// 把後端 ISO 日期字串轉成 yyyy-mm-dd 顯示
+const formatCouponDate = (isoStr) => {
+  return isoStr ? isoStr.split('T')[0] : '';
+};
 </script>
 
 <style scoped>
@@ -764,6 +951,45 @@ const removeBlacklist = async (item) => {
 }
 .btn-cancel:hover {
   background-color: #7f8c8d;
+}
+
+.coupon-form {
+  background: #fff;
+  border: 1px solid #e8e8e6;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.coupon-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 20px;
+}
+.coupon-form-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: #555;
+  gap: 4px;
+}
+.coupon-form-grid input,
+.coupon-form-grid select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+.coupon-form-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.coupon-form-checkbox input {
+  width: auto;
+}
+.coupon-form-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
 }
 </style>
 ```

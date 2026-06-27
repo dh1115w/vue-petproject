@@ -245,3 +245,26 @@ export const createService = (data) => {
 export const updateService = (id, data) => {
   return adminAxios.put(`/api/admin/services/${id}`, data);
 };
+
+// ===== StaffDashboard.vue 美容師管理分頁用（管理員）=====
+// 查全部美容師（含已離職，新的在前）：GET /api/admin/groomers
+export const getAdminGroomers = () => {
+  return adminAxios.get('/api/admin/groomers');
+};
+
+// 專長類別勾選用（只回啟用中的）：GET /api/admin/groomers/specialties
+export const getSpecialtyCategories = () => {
+  return adminAxios.get('/api/admin/groomers/specialties');
+};
+
+// 新增美容師：POST /api/admin/groomers
+// data 要帶 { name, phone, email, gender, birth, hireDate, photoUrl, bio,
+//            experience, isActive, specialtyIds: [..] }
+export const createGroomer = (data) => {
+  return adminAxios.post('/api/admin/groomers', data);
+};
+
+// 編輯美容師：PUT /api/admin/groomers/{id}
+export const updateGroomer = (id, data) => {
+  return adminAxios.put(`/api/admin/groomers/${id}`, data);
+};

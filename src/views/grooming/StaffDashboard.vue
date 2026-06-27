@@ -26,6 +26,7 @@
       <button :class="{ active: currentTab === 'blacklist' }" @click="currentTab = 'blacklist'">黑名單管理</button>
       <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
       <button :class="{ active: currentTab === 'services' }" @click="currentTab = 'services'; loadServices()">服務管理</button>
+      <button :class="{ active: currentTab === 'groomers' }" @click="currentTab = 'groomers'; loadGroomers()">美容師管理</button>
     </div>
 
     <!-- 1. 排班管理 -->
@@ -469,6 +470,101 @@
       </div>
     </div>
 
+    <div v-if="currentTab === 'groomers'" class="content-section">
+      <h2>美容師管理</h2>
+
+      <div class="tool-bar">
+        <button @click="openCreateGroomer" class="btn-primary">+ 新增美容師</button>
+      </div>
+
+      <!-- 新增/編輯表單（groomerFormVisible 為 true 才顯示）-->
+      <div v-if="groomerFormVisible" class="coupon-form">
+        <h3>{{ editingGroomerId ? '編輯美容師' : '新增美容師' }}</h3>
+        <div class="coupon-form-grid">
+          <label>姓名
+            <input v-model="groomerForm.name" type="text" placeholder="例：王小美" />
+          </label>
+          <label>電話
+            <input v-model="groomerForm.phone" type="text" placeholder="例：0912345678" />
+          </label>
+          <label>Email
+            <input v-model="groomerForm.email" type="email" placeholder="例：abc@example.com" />
+          </label>
+          <label>性別
+            <select v-model="groomerForm.gender">
+              <option :value="false">女</option>
+              <option :value="true">男</option>
+            </select>
+          </label>
+          <label>生日
+            <input v-model="groomerForm.birth" type="date" />
+          </label>
+          <label>到職日期
+            <input v-model="groomerForm.hireDate" type="date" />
+          </label>
+          <label>年資（年）
+            <input v-model.number="groomerForm.experience" type="number" min="0" placeholder="例：5" />
+          </label>
+          <label>照片網址
+            <input v-model="groomerForm.photoUrl" type="text" placeholder="選填" />
+          </label>
+          <label>個人簡介
+            <input v-model="groomerForm.bio" type="text" placeholder="選填" />
+          </label>
+          <label class="coupon-form-checkbox">
+            <input v-model="groomerForm.isActive" type="checkbox" /> 在職（顯示在前台）
+          </label>
+        </div>
+
+        <h4 style="margin: 16px 0 8px;">專長（可複選）</h4>
+        <div class="coupon-form-grid">
+          <label v-for="cat in specialtyCategories" :key="cat.id" class="coupon-form-checkbox">
+            <input type="checkbox" :value="cat.id" v-model="groomerForm.specialtyIds" /> {{ cat.name }}
+          </label>
+          <span v-if="specialtyCategories.length === 0" style="color:#888;">（目前沒有可選的專長類別）</span>
+        </div>
+
+        <div class="coupon-form-actions">
+          <button @click="submitGroomer" class="btn-primary">{{ editingGroomerId ? '儲存修改' : '確定新增' }}</button>
+          <button @click="cancelGroomerForm" class="btn-cancel">取消</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>電話</th>
+            <th>Email</th>
+            <th>性別</th>
+            <th>專長</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="groomers.length === 0">
+            <td colspan="7" style="text-align: center; color: #888;">目前沒有美容師，按右上角「新增美容師」建立一位</td>
+          </tr>
+          <tr v-for="g in groomers" :key="g.id">
+            <td>{{ g.name }}</td>
+            <td>{{ g.phone }}</td>
+            <td>{{ g.email }}</td>
+            <td>{{ g.gender ? '男' : '女' }}</td>
+            <td>{{ g.specialtyText || '—' }}</td>
+            <td>
+              <span :class="g.isActive ? 'status-badge status-pending' : 'status-badge status-closed'">
+                {{ g.isActive ? '在職' : '已離職' }}
+              </span>
+            </td>
+            <td><button @click="openEditGroomer(g)" class="btn-sm">編輯</button></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -493,7 +589,11 @@ import {
   getAdminServices,
   getServiceCategories,
   createService as apiCreateService,
-  updateService as apiUpdateService
+  updateService as apiUpdateService,
+  getAdminGroomers,
+  getSpecialtyCategories,
+  createGroomer as apiCreateGroomer,
+  updateGroomer as apiUpdateGroomer
 } from './groomingApi';
 import { appointmentStatusMap } from './groomingStatus';
 
@@ -1063,6 +1163,85 @@ const submitService = async () => {
     await loadServices();
   } catch (err) {
     const message = err.response && err.response.data ? err.response.data : '儲存服務失敗';
+    alert(message);
+  }
+};
+
+// ===== 美容師管理分頁 =====
+const groomers = ref([]);
+const specialtyCategories = ref([]);
+const groomerFormVisible = ref(false);
+const editingGroomerId = ref(null); // null = 新增模式，有值 = 正在編輯哪位
+
+// 表單預設值（新增時用這個重置）
+const blankGroomerForm = () => ({
+  name: '',
+  phone: '',
+  email: '',
+  gender: false,
+  birth: '',
+  hireDate: '',
+  photoUrl: '',
+  bio: '',
+  experience: null,
+  isActive: true,
+  specialtyIds: []
+});
+const groomerForm = ref(blankGroomerForm());
+
+// 載入美容師清單 + 專長類別（切到「美容師管理」分頁時呼叫）
+const loadGroomers = async () => {
+  try {
+    const [gRes, sRes] = await Promise.all([getAdminGroomers(), getSpecialtyCategories()]);
+    groomers.value = gRes.data;
+    specialtyCategories.value = sRes.data;
+  } catch (err) {
+    console.error('載入美容師失敗:', err);
+  }
+};
+
+// 打開「新增」表單
+const openCreateGroomer = () => {
+  editingGroomerId.value = null;
+  groomerForm.value = blankGroomerForm();
+  groomerFormVisible.value = true;
+};
+
+// 打開「編輯」表單，把該美容師資料帶進表單
+const openEditGroomer = (g) => {
+  editingGroomerId.value = g.id;
+  groomerForm.value = {
+    name: g.name,
+    phone: g.phone,
+    email: g.email,
+    gender: g.gender,
+    birth: g.birth ? g.birth.split('T')[0] : '',
+    hireDate: g.hireDate ? g.hireDate.split('T')[0] : '',
+    photoUrl: g.photoUrl,
+    bio: g.bio,
+    experience: g.experience,
+    isActive: g.isActive,
+    specialtyIds: g.specialtyIds ? [...g.specialtyIds] : []
+  };
+  groomerFormVisible.value = true;
+};
+
+const cancelGroomerForm = () => {
+  groomerFormVisible.value = false;
+};
+
+// 送出表單：依模式呼叫新增或編輯 API
+const submitGroomer = async () => {
+  try {
+    if (editingGroomerId.value) {
+      await apiUpdateGroomer(editingGroomerId.value, groomerForm.value);
+    } else {
+      await apiCreateGroomer(groomerForm.value);
+    }
+    groomerFormVisible.value = false;
+    await loadGroomers();
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '儲存美容師失敗';
     alert(message);
   }
 };

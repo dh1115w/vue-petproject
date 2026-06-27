@@ -25,6 +25,7 @@
       <button :class="{ active: currentTab === 'orders' }" @click="currentTab = 'orders'">訂單管理</button>
       <button :class="{ active: currentTab === 'blacklist' }" @click="currentTab = 'blacklist'">黑名單管理</button>
       <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
+      <button :class="{ active: currentTab === 'services' }" @click="currentTab = 'services'; loadServices()">服務管理</button>
     </div>
 
     <!-- 1. 排班管理 -->
@@ -373,6 +374,101 @@
       </div>
     </div>
 
+    <div v-if="currentTab === 'services'" class="content-section">
+      <h2>服務管理</h2>
+
+      <div class="tool-bar">
+        <button @click="openCreateService" class="btn-primary">+ 新增服務</button>
+      </div>
+
+      <!-- 新增/編輯表單（serviceFormVisible 為 true 才顯示）-->
+      <div v-if="serviceFormVisible" class="coupon-form">
+        <h3>{{ editingServiceId ? '編輯服務' : '新增服務' }}</h3>
+        <div class="coupon-form-grid">
+          <label>服務名稱
+            <input v-model="serviceForm.name" type="text" placeholder="例：基礎洗護" />
+          </label>
+          <label>服務分類
+            <select v-model.number="serviceForm.categoryId">
+              <option :value="null" disabled>請選擇分類</option>
+              <option v-for="cat in serviceCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+            </select>
+          </label>
+          <label>適用物種
+            <input v-model="serviceForm.applicableSpecies" type="text" placeholder="貓狗都能用就留空；限定填 dog 或 cat 或 dog,cat" />
+          </label>
+          <label>說明
+            <input v-model="serviceForm.description" type="text" placeholder="選填" />
+          </label>
+          <label>注意事項
+            <input v-model="serviceForm.note" type="text" placeholder="選填" />
+          </label>
+          <label class="coupon-form-checkbox">
+            <input v-model="serviceForm.isActive" type="checkbox" /> 上架（顯示在前台）
+          </label>
+        </div>
+
+        <h4 style="margin: 16px 0 8px;">各體型定價（沒有提供的體型留空即可）</h4>
+        <div class="coupon-form-grid">
+          <label>小型 價格
+            <input v-model.number="serviceForm.priceSmall" type="number" min="0" placeholder="NT$" />
+          </label>
+          <label>小型 時長(分)
+            <input v-model.number="serviceForm.durationSmall" type="number" min="0" placeholder="分鐘" />
+          </label>
+          <label>中型 價格
+            <input v-model.number="serviceForm.priceMid" type="number" min="0" placeholder="NT$" />
+          </label>
+          <label>中型 時長(分)
+            <input v-model.number="serviceForm.durationMid" type="number" min="0" placeholder="分鐘" />
+          </label>
+          <label>大型 價格
+            <input v-model.number="serviceForm.priceBig" type="number" min="0" placeholder="NT$" />
+          </label>
+          <label>大型 時長(分)
+            <input v-model.number="serviceForm.durationBig" type="number" min="0" placeholder="分鐘" />
+          </label>
+        </div>
+
+        <div class="coupon-form-actions">
+          <button @click="submitService" class="btn-primary">{{ editingServiceId ? '儲存修改' : '確定新增' }}</button>
+          <button @click="cancelServiceForm" class="btn-cancel">取消</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>服務名稱</th>
+            <th>分類</th>
+            <th>適用物種</th>
+            <th>各體型價格</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="services.length === 0">
+            <td colspan="6" style="text-align: center; color: #888;">目前沒有服務，按右上角「新增服務」建立一個</td>
+          </tr>
+          <tr v-for="s in services" :key="s.id">
+            <td>{{ s.name }}</td>
+            <td>{{ categoryName(s.categoryId) }}</td>
+            <td>{{ s.applicableSpecies || '不限' }}</td>
+            <td>{{ formatPricings(s.pricings) }}</td>
+            <td>
+              <span :class="s.isActive ? 'status-badge status-pending' : 'status-badge status-closed'">
+                {{ s.isActive ? '上架中' : '已下架' }}
+              </span>
+            </td>
+            <td><button @click="openEditService(s)" class="btn-sm">編輯</button></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -393,7 +489,11 @@ import {
   deleteSchedule as apiDeleteSchedule,
   getCoupons,
   createCoupon as apiCreateCoupon,
-  updateCoupon as apiUpdateCoupon
+  updateCoupon as apiUpdateCoupon,
+  getAdminServices,
+  getServiceCategories,
+  createService as apiCreateService,
+  updateService as apiUpdateService
 } from './groomingApi';
 import { appointmentStatusMap } from './groomingStatus';
 
@@ -852,6 +952,119 @@ const formatCouponDiscount = (c) => {
 // 把後端 ISO 日期字串轉成 yyyy-mm-dd 顯示
 const formatCouponDate = (isoStr) => {
   return isoStr ? isoStr.split('T')[0] : '';
+};
+
+// ===== 服務管理分頁 =====
+const services = ref([]);
+const serviceCategories = ref([]);
+const serviceFormVisible = ref(false);
+const editingServiceId = ref(null); // null = 新增模式，有值 = 正在編輯哪個服務
+
+// 表單預設值（新增時用這個重置）
+const blankServiceForm = () => ({
+  categoryId: null,
+  name: '',
+  description: '',
+  applicableSpecies: '',
+  note: '',
+  isActive: true,
+  // 三種體型的價格/時長分開填，送出時再組成 pricings 陣列
+  priceSmall: null, durationSmall: null,
+  priceMid: null, durationMid: null,
+  priceBig: null, durationBig: null
+});
+const serviceForm = ref(blankServiceForm());
+
+// 載入服務清單 + 分類（切到「服務管理」分頁時呼叫）
+const loadServices = async () => {
+  try {
+    const [svcRes, catRes] = await Promise.all([getAdminServices(), getServiceCategories()]);
+    services.value = svcRes.data;
+    serviceCategories.value = catRes.data;
+  } catch (err) {
+    console.error('載入服務失敗:', err);
+  }
+};
+
+// 依 categoryId 找分類名稱（清單顯示用）
+const categoryName = (id) => {
+  const cat = serviceCategories.value.find(c => c.id === id);
+  return cat ? cat.name : '—';
+};
+
+// 把各體型定價組成好讀的文字
+const formatPricings = (pricings) => {
+  if (!pricings || pricings.length === 0) return '—';
+  const label = { 1: '小', 2: '中', 3: '大' };
+  return pricings
+    .slice()
+    .sort((a, b) => a.size - b.size)
+    .map(p => `${label[p.size] || p.size} $${p.price}/${p.duration}分`)
+    .join('、');
+};
+
+// 把表單三組體型欄位組成後端要的 pricings 陣列（有填價格的才算）
+const buildPricings = (f) => {
+  const list = [];
+  if (f.priceSmall) list.push({ size: 1, price: f.priceSmall, duration: f.durationSmall });
+  if (f.priceMid) list.push({ size: 2, price: f.priceMid, duration: f.durationMid });
+  if (f.priceBig) list.push({ size: 3, price: f.priceBig, duration: f.durationBig });
+  return list;
+};
+
+// 打開「新增」表單
+const openCreateService = () => {
+  editingServiceId.value = null;
+  serviceForm.value = blankServiceForm();
+  serviceFormVisible.value = true;
+};
+
+// 打開「編輯」表單，把該服務資料帶進表單
+const openEditService = (s) => {
+  editingServiceId.value = s.id;
+  const f = blankServiceForm();
+  f.categoryId = s.categoryId;
+  f.name = s.name;
+  f.description = s.description;
+  f.applicableSpecies = s.applicableSpecies || '';
+  f.note = s.note;
+  f.isActive = s.isActive;
+  (s.pricings || []).forEach(p => {
+    if (p.size === 1) { f.priceSmall = p.price; f.durationSmall = p.duration; }
+    else if (p.size === 2) { f.priceMid = p.price; f.durationMid = p.duration; }
+    else if (p.size === 3) { f.priceBig = p.price; f.durationBig = p.duration; }
+  });
+  serviceForm.value = f;
+  serviceFormVisible.value = true;
+};
+
+const cancelServiceForm = () => {
+  serviceFormVisible.value = false;
+};
+
+// 送出表單：依模式呼叫新增或編輯 API
+const submitService = async () => {
+  try {
+    const payload = {
+      categoryId: serviceForm.value.categoryId,
+      name: serviceForm.value.name,
+      description: serviceForm.value.description,
+      applicableSpecies: serviceForm.value.applicableSpecies,
+      note: serviceForm.value.note,
+      isActive: serviceForm.value.isActive,
+      pricings: buildPricings(serviceForm.value)
+    };
+    if (editingServiceId.value) {
+      await apiUpdateService(editingServiceId.value, payload);
+    } else {
+      await apiCreateService(payload);
+    }
+    serviceFormVisible.value = false;
+    await loadServices();
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '儲存服務失敗';
+    alert(message);
+  }
 };
 </script>
 

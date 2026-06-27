@@ -222,3 +222,26 @@ export const createCoupon = (data) => {
 export const updateCoupon = (id, data) => {
   return adminAxios.put(`/api/admin/coupons/${id}`, data);
 };
+
+// ===== StaffDashboard.vue 服務管理分頁用（管理員）=====
+// 查全部服務（含已下架，新的在前）：GET /api/admin/services
+export const getAdminServices = () => {
+  return adminAxios.get('/api/admin/services');
+};
+
+// 服務分類下拉用（只回啟用中的分類）：GET /api/admin/services/categories
+export const getServiceCategories = () => {
+  return adminAxios.get('/api/admin/services/categories');
+};
+
+// 新增服務：POST /api/admin/services
+// data 要帶 { categoryId, name, description, applicableSpecies, imageUrl, note, isActive,
+//            pricings: [{ size, price, duration }] }
+export const createService = (data) => {
+  return adminAxios.post('/api/admin/services', data);
+};
+
+// 編輯服務：PUT /api/admin/services/{id}
+export const updateService = (id, data) => {
+  return adminAxios.put(`/api/admin/services/${id}`, data);
+};

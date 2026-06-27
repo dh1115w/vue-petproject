@@ -83,6 +83,23 @@ export const getAdminSchedule = () => {
   return Promise.resolve({ data: mockAppointments });
 };
 
+// 已串接真正後端 API：GET /api/admin/shift-templates（班別模板：早班/晚班…，含起訖時間）
+export const getShiftTemplates = () => {
+  return adminAxios.get('/api/admin/shift-templates');
+};
+
+// 已串接真正後端 API：GET /api/admin/schedules（查某段日期、全部美容師的排班）
+// params 帶 { startDate, endDate }（可選 groomer_id）；每筆回 { id, groomerId, groomerName, scheduleDate, shiftId, shiftName, startTime, endTime, status }
+export const getAdminSchedules = (params) => {
+  return adminAxios.get('/api/admin/schedules', { params });
+};
+
+// 已串接真正後端 API：POST /api/admin/schedules（新增或更新某美容師某天的排班，upsert）
+// data 帶 { groomerId, shiftId, scheduleDate, status }
+export const upsertSchedule = (data) => {
+  return adminAxios.post('/api/admin/schedules', data);
+};
+
 // 已串接真正後端 API：GET /api/admin/appointments（要登入管理員才能用，看全部會員的預約）
 // 註：後端回傳的資料沒有 userId 這個欄位，「加入黑名單」按鈕還是要等後續處理
 export const getAdminOrders = () => {

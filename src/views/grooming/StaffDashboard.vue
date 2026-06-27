@@ -20,71 +20,58 @@
 
     <!-- 頁籤切換 -->
     <div class="tab-menu">
-      <button :class="{ active: currentTab === 'schedule' }" @click="currentTab = 'schedule'">排班與預約關聯</button>
+      <button :class="{ active: currentTab === 'schedule' }" @click="currentTab = 'schedule'">排班管理</button>
       <button :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'">月曆視圖</button>
       <button :class="{ active: currentTab === 'orders' }" @click="currentTab = 'orders'">訂單管理</button>
       <button :class="{ active: currentTab === 'blacklist' }" @click="currentTab = 'blacklist'">黑名單管理</button>
       <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
     </div>
 
-    <!-- 1. 排班管理 (與線上預約關聯) -->
+    <!-- 1. 排班管理（接真實後端：每位美容師選班別 + 狀態存檔）-->
     <div v-if="currentTab === 'schedule'" class="content-section">
-      <h2>月排班管理</h2>
+      <h2>每日排班管理</h2>
       <div class="tool-bar">
         <div class="filter-group">
           <label>選擇日期：</label>
-          <input v-model="selectedDate" type="date" class="date-input" />
-        </div>
-        <!-- 新增匯出按鈕 -->
-        <button @click="handleExport" class="btn-sm" style="background-color: #2c3e50; color: white; border: none; margin-right: 15px;">
-          📥 匯出今日清單 (CSV)
-        </button>
-        <!-- 新增快速操作區塊 -->
-        <div class="filter-group">
-          <label>快速操作：</label>
-          <select v-model="quickActionStaff" class="filter-select">
-            <option v-for="staff in staffList" :key="staff.name" :value="staff.name">
-              {{ staff.name }}
-            </option>
-          </select>
-          <button @click="setGroomerDayStatus(false)" class="btn-sm btn-blacklist">一鍵關閉全天</button>
-          <button @click="setGroomerDayStatus(true)" class="btn-sm">一鍵開啟全天</button>
+          <input v-model="selectedDate" type="date" class="date-input" @change="onSelectedDateChange" />
         </div>
       </div>
-      <p>提示：切換日期可管理該日排班狀態。當預約 ID 有值時，代表該時段已被線上預約佔用。</p>
+      <p>提示：為每位美容師選擇當天的「班別」與「狀態」後按儲存。沒有排班（未排班）的美容師，當天不會開放線上預約。</p>
       <div class="table-container">
       <table class="admin-table">
         <thead>
           <tr>
-            <th>日期</th>
-            <th>時段</th>
             <th>美容師</th>
+            <th>班別</th>
             <th>狀態</th>
-            <th>預約詳情</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="slot in filteredSchedule" :key="slot.id">
-            <td>{{ slot.date }}</td>
-            <td>{{ slot.time }}</td>
-            <td>{{ slot.staffName }}</td>
+          <tr v-if="scheduleRows.length === 0">
+            <td colspan="4" style="text-align: center; color: #888;">尚未載入美容師名單</td>
+          </tr>
+          <tr v-for="row in scheduleRows" :key="row.groomerId">
+            <td>{{ row.groomerName }}</td>
             <td>
-              <span :class="getSlotStatusClass(slot)">
-                {{ getSlotStatusText(slot) }}
-              </span>
+              <select v-model.number="row.shiftId" class="filter-select">
+                <option :value="null">（未排班）</option>
+                <option v-for="st in shiftTemplates" :key="st.id" :value="st.id">
+                  {{ st.name }}（{{ formatTime(st.startTime) }}~{{ formatTime(st.endTime) }}）
+                </option>
+              </select>
             </td>
             <td>
-              <div v-if="slot.appointmentId" class="appointment-detail">
-                <span class="id-badge">#{{ slot.appointmentId }}</span>
-                <span class="pet-info">{{ getOrderById(slot.appointmentId)?.petName }} - {{ getOrderById(slot.appointmentId)?.service }}</span>
-              </div>
-              <span v-else>—</span>
+              <select v-model.number="row.status" class="filter-select">
+                <option :value="0">排班中</option>
+                <option :value="1">出勤</option>
+                <option :value="2">請假</option>
+                <option :value="3">缺勤</option>
+              </select>
             </td>
             <td>
-              <button @click="toggleSlot(slot)" class="btn-sm">
-                {{ slot.isOpen ? '關閉時段' : '開放預約' }}
-              </button>
+              <button @click="saveScheduleRow(row)" class="btn-primary">儲存</button>
+              <span v-if="row.scheduleId" class="schedule-saved-hint">已排班</span>
             </td>
           </tr>
         </tbody>
@@ -92,7 +79,7 @@
       </div>
     </div>
 
-    <!-- 1.5 月曆視圖 -->
+    <!-- 1.5 月曆視圖（唯讀總覽：顯示每天有誰排班、狀態顏色，點某天跳到排班分頁）-->
     <div v-if="currentTab === 'calendar'" class="content-section">
       <div class="calendar-container">
         <div class="calendar-header-nav">
@@ -104,44 +91,40 @@
             下個月 <i class="fas fa-chevron-right"></i>
           </button>
         </div>
-        
+
         <div class="calendar-board">
           <div v-for="dayName in ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']" :key="dayName" class="calendar-weekday">
             {{ dayName }}
           </div>
-          <div 
-            v-for="(item, index) in calendarDays" 
-            :key="index" 
+          <div
+            v-for="(item, index) in calendarDays"
+            :key="index"
             class="calendar-day"
             :class="{ 'other-month': !item.date, 'is-today': item.date === todayStr }"
-            @dragover.prevent
-            @drop="item.date && handleDrop($event, item.date)"
             @click="item.date && jumpToDate(item.date)"
           >
             <div class="day-header">
               <span class="day-num" v-if="item.day">{{ item.day }}</span>
             </div>
-            <!-- 顯示當日預約數 -->
+            <!-- 當日有幾位美容師排班 -->
             <div v-if="item.count > 0" class="appointment-count-badge">
-              {{ item.count }} 預約
+              {{ item.count }} 人排班
             </div>
-            <!-- 顯示美容師排班縮影 -->
+            <!-- 美容師排班狀態縮影（顏色點）-->
             <div class="staff-status-list" v-if="item.date">
-              <span v-for="staff in item.staffStatus" :key="staff.name" 
-                    class="staff-status-dot" 
-                    draggable="true"
-                    @dragstart="handleDragStart($event, staff.name, item.date)"
+              <span v-for="staff in item.staffStatus" :key="staff.name"
+                    class="staff-chip"
                     :class="staff.status"
-                    :title="staff.name + ': ' + staff.statusText"></span>
+                    :title="staff.name + '：' + staff.statusText">{{ staff.name }}</span>
             </div>
           </div>
         </div>
 
         <div class="calendar-footer">
           <div class="legend-item"><span class="box today-box"></span> 今日</div>
-          <div class="legend-item"><span class="box appointment-box"></span> 有預約項目</div>
-          <div class="legend-item"><span class="dot-sample pending"></span> 可預約</div>
-          <div class="legend-item"><span class="dot-sample closed"></span> 休假/關閉</div>
+          <div class="legend-item"><span class="dot-sample pending"></span> 排班中</div>
+          <div class="legend-item"><span class="dot-sample booked"></span> 出勤</div>
+          <div class="legend-item"><span class="dot-sample closed"></span> 請假/缺勤</div>
           <p class="calendar-hint">💡 點擊日期可跳轉至該日排班管理</p>
         </div>
       </div>
@@ -150,7 +133,7 @@
     <!-- 2. 訂單/預約事項 -->
     <div v-if="currentTab === 'orders'" class="content-section">
       <h2>預約訂單處理</h2>
-      
+
       <!-- 篩選與搜尋工具欄 -->
       <div class="tool-bar">
         <input v-model="searchQuery" type="text" placeholder="搜尋寵物名稱..." class="search-input" />
@@ -331,14 +314,15 @@ import { ref, computed, watch, onMounted } from 'vue';
 import '@/css/grooming/StaffDashboard.css';
 import {
   getAdminStats,
-  getAdminSchedule,
   getAdminOrders,
   updateAdminOrder,
   getBlacklist,
   addToBlacklist as apiAddToBlacklist,
   removeFromBlacklist,
-  exportTodayAppointments,
   getGroomers,
+  getShiftTemplates,
+  getAdminSchedules,
+  upsertSchedule as apiUpsertSchedule,
   getCoupons,
   createCoupon as apiCreateCoupon,
   updateCoupon as apiUpdateCoupon
@@ -354,6 +338,14 @@ const orderStatusMap = {
   5: { label: '未到店', value: 5 }
 };
 
+// 排班狀態對照表（對應後端 GroomerSchedule.status；dot 是月曆上的顏色 class）
+const scheduleStatusMap = {
+  0: { label: '排班中', dot: 'pending' },
+  1: { label: '出勤', dot: 'booked' },
+  2: { label: '請假', dot: 'closed' },
+  3: { label: '缺勤', dot: 'closed' }
+};
+
 // 頁籤狀態
 const currentTab = ref('schedule');
 
@@ -365,50 +357,52 @@ const statusFilter = ref('all');
 const selectedDate = ref(new Date().toISOString().split('T')[0]);
 const todayStr = new Date().toISOString().split('T')[0];
 
-// 數據概覽
+// 數據概覽（目前仍是後端 mock，之後要做再接）
 const stats = ref({ todayAppts: 0, pendingOrders: 0, avgRating: '0.0' });
 
-// 月曆視圖邏輯
-const viewDate = ref(new Date()); // 當前查看的月份
+// 月曆視圖目前查看的月份
+const viewDate = ref(new Date());
 
 const monthTitle = computed(() => {
   return viewDate.value.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' });
 });
 
+// 美容師名單（GET /api/groomers）
+const staffList = ref([]);
+// 班別模板（GET /api/admin/shift-templates）
+const shiftTemplates = ref([]);
+// 目前載入的排班資料（GET /api/admin/schedules，依檢視月份載入一整個月）
+const schedules = ref([]);
+// 排班分頁的可編輯列（每位美容師一列：選班別 + 狀態）
+const scheduleRows = ref([]);
+
+const orders = ref([]);
+const blacklist = ref([]);
+
+// 月曆每一格：當天有幾位美容師排班 + 每位的狀態顏色
 const calendarDays = computed(() => {
   const year = viewDate.value.getFullYear();
   const month = viewDate.value.getMonth();
-  const firstDay = new Date(year, month, 1).getDay(); // 第一天星期幾
-  const totalDays = new Date(year, month + 1, 0).getDate(); // 當月總天數
-  
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
   const days = [];
-  // 填充前補白
+  // 月初前面的空白格
   for (let i = 0; i < firstDay; i++) {
     days.push({ day: null, date: null, count: 0 });
   }
-  // 填充當月日期
+  // 當月每一天
   for (let d = 1; d <= totalDays; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const daySlots = schedule.value.filter(s => s.date === dateStr);
-    
-    // 統計預約數
-    const count = daySlots.filter(s => s.appointmentId).length;
-    
-    // 彙整美容師狀態摘要
-    const staffStatus = staffList.value.map(staff => {
-      const slots = daySlots.filter(s => s.staffName === staff.name);
-      const hasAppointment = slots.some(s => s.appointmentId);
-      const allClosed = slots.length > 0 && slots.every(s => !s.isOpen);
-      
-      let status = 'pending';
-      let statusText = '可預約';
-      if (hasAppointment) { status = 'booked'; statusText = '已有預約'; }
-      else if (allClosed) { status = 'closed'; statusText = '全日關閉'; }
-      
-      return { name: staff.name, status, statusText };
+    // 後端 scheduleDate 是 'YYYY-MM-DD' 格式，直接比對
+    const daySchedules = schedules.value.filter(s => s.scheduleDate === dateStr);
+
+    const staffStatus = daySchedules.map(s => {
+      const info = scheduleStatusMap[s.status] || { label: '未知', dot: 'closed' };
+      return { name: s.groomerName, status: info.dot, statusText: info.label };
     });
 
-    days.push({ day: d, date: dateStr, count, staffStatus });
+    days.push({ day: d, date: dateStr, count: daySchedules.length, staffStatus });
   }
   return days;
 });
@@ -417,58 +411,69 @@ const calendarDays = computed(() => {
 const itemsPerPage = 5; // 每頁顯示 5 筆
 const ordersPage = ref(1);
 
-// 快速操作選中的美容師（名單還沒抓回來前先空著，抓回來再讓使用者選）
-const quickActionStaff = ref('');
+// 依「目前檢視月份」載入整月排班，再重建排班分頁的列表
+const loadSchedules = async () => {
+  const y = viewDate.value.getFullYear();
+  const m = viewDate.value.getMonth();
+  const pad = (n) => String(n).padStart(2, '0');
+  const startDate = `${y}-${pad(m + 1)}-01`;
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const endDate = `${y}-${pad(m + 1)}-${pad(lastDay)}`;
 
-// 美容師名單，改成 fetchData() 時打 /api/groomers 抓真實資料，不再寫死
-const staffList = ref([]);
+  try {
+    const res = await getAdminSchedules({ startDate, endDate });
+    schedules.value = res.data;
+  } catch (err) {
+    console.error('載入排班失敗:', err);
+    schedules.value = [];
+  }
+  buildScheduleRows();
+};
 
-// 模擬排班資料 (關聯預約)
-const schedule = ref([]);
-const orders = ref([]);
-const blacklist = ref([]);
+// 用「美容師名單」搭配「當天已有的排班」，組出排班分頁每位美容師一列的可編輯資料
+const buildScheduleRows = () => {
+  scheduleRows.value = staffList.value.map(g => {
+    const existing = schedules.value.find(s => s.groomerId === g.id && s.scheduleDate === selectedDate.value);
+    return {
+      groomerId: g.id,
+      groomerName: g.name,
+      scheduleId: existing ? existing.id : null,
+      shiftId: existing ? existing.shiftId : null,
+      status: existing ? existing.status : 0
+    };
+  });
+};
 
 // 初始化資料載入
 const fetchData = async () => {
   try {
-    const [statsRes, scheduleRes, ordersRes, blacklistRes, groomersRes] = await Promise.all([
+    const [statsRes, ordersRes, blacklistRes, groomersRes, shiftRes] = await Promise.all([
       getAdminStats(),
-      getAdminSchedule(),
       getAdminOrders(),
       getBlacklist(),
-      getGroomers()
+      getGroomers(),
+      getShiftTemplates()
     ]);
     stats.value = statsRes.data;
     staffList.value = groomersRes.data;
+    shiftTemplates.value = shiftRes.data;
 
-    // 格式化 schedule (將預約紀錄映射到時段)
-    schedule.value = scheduleRes.data.map(apt => ({
-      id: apt.id,
-      date: apt.date.split(' ')[0],
-      time: apt.date.split(' ')[1],
-      staffName: apt.groomer,
-      appointmentId: apt.id,
-      isOpen: false
-    }));
-    
     // 格式化 orders（status 保留後端原本的數字 0~5，畫面顯示用 orderStatusMap 轉文字）
     orders.value = ordersRes.data.map(o => ({
       ...o,
       service: o.serviceName
     }));
-    
+
     blacklist.value = blacklistRes.data;
+
+    // 載入排班（依目前檢視月份）並建立排班列
+    await loadSchedules();
   } catch (err) {
     console.error('Failed to load dashboard data:', err);
   }
 };
 
 onMounted(fetchData);
-
-// 根據選擇日期篩選排班列表
-const filteredSchedule = computed(() => {
-  return schedule.value.filter(s => s.date === selectedDate.value);
-});
 
 // 篩選後的訂單列表
 const filteredOrders = computed(() => {
@@ -485,17 +490,58 @@ const paginatedOrders = computed(() => {
   return filteredOrders.value.slice(start, start + itemsPerPage);
 });
 
-// 透過 ID 取得訂單詳細資訊，建立排班與訂單的關聯
-const getOrderById = (id) => {
-  return orders.value.find(o => o.id === id);
-};
-
 const totalOrdersPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage) || 1);
 
 // 當搜尋或篩選條件改變時，自動回到第一頁
 watch([searchQuery, statusFilter], () => {
   ordersPage.value = 1;
 });
+
+// 把後端的 TIME 字串（09:00:00）顯示成 09:00
+const formatTime = (t) => {
+  return t ? String(t).slice(0, 5) : '';
+};
+
+// 儲存某位美容師當天的排班（呼叫真實 upsert API）
+const saveScheduleRow = async (row) => {
+  if (!row.shiftId) {
+    alert('請先選擇班別（未排班的話就不用儲存）');
+    return;
+  }
+  try {
+    await apiUpsertSchedule({
+      groomerId: row.groomerId,
+      shiftId: row.shiftId,
+      scheduleDate: selectedDate.value,
+      status: row.status
+    });
+    await loadSchedules(); // 重新載入，列表才會顯示「已排班」
+    alert(`已儲存 ${row.groomerName} 於 ${selectedDate.value} 的排班`);
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '儲存排班失敗';
+    alert(message);
+  }
+};
+
+// 切換日期時：跳到該日期所屬月份、重新載入該月排班並重建列表
+const onSelectedDateChange = () => {
+  const d = new Date(selectedDate.value);
+  viewDate.value = new Date(d.getFullYear(), d.getMonth(), 1);
+  loadSchedules();
+};
+
+// 月曆導航（換月後重新載入該月排班）
+const changeMonth = (offset) => {
+  viewDate.value = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + offset, 1);
+  loadSchedules();
+};
+
+// 從月曆點某天 → 跳到排班分頁、帶入該日期
+const jumpToDate = (date) => {
+  selectedDate.value = date;
+  currentTab.value = 'schedule';
+  buildScheduleRows();
+};
 
 // 功能邏輯（newStatus 是數字：0待確認 1已確認 2進行中 3已完成 4已取消 5未到店）
 const updateOrderStatus = async (id, newStatus) => {
@@ -511,126 +557,6 @@ const updateOrderStatus = async (id, newStatus) => {
     alert(message);
   }
 };
-
-// 匯出今日預約清單邏輯
-const handleExport = async () => {
-  try {
-    const response = await exportTodayAppointments();
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    const today = new Date().toLocaleDateString('sv-SE');
-    link.setAttribute('download', `美容預約清單-${today}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (err) {
-    alert('匯出清單失敗，請稍後再試');
-  }
-};
-
-const toggleSlot = (slot) => {
-  // 當準備將時段由「開啟」改為「關閉」時，檢查是否已有預約 ID
-  if (slot.isOpen && slot.appointmentId) {
-    alert(`無法關閉時段！\n此時段目前已被預約 (ID: #${slot.appointmentId})。若需調整排班，請先處理或取消該筆預約。`);
-    return;
-  }
-  slot.isOpen = !slot.isOpen;
-};
-
-// 月曆導航
-const changeMonth = (offset) => {
-  viewDate.value = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + offset, 1);
-};
-
-const jumpToDate = (date) => {
-  selectedDate.value = date;
-  currentTab.value = 'schedule';
-};
-
-// 拖曳排班邏輯
-const handleDragStart = (event, staffName, sourceDate) => {
-  event.dataTransfer.effectAllowed = 'move';
-  // 儲存被拖曳的美容師名稱與來源日期
-  event.dataTransfer.setData('staffName', staffName);
-  event.dataTransfer.setData('sourceDate', sourceDate);
-};
-
-const handleDrop = (event, targetDate) => {
-  const staffName = event.dataTransfer.getData('staffName');
-  const sourceDate = event.dataTransfer.getData('sourceDate');
-
-  if (!staffName || !sourceDate || sourceDate === targetDate) return;
-
-  // 衝突檢測：檢查該美容師在目標日期是否已經有排班
-  const isAlreadyScheduled = schedule.value.some(s => s.date === targetDate && s.staffName === staffName);
-  if (isAlreadyScheduled) {
-    alert(`排班衝突：${staffName} 在 ${targetDate} 已經有排班紀錄，無法重複移動。`);
-    return;
-  }
-
-  // 找出該美容師在來源日期的所有時段
-  const movingSlots = schedule.value.filter(s => s.date === sourceDate && s.staffName === staffName);
-
-  // 安全檢查：如果該美容師當天已經有被預約 (appointmentId)，則不允許直接拖曳改期
-  if (movingSlots.some(s => s.appointmentId)) {
-    alert(`無法移動：${staffName} 在 ${sourceDate} 已有客戶預約，請先處理預約訂單。`);
-    return;
-  }
-
-  // 更新日期，觸發 computed 重新計算月曆
-  movingSlots.forEach(s => {
-    s.date = targetDate;
-  });
-};
-
-// 一鍵開啟/關閉特定美容師整天排班
-const setGroomerDayStatus = (isOpen) => {
-  const daySlots = schedule.value.filter(s => 
-    s.date === selectedDate.value && s.staffName === quickActionStaff.value
-  );
-
-  // 當執行一鍵「關閉」且當天存在任何預約時，給予確認提示
-  if (!isOpen) {
-    const hasAppointments = daySlots.some(s => s.appointmentId);
-    if (hasAppointments) {
-      const proceed = confirm('提醒：此美容師當天已有預約。執行關閉操作將僅套用於「尚未被預約」的空閒時段，已預約時段將維持現狀。是否繼續？');
-      if (!proceed) return;
-    }
-  }
-
-  // 僅過濾出沒有預約的時段進行狀態變更
-  const affectedSlots = daySlots.filter(s => !s.appointmentId);
-
-  if (affectedSlots.length === 0) {
-    alert('操作完成：該美容師今日已無可變動的空閒時段。');
-    return;
-  }
-
-  affectedSlots.forEach(s => s.isOpen = isOpen);
-  alert(`已將 ${quickActionStaff.value} 於 ${selectedDate.value} 的所有可用時段設為 ${isOpen ? '開放' : '關閉'}`);
-};
-
-const getSlotStatusText = (slot) => {
-  if (slot.appointmentId) {
-    const order = getOrderById(slot.appointmentId);
-    return order?.status === 3 ? '服務完成' : '已預約'; // 3 = 已完成
-  }
-  return slot.isOpen ? '可排班' : '維修/休息';
-};
-
-const getSlotStatusClass = (slot) => {
-  if (slot.appointmentId) {
-    const order = getOrderById(slot.appointmentId);
-    // 若已完成則顯示成功顏色（假設 CSS 有 status-success），否則顯示預約色
-    if (order?.status === 3) return 'status-badge status-success'; // 3 = 已完成
-    return 'status-badge status-completed';
-  }
-  return slot.isOpen ? 'status-badge status-pending' : 'status-badge status-closed';
-};
-
-// 樣式類別補充 (假設在 CSS 中定義)
-// status-closed { background-color: #999; color: white; }
 
 // 把某個會員加入黑名單（memberId 來自訂單資料 order.memberId）
 const addToBlacklist = async (memberId) => {
@@ -864,21 +790,24 @@ const formatCouponDate = (isoStr) => {
 .staff-status-list {
   margin-top: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding-top: 8px;
 }
 
-.staff-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #eee;
-  cursor: grab;
+.staff-chip {
+  font-size: 0.68rem;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: #b0b0aa;
+  white-space: nowrap;
 }
 
-.staff-status-dot.pending { background: #2ecc71; } /* 綠色: 可預約 */
-.staff-status-dot.booked { background: #3498db; }  /* 藍色: 有預約 */
-.staff-status-dot.closed { background: #e74c3c; }  /* 紅色: 休假/關閉 */
+.staff-chip.pending { background: #27ae60; } /* 綠: 排班中 */
+.staff-chip.booked { background: #2980b9; }  /* 藍: 出勤 */
+.staff-chip.closed { background: #c0392b; }  /* 紅: 請假/缺勤 */
 
 .dot-sample {
   width: 10px;
@@ -887,11 +816,8 @@ const formatCouponDate = (isoStr) => {
   display: inline-block;
 }
 .dot-sample.pending { background: #2ecc71; }
+.dot-sample.booked { background: #3498db; }
 .dot-sample.closed { background: #e74c3c; }
-
-.appointment-box {
-  background: #2a2522;
-}
 
 .calendar-footer {
   margin-top: 20px;
@@ -917,7 +843,6 @@ const formatCouponDate = (isoStr) => {
 }
 
 .today-box { background: #fff9e6; border: 1px solid #ffeeba; }
-.appointment-box { background: #2a2522; }
 
 .calendar-hint {
   margin-left: auto;
@@ -925,18 +850,10 @@ const formatCouponDate = (isoStr) => {
   color: #b0b0aa;
 }
 
-.appointment-detail {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.id-badge {
-  font-size: 0.7rem;
-  color: #999;
-}
-.pet-info {
-  font-weight: 500;
-  color: #2a2522;
+.schedule-saved-hint {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  color: #27ae60;
 }
 
 .btn-cancel {
@@ -992,4 +909,3 @@ const formatCouponDate = (isoStr) => {
   gap: 10px;
 }
 </style>
-```

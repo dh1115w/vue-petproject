@@ -242,7 +242,6 @@ export default {
       isProcessingPayment: false, // 是否正在處理金流（true 時按鈕要顯示 loading、不能再按）
       paypalOrderId: null,       // 跟後端建立好的 PayPal 訂單 id，PayPal 按鈕要用這個
       createdAppointmentId: null, // 「已建立但還沒付款」的預約 id；使用者若放棄付款，要靠它叫後端取消、釋放時段
-      pendingAppointmentData: null, // 暫存剛建立的預約資料，付款成功後要拿來發 Line 通知
       apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
       couponTimer: null,         // 用於 debounce 請求 (防抖)
       couponError: null,         // 新增：儲存優惠碼錯誤訊息
@@ -253,8 +252,9 @@ export default {
       isLoadingTimeSlots: false, // 載入時段的狀態
       timeSlotsError: null, // 載入時段的錯誤訊息
       incompatibleServiceWarning: '', // 儲存不相容服務的提示訊息
-      // 對應後端 app.js 的店休設定
-      shopHolidays: ['2024-06-20', '2024-12-25', '2024-01-01'],
+      // 國定假日等指定店休日（格式 YYYY-MM-DD）。已清掉過時的 2024 範例日期；
+      // 要設特定店休日時把日期填進這個陣列，週一固定公休由下面的 fixedWeeklyOffDay 控制
+      shopHolidays: [],
       fixedWeeklyOffDay: 1, // 週一公休
       minDate: new Date().toLocaleDateString('sv-SE') // 取得 YYYY-MM-DD 格式的今天日期
     }
@@ -562,8 +562,6 @@ export default {
         startTime: this.form.timeSlot,
         note: this.form.note
       };
-      // 留著給付款成功後的 Line 通知用
-      this.pendingAppointmentData = appointmentData;
 
       let appointmentId;
       try {
@@ -676,9 +674,6 @@ export default {
         // 重置表單 (在跳轉後進行，避免影響 Toast 訊息的顯示)
         this.form = { petId: '', size: '', serviceId: '', groomerId: '', appointmentDate: '', timeSlot: '', note: '', couponCode: '' };
       }, 1500); // 1.5 秒後跳轉
-
-      // 呼叫 Line 通知方法 (這部分通常由後端處理更安全)
-      this.sendLineNotification(this.pendingAppointmentData);
     },
     // 使用者在 PayPal 按鈕渲染出來後反悔，按「取消付款」：
     // 先把剛建立、還沒付款的預約取消掉（釋放時段），再回到「前往付款」畫面
@@ -720,21 +715,6 @@ export default {
       if (typeof data === 'string') return data;
       if (data.message) return data.message;
       return fallback;
-    },
-    async sendLineNotification(appointmentData) {
-      // 實際應用中，這裡應該向您的後端 API 發送請求，由後端負責發送 Line 通知
-      // 這樣可以避免將 Line Notify Token 暴露在前端程式碼中
-      console.log('Attempting to send Line notification...');
-      try {
-        // 模擬後端 API 呼叫
-        // const response = await axios.post('/api/send-line-notification', {
-        //   message: `您的寵物美容預約已成功！\n毛孩: ${appointmentData.pet_id}\n時間: ${appointmentData.apt_date}`,
-        //   userId: appointmentData.member_id // 或其他識別用戶的資訊
-        // });
-        console.log('Line notification simulated: Appointment confirmation sent for', appointmentData.apt_date);
-      } catch (error) {
-        console.error('Failed to send Line notification:', error);
-      }
     }
   }
 }

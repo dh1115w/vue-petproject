@@ -69,12 +69,10 @@
                     class="mini-page-btn"
                     style="border-color: #f39c12; color: #f39c12;"
                   >評價服務</button>
-                  <button
+                  <span
                     v-else-if="apt.status === 3 && apt.isReviewed"
-                    @click="viewReview(apt)" 
-                    class="mini-page-btn"
-                    style="border-color: #9b59b6; color: #9b59b6;"
-                  >查看評價</button>
+                    class="badge badge-success"
+                  >已評價</span>
                   <span 
                     v-else-if="isReviewExpired(apt)" 
                     class="badge badge-secondary"
@@ -402,10 +400,6 @@ export default {
       const now = new Date();
       const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
       return diffInDays > 7;
-    },
-    viewReview(appointment) {
-      // 實作查看評價的邏輯，這裡先用 alert 示範
-      alert(`您的評價內容：\n評分：${appointment.reviewRating} 星\n評語：${appointment.reviewComment || '無'}`);
     }
   }
 }

@@ -623,6 +623,12 @@ export default {
         return;
       }
 
+      // 先把容器清空，避免「取消付款→再次前往付款」時舊的 PayPal 按鈕沒被清掉、疊出兩顆
+      const container = document.getElementById('paypal-button-container')
+      if (container) {
+        container.innerHTML = ''
+      }
+
       window.paypal.Buttons({
         // 訂單已經在後端建立好了，這裡只要回傳訂單 id，不用重新建立
         createOrder: () => this.paypalOrderId,

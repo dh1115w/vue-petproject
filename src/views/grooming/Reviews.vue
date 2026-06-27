@@ -135,6 +135,12 @@
               </div>
             </div>
             <p class="review-text">{{ review.comment }}</p>
+
+            <!-- 店家回覆：有 replyText 才顯示 -->
+            <div v-if="review.replyText" class="review-reply">
+              <span class="reply-label">🏪 店家回覆</span>
+              <p class="reply-text">{{ review.replyText }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -572,6 +578,30 @@ select:focus, textarea:focus {
   font-size: 0.95rem;
   line-height: 1.6;
   color: #555;
+}
+
+/* 店家回覆區塊：縮排＋左側色條，跟一般評論內容區隔開 */
+.review-reply {
+  margin-top: 15px;
+  padding: 12px 15px;
+  background: #f7f9fc;
+  border-left: 3px solid var(--primary-color);
+  border-radius: 6px;
+}
+
+.reply-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+
+.reply-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
 }
 
 /* 燈箱樣式 */

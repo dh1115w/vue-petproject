@@ -268,3 +268,24 @@ export const createGroomer = (data) => {
 export const updateGroomer = (id, data) => {
   return adminAxios.put(`/api/admin/groomers/${id}`, data);
 };
+
+// ===== StaffDashboard.vue 評價管理分頁用（管理員）=====
+// 查全部評價（含待審核/顯示/隱藏，新的在前）：GET /api/admin/reviews
+// status 有給（0待審核 1顯示 2隱藏）就只看該狀態，沒給就看全部
+export const getAdminReviews = (status) => {
+  // status 是 null/undefined 時不帶 params，後端就回全部
+  const params = (status === null || status === undefined) ? {} : { status };
+  return adminAxios.get('/api/admin/reviews', { params });
+};
+
+// 審核評價：POST /api/admin/reviews/{id}/status
+// status 只能是 1（顯示）或 2（隱藏）
+export const moderateReview = (id, status) => {
+  return adminAxios.post(`/api/admin/reviews/${id}/status`, { status });
+};
+
+// 店家回覆：POST /api/admin/reviews/{id}/reply
+// 一筆評價最多一筆回覆，後端會自動判斷新增或覆蓋
+export const replyToReview = (id, content) => {
+  return adminAxios.post(`/api/admin/reviews/${id}/reply`, { content });
+};

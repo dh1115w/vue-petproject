@@ -27,6 +27,7 @@
       <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
       <button :class="{ active: currentTab === 'services' }" @click="currentTab = 'services'; loadServices()">服務管理</button>
       <button :class="{ active: currentTab === 'groomers' }" @click="currentTab = 'groomers'; loadGroomers()">美容師管理</button>
+      <button :class="{ active: currentTab === 'reviews' }" @click="currentTab = 'reviews'; loadReviews()">評價管理</button>
     </div>
 
     <!-- 1. 排班管理 -->
@@ -565,6 +566,61 @@
       </div>
     </div>
 
+    <!-- 7. 評價管理 -->
+    <div v-if="currentTab === 'reviews'" class="content-section">
+      <h2>評價管理</h2>
+
+      <!-- 狀態篩選：切換後重新載入清單 -->
+      <div class="tool-bar">
+        <label>狀態篩選：
+          <select v-model="reviewStatusFilter" @change="loadReviews()">
+            <option value="all">全部</option>
+            <option value="0">待審核</option>
+            <option value="1">顯示中</option>
+            <option value="2">已隱藏</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>會員</th>
+            <th>美容師</th>
+            <th>評分</th>
+            <th>評價內容</th>
+            <th>狀態</th>
+            <th>店家回覆</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="reviewList.length === 0">
+            <td colspan="7" style="text-align: center; color: #888;">目前沒有符合條件的評價</td>
+          </tr>
+          <tr v-for="r in reviewList" :key="r.id">
+            <td>{{ r.userName }}<span v-if="r.isAnonymous" style="color:#888;">（匿名）</span></td>
+            <td>{{ r.groomerName || '—' }}</td>
+            <td>{{ '★'.repeat(r.overallRating) }} ({{ r.overallRating }})</td>
+            <td>{{ r.comment || '—' }}</td>
+            <td>
+              <span class="status-badge" :class="reviewStatusMap[r.status]?.badge">
+                {{ reviewStatusMap[r.status]?.label || '未知' }}
+              </span>
+            </td>
+            <td>{{ r.replyText || '—' }}</td>
+            <td>
+              <button v-if="r.status !== 1" @click="setReviewStatus(r.id, 1)" class="btn-success">通過</button>
+              <button v-if="r.status !== 2" @click="setReviewStatus(r.id, 2)" class="btn-cancel">隱藏</button>
+              <button @click="openReply(r)" class="btn-sm">{{ r.replyText ? '修改回覆' : '回覆' }}</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -593,7 +649,10 @@ import {
   getAdminGroomers,
   getSpecialtyCategories,
   createGroomer as apiCreateGroomer,
-  updateGroomer as apiUpdateGroomer
+  updateGroomer as apiUpdateGroomer,
+  getAdminReviews,
+  moderateReview as apiModerateReview,
+  replyToReview as apiReplyToReview
 } from './groomingApi';
 import { appointmentStatusMap } from './groomingStatus';
 
@@ -1245,7 +1304,58 @@ const submitGroomer = async () => {
     alert(message);
   }
 };
-</script>
+
+// ===== 評價管理分頁 =====
+// 評價狀態對照（對應後端 Review.status；badge 是徽章顏色 class）
+const reviewStatusMap = {
+  0: { label: '待審核', badge: 'status-pending' },
+  1: { label: '顯示中', badge: 'status-completed' },
+  2: { label: '已隱藏', badge: 'status-cancelled' }
+};
+
+const reviewList = ref([]);
+// 篩選用：'all' 看全部，'0'/'1'/'2' 只看某個狀態
+const reviewStatusFilter = ref('all');
+
+// 載入評價清單（切到「評價管理」分頁、或切換狀態篩選時呼叫）
+const loadReviews = async () => {
+  try {
+    // 'all' → 不帶狀態（後端回全部）；其他要轉成數字傳給後端
+    const status = reviewStatusFilter.value === 'all' ? null : Number(reviewStatusFilter.value);
+    const res = await getAdminReviews(status);
+    reviewList.value = res.data;
+  } catch (err) {
+    console.error('載入評價失敗:', err);
+  }
+};
+
+// 審核：把評價設成 1顯示 或 2隱藏
+const setReviewStatus = async (id, status) => {
+  try {
+    await apiModerateReview(id, status);
+    await loadReviews(); // 重新載入，狀態才會更新
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '更新評價狀態失敗';
+    alert(message);
+  }
+};
+
+// 店家回覆：用 prompt 跳出輸入框，已有回覆的話帶入舊內容供修改
+const openReply = async (review) => {
+  const content = prompt('輸入店家回覆：', review.replyText || '');
+  if (content === null) return;      // 按取消就不做
+  if (!content.trim()) {             // 空白擋下來，跟後端規則一致
+    alert('回覆內容不能空白');
+    return;
+  }
+  try {
+    await apiReplyToReview(review.id, content);
+    await loadReviews(); // 重新載入，才看得到回覆
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '送出回覆失敗';
+    alert(message);
+  }
+};</script>
 
 <style scoped>
 /* 內嵌美化樣式，可視需求移至 StaffDashboard.css */

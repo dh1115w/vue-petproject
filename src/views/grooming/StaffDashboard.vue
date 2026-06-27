@@ -27,16 +27,83 @@
       <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
     </div>
 
-    <!-- 1. 排班管理（接真實後端：每位美容師選班別 + 狀態存檔）-->
+    <!-- 1. 排班管理 -->
     <div v-if="currentTab === 'schedule'" class="content-section">
-      <h2>每日排班管理</h2>
+      <h2>排班管理</h2>
+
+      <!-- 月排班總表：一次排整個月、多位美容師一起 -->
+      <div class="month-grid-box">
+        <div class="month-grid-toolbar">
+          <div class="mg-nav">
+            <button @click="changeMonth(-1)" class="btn-page">‹ 上個月</button>
+            <span class="mg-title">{{ monthTitle }}</span>
+            <button @click="changeMonth(1)" class="btn-page">下個月 ›</button>
+          </div>
+          <div class="mg-options">
+            <label>排班班別
+              <select v-model.number="gridShiftId" class="filter-select">
+                <option v-for="st in shiftTemplates" :key="st.id" :value="st.id">
+                  {{ st.name }}（{{ formatTime(st.startTime) }}~{{ formatTime(st.endTime) }}）
+                </option>
+              </select>
+            </label>
+            <label class="mg-check">
+              <input v-model="gridSkipMonday" type="checkbox" /> 「排滿整月」時跳過週一（公休）
+            </label>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="month-grid">
+            <thead>
+              <tr>
+                <th class="mg-name-col">美容師</th>
+                <th v-for="d in monthDays" :key="d.date" class="mg-day-head" :class="{ 'mg-weekend': d.weekend }">
+                  <div class="mg-dnum">{{ d.day }}</div>
+                  <div class="mg-wk">{{ d.wk }}</div>
+                </th>
+                <th class="mg-act-col">整列</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="staffList.length === 0">
+                <td :colspan="monthDays.length + 2" style="text-align:center;color:#888;">尚未載入美容師名單</td>
+              </tr>
+              <tr v-for="g in staffList" :key="g.id">
+                <td class="mg-name-col">{{ g.name }}</td>
+                <td v-for="d in monthDays" :key="d.date"
+                    class="mg-cell" :class="cellClass(g.id, d.date)"
+                    :title="g.name + ' ' + d.date" @click="toggleCell(g.id, d.date)">
+                  {{ cellText(g.id, d.date) }}
+                </td>
+                <td class="mg-act-col">
+                  <button @click="fillRow(g.id)" class="mg-btn">排滿</button>
+                  <button @click="clearRow(g.id)" class="mg-btn mg-btn-light">清空</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mg-hint">
+          點格子切換「上班（{{ gridShiftName }}）／休假」；「排滿／清空」可整列一次處理。
+          顏色：<span class="mg-lg work">上班</span>
+          <span class="mg-lg duty">出勤</span>
+          <span class="mg-lg leave">請假</span>
+          <span class="mg-lg absent">缺勤</span>
+          ，空白＝休假。請假、缺勤等單日細部狀態請用下方「單日調整」。
+        </p>
+      </div>
+
+      <!-- 單日調整：針對某一天，細調每位美容師的班別與狀態（出勤／請假／缺勤）-->
+      <h3 class="single-day-title">單日調整（細部狀態）</h3>
       <div class="tool-bar">
         <div class="filter-group">
           <label>選擇日期：</label>
           <input v-model="selectedDate" type="date" class="date-input" @change="onSelectedDateChange" />
         </div>
       </div>
-      <p>提示：為每位美容師選擇當天的「班別」與「狀態」後按儲存。沒有排班（未排班）的美容師，當天不會開放線上預約。</p>
+      <p>提示：這裡用來把某位美容師當天改成「出勤／請假／缺勤」，或補排單一天。整月排班請用上面的月表格。</p>
+
       <div class="table-container">
       <table class="admin-table">
         <thead>
@@ -323,6 +390,7 @@ import {
   getShiftTemplates,
   getAdminSchedules,
   upsertSchedule as apiUpsertSchedule,
+  deleteSchedule as apiDeleteSchedule,
   getCoupons,
   createCoupon as apiCreateCoupon,
   updateCoupon as apiUpdateCoupon
@@ -345,6 +413,9 @@ const scheduleStatusMap = {
   2: { label: '請假', dot: 'closed' },
   3: { label: '缺勤', dot: 'closed' }
 };
+
+// 星期幾的中文簡寫（0=日 ~ 6=六），月表格欄位標頭用
+const weekdayShort = ['日', '一', '二', '三', '四', '五', '六'];
 
 // 頁籤狀態
 const currentTab = ref('schedule');
@@ -407,9 +478,64 @@ const calendarDays = computed(() => {
   return days;
 });
 
+// 月排班表格：當月每一天一欄（含星期、是否週末、是否週一）
+const monthDays = computed(() => {
+  const y = viewDate.value.getFullYear();
+  const m = viewDate.value.getMonth();
+  const pad = (n) => String(n).padStart(2, '0');
+  const total = new Date(y, m + 1, 0).getDate();
+  const arr = [];
+  for (let d = 1; d <= total; d++) {
+    const wkIdx = new Date(y, m, d).getDay();
+    arr.push({
+      day: d,
+      date: `${y}-${pad(m + 1)}-${pad(d)}`,
+      wk: weekdayShort[wkIdx],
+      weekend: wkIdx === 0 || wkIdx === 6,
+      monday: wkIdx === 1
+    });
+  }
+  return arr;
+});
+
 // 分頁相關狀態
 const itemsPerPage = 5; // 每頁顯示 5 筆
 const ordersPage = ref(1);
+
+// ===== 月排班表格用 =====
+// 目前要排的班別（預設第一個班別，在 fetchData 載入班別後設定）
+const gridShiftId = ref(null);
+// 「排滿整月」時是否跳過週一（公休）
+const gridSkipMonday = ref(true);
+
+const gridShiftName = computed(() => {
+  const st = shiftTemplates.value.find(s => s.id === gridShiftId.value);
+  return st ? st.name : '（未選班別）';
+});
+
+// 找某位美容師某天的排班資料（找不到回 undefined＝那天休假）
+const findSchedule = (groomerId, date) => {
+  return schedules.value.find(s => s.groomerId === groomerId && s.scheduleDate === date);
+};
+
+// 月表格某格的顏色 class（依排班狀態；沒排班＝休假＝mg-off）
+const cellClass = (groomerId, date) => {
+  const s = findSchedule(groomerId, date);
+  if (!s) return 'mg-off';
+  if (s.status === 1) return 'mg-duty';   // 出勤
+  if (s.status === 2) return 'mg-leave';  // 請假
+  if (s.status === 3) return 'mg-absent'; // 缺勤
+  return 'mg-work';                       // 0 排班中
+};
+
+// 月表格某格顯示的文字（上班/出勤打勾、請假「假」、缺勤「缺」、休假空白）
+const cellText = (groomerId, date) => {
+  const s = findSchedule(groomerId, date);
+  if (!s) return '';
+  if (s.status === 2) return '假';
+  if (s.status === 3) return '缺';
+  return '✓'; // 0 排班中 / 1 出勤
+};
 
 // 依「目前檢視月份」載入整月排班，再重建排班分頁的列表
 const loadSchedules = async () => {
@@ -457,6 +583,10 @@ const fetchData = async () => {
     stats.value = statsRes.data;
     staffList.value = groomersRes.data;
     shiftTemplates.value = shiftRes.data;
+    // 月表格的預設班別 = 第一個班別
+    if (shiftTemplates.value.length > 0 && gridShiftId.value == null) {
+      gridShiftId.value = shiftTemplates.value[0].id;
+    }
 
     // 格式化 orders（status 保留後端原本的數字 0~5，畫面顯示用 orderStatusMap 轉文字）
     orders.value = ordersRes.data.map(o => ({
@@ -500,6 +630,57 @@ watch([searchQuery, statusFilter], () => {
 // 把後端的 TIME 字串（09:00:00）顯示成 09:00
 const formatTime = (t) => {
   return t ? String(t).slice(0, 5) : '';
+};
+
+// 點月表格某一格：在「上班」與「休假」之間切換
+// 目前是排班中(0) → 刪掉排班變休假；其它狀態(休假/請假/缺勤/出勤) → 改成上班(排班中)
+const toggleCell = async (groomerId, date) => {
+  if (!gridShiftId.value) { alert('請先在上方選擇排班班別'); return; }
+  const s = findSchedule(groomerId, date);
+  try {
+    if (s && s.status === 0) {
+      await apiDeleteSchedule({ groomer_id: groomerId, date });
+    } else {
+      await apiUpsertSchedule({ groomerId, shiftId: gridShiftId.value, scheduleDate: date, status: 0 });
+    }
+    await loadSchedules();
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '更新排班失敗';
+    alert(message);
+  }
+};
+
+// 整列「排滿」：把這位美容師整月都排成上班（可跳過週一）。
+// 已是請假/缺勤/出勤的特例格子不覆蓋，只動「沒排班」或「排班中」的。
+const fillRow = async (groomerId) => {
+  if (!gridShiftId.value) { alert('請先在上方選擇排班班別'); return; }
+  const targets = monthDays.value.filter(d => {
+    if (gridSkipMonday.value && d.monday) return false;
+    const s = findSchedule(groomerId, d.date);
+    return !s; // 只補「目前休假（沒排班）」的日子，其它狀態都不動
+  });
+  if (targets.length === 0) { alert('這個月沒有需要補排的日期'); return; }
+  await Promise.allSettled(targets.map(d =>
+    apiUpsertSchedule({ groomerId, shiftId: gridShiftId.value, scheduleDate: d.date, status: 0 })
+  ));
+  await loadSchedules();
+};
+
+// 整列「清空」：把這位美容師整月「排班中」的日子都改成休假（刪排班）。
+// 已有預約的日子後端會擋，這裡統計失敗筆數提示。
+const clearRow = async (groomerId) => {
+  if (!confirm('確定把這位美容師整個月都清成休假嗎？（已有預約的日子會被跳過）')) return;
+  const targets = monthDays.value.filter(d => {
+    const s = findSchedule(groomerId, d.date);
+    return s && s.status === 0; // 只刪「排班中」的；請假/缺勤/出勤、本來就沒排的略過
+  });
+  if (targets.length === 0) { alert('這個月沒有可清空的排班'); return; }
+  const results = await Promise.allSettled(targets.map(d =>
+    apiDeleteSchedule({ groomer_id: groomerId, date: d.date })
+  ));
+  const fail = results.filter(r => r.status === 'rejected').length;
+  await loadSchedules();
+  if (fail) alert(`有 ${fail} 天因為已有預約等原因無法清空`);
 };
 
 // 儲存某位美容師當天的排班（呼叫真實 upsert API）
@@ -908,4 +1089,137 @@ const formatCouponDate = (isoStr) => {
   display: flex;
   gap: 10px;
 }
+
+/* ===== 月排班表格 ===== */
+.month-grid-box {
+  background: #fff;
+  border: 1px solid #e8e8e6;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 22px;
+}
+.month-grid-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.mg-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mg-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #2a2522;
+  min-width: 120px;
+  text-align: center;
+}
+.mg-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.mg-options label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  color: #555;
+  gap: 4px;
+}
+.mg-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+}
+.mg-check input { width: auto; }
+
+.month-grid {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.month-grid th,
+.month-grid td {
+  border: 1px solid #eee;
+  text-align: center;
+}
+.mg-name-col {
+  position: sticky;
+  left: 0;
+  background: #faf9f7;
+  z-index: 1;
+  min-width: 72px;
+  padding: 6px 10px;
+  font-weight: 600;
+  text-align: left;
+}
+.mg-day-head {
+  padding: 4px 0;
+  width: 30px;
+  color: #666;
+}
+.mg-dnum { font-weight: 600; }
+.mg-wk { font-size: 0.62rem; color: #aaa; }
+.mg-day-head.mg-weekend { color: #c0392b; background: #fdf4f3; }
+.mg-act-col {
+  min-width: 96px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.mg-cell {
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  user-select: none;
+  color: #fff;
+  font-weight: 700;
+}
+.mg-cell.mg-off { background: #fff; color: transparent; }
+.mg-cell.mg-off:hover { background: #eafaf0; }
+.mg-cell.mg-work { background: #27ae60; }   /* 綠: 排班中（上班）*/
+.mg-cell.mg-duty { background: #2980b9; }   /* 藍: 出勤 */
+.mg-cell.mg-leave { background: #e67e22; }  /* 橘: 請假 */
+.mg-cell.mg-absent { background: #c0392b; } /* 紅: 缺勤 */
+
+.mg-btn {
+  background: #2a2522;
+  color: #fff;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  margin-right: 4px;
+}
+.mg-btn-light { background: #95a5a6; }
+
+.single-day-title {
+  margin: 6px 0 10px;
+  font-size: 1.05rem;
+  color: #2a2522;
+}
+
+.mg-hint {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  color: #888;
+  line-height: 1.9;
+}
+.mg-lg {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.7rem;
+  margin: 0 2px;
+}
+.mg-lg.work { background: #27ae60; }
+.mg-lg.duty { background: #2980b9; }
+.mg-lg.leave { background: #e67e22; }
+.mg-lg.absent { background: #c0392b; }
 </style>

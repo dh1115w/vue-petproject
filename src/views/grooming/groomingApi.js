@@ -100,6 +100,12 @@ export const upsertSchedule = (data) => {
   return adminAxios.post('/api/admin/schedules', data);
 };
 
+// 已串接真正後端 API：DELETE /api/admin/schedules（刪除某美容師某天的排班，月表格改成「休假」時用）
+// params 帶 { groomer_id, date }；那天若已有預約後端會擋（回 400）
+export const deleteSchedule = (params) => {
+  return adminAxios.delete('/api/admin/schedules', { params });
+};
+
 // 已串接真正後端 API：GET /api/admin/appointments（要登入管理員才能用，看全部會員的預約）
 // 註：後端回傳的資料沒有 userId 這個欄位，「加入黑名單」按鈕還是要等後續處理
 export const getAdminOrders = () => {

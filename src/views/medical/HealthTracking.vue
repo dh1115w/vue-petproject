@@ -33,6 +33,7 @@
               v-model="metricValueWeight"
               placeholder="例：13.6"
               class="form-input"
+              @wheel.prevent
             />
           </div>
 
@@ -44,6 +45,7 @@
               v-model="metricValueWater"
               placeholder="例 : 480"
               class="form-input"
+              @wheel.prevent
             />
             <p class="input-tip-text">
               <span v-if="metricValueWeight > 0">
@@ -61,6 +63,7 @@
               v-model="metricValueFood"
               placeholder="例：250"
               class="form-input"
+              @wheel.prevent
             />
           </div>
 

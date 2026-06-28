@@ -258,16 +258,43 @@
               <p style="margin: 0">請先登入，即可查看醫護提醒</p>
             </div>
             <template v-else>
-              <div class="reminder-item">
+              <div v-if="vaccineReminder" class="reminder-item">
                 <h4>疫苗進度</h4>
-                <div class="progress-bar">
-                  <div class="progress-fill" style="width: 60%"></div>
-                </div>
-                <p>距離下次狂犬病疫苗還有 15 天</p>
+                <p
+                  style="
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #888;
+                    margin-top: 6px;
+                  "
+                >
+                  {{ vaccineReminder.text }}
+                </p>
               </div>
-              <div class="reminder-item">
+              <div v-else class="reminder-item">
+                <h4>疫苗進度</h4>
+                <p style="color: #aaa; font-size: 13px; margin-top: 6px">
+                  尚無疫苗提醒
+                </p>
+              </div>
+              <div v-if="dewormReminder" class="reminder-item">
                 <h4>驅蟲提醒</h4>
-                <p>下次日期：6/25</p>
+                <p
+                  style="
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #888;
+                    margin-top: 6px;
+                  "
+                >
+                  {{ dewormReminder.text }}
+                </p>
+              </div>
+              <div v-else class="reminder-item">
+                <h4>驅蟲提醒</h4>
+                <p style="color: #aaa; font-size: 13px; margin-top: 6px">
+                  尚無驅蟲提醒
+                </p>
               </div>
             </template>
           </div>
@@ -1027,9 +1054,51 @@ function renderFoodWaterChart(labels, waterValues, foodValues) {
 
 // 頁面載入完成後，統一執行所有需要的初始查詢：
 // 歷史健康日誌、體重變化趨勢圖、體重狀態趨勢、本週飲食紀錄圖
+
+// ==========================================================================
+// 醫護提醒快訊：疫苗進度 + 驅蟲提醒
+// ==========================================================================
+const vaccineReminder = ref(null);
+const dewormReminder = ref(null);
+
+async function fetchReminderCard() {
+  if (!currentPetId.value) return;
+  try {
+    const response = await instance.get(
+      `/api/medical/reminder/list/${currentPetId.value}`,
+    );
+    const list = response.data;
+    const now = new Date();
+    const upcoming = list
+      .filter(
+        (r) => !r.isCompleted && !r.isDeleted && new Date(r.targetDate) > now,
+      )
+      .sort((a, b) => new Date(a.targetDate) - new Date(b.targetDate));
+    function toCard(reminder) {
+      const target = new Date(reminder.targetDate);
+      const daysLeft = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+      const mo = String(target.getMonth() + 1).padStart(2, "0");
+      const d = String(target.getDate()).padStart(2, "0");
+      const urgentText = `距離下次「${reminder.eventTitle}」還有 ${daysLeft} 天！`;
+      const normalText = `距離下次「${reminder.eventTitle}」還有 ${daysLeft} 天（${mo}/${d}）`;
+      return { daysLeft, text: daysLeft <= 7 ? urgentText : normalText };
+    }
+    const vac = upcoming.find((r) => r.categoryId === 1);
+    vaccineReminder.value = vac ? toCard(vac) : null;
+    const dew = upcoming.find((r) => r.categoryId === 3);
+    dewormReminder.value = dew ? toCard(dew) : null;
+  } catch (error) {
+    console.error("查詢提醒卡片失敗:", error);
+  }
+}
+watch(currentPetId, () => {
+  fetchReminderCard();
+});
+
 onMounted(() => {
   fetchHistoryLogs();
   fetchWeightTrend();
+  fetchReminderCard();
 
   // 等 100 毫秒，讓 Vue 把 canvas 畫到畫面上，再畫圖表
   setTimeout(() => {

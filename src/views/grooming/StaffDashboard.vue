@@ -590,6 +590,7 @@
             <th>美容師</th>
             <th>評分</th>
             <th>評價內容</th>
+            <th>照片</th>
             <th>狀態</th>
             <th>店家回覆</th>
             <th>操作</th>
@@ -597,13 +598,20 @@
         </thead>
         <tbody>
           <tr v-if="reviewList.length === 0">
-            <td colspan="7" style="text-align: center; color: #888;">目前沒有符合條件的評價</td>
+            <td colspan="8" style="text-align: center; color: #888;">目前沒有符合條件的評價</td>
           </tr>
           <tr v-for="r in reviewList" :key="r.id">
             <td>{{ r.userName }}<span v-if="r.isAnonymous" style="color:#888;">（匿名）</span></td>
             <td>{{ r.groomerName || '—' }}</td>
             <td>{{ '★'.repeat(r.overallRating) }} ({{ r.overallRating }})</td>
             <td>{{ r.comment || '—' }}</td>
+            <td>
+              <!-- 沒照片顯示「—」；有照片就一張張畫成縮圖，點縮圖會在新分頁開原圖供放大檢視 -->
+              <span v-if="!r.images || r.images.length === 0">—</span>
+              <a v-for="(img, i) in r.images" :key="i" :href="img" target="_blank">
+                <img :src="img" style="width:48px; height:48px; object-fit:cover; border-radius:4px; margin:2px; cursor:pointer;" />
+              </a>
+            </td>
             <td>
               <span class="status-badge" :class="reviewStatusMap[r.status]?.badge">
                 {{ reviewStatusMap[r.status]?.label || '未知' }}

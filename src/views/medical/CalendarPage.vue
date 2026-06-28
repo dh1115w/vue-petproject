@@ -154,9 +154,7 @@
                   </div>
                   <div class="event-meta-info">
                     🕒 {{ event.eventTime }}
-                    <span v-if="event.clinicName"
-                      >· {{ event.clinicName }}</span
-                    >
+                    <span v-if="event.note">· {{ event.note }}</span>
                   </div>
                 </div>
 
@@ -257,9 +255,7 @@
                   </div>
                   <div class="upcoming-countdown-text">
                     {{ getCountdownText(event.targetDate) }}
-                    <span v-if="event.clinicName"
-                      >· {{ event.clinicName }}</span
-                    >
+                    <span v-if="event.note">· {{ event.note }}</span>
                   </div>
                 </div>
 
@@ -371,13 +367,13 @@
               </div>
             </div>
 
-            <!-- 欄位 4：診所名稱（顯示用，來自 Clinics.clinicName） -->
+            <!-- 欄位 4：備註 -->
             <div class="form-group">
-              <label class="form-label">診所（選填）</label>
+              <label class="form-label">備註（選填）</label>
               <input
                 type="text"
-                v-model="newReminder.clinicName"
-                placeholder="例：台北動物醫院"
+                v-model="newReminder.note"
+                placeholder="例：記得帶健康手冊"
                 class="form-input"
               />
             </div>
@@ -470,7 +466,7 @@ const reminderEventsList = ref([
   //   eventTitle: "狂犬病疫苗",
   //   targetDate: "2026-04-25",
   //   eventTime: "10:00",
-  //   clinicName: "台北動物醫院",
+  //   note: "台北動物醫院",
   //   isCompleted: false,
   //   isUrgent: true,
   // },
@@ -481,7 +477,7 @@ const reminderEventsList = ref([
   //   eventTitle: "心絲蟲預防藥",
   //   targetDate: "2026-04-28",
   //   eventTime: "08:00",
-  //   clinicName: "",
+  //   note: "",
   //   isCompleted: false,
   //   isUrgent: false,
   // },
@@ -492,7 +488,7 @@ const reminderEventsList = ref([
   //   eventTitle: "年度健康檢查",
   //   targetDate: "2026-05-03",
   //   eventTime: "14:00",
-  //   clinicName: "台北動物醫院",
+  //   note: "台北動物醫院",
   //   isCompleted: false,
   //   isUrgent: false,
   // },
@@ -503,7 +499,7 @@ const reminderEventsList = ref([
   //   eventTitle: "跳蚤預防藥",
   //   targetDate: "2026-05-15",
   //   eventTime: "08:00",
-  //   clinicName: "",
+  //   note: "",
   //   isCompleted: false,
   //   isUrgent: false,
   // },
@@ -514,7 +510,7 @@ const reminderEventsList = ref([
   //   eventTitle: "皮膚炎回診",
   //   targetDate: "2026-04-10",
   //   eventTime: "11:00",
-  //   clinicName: "愛寵動物診所",
+  //   note: "愛寵動物診所",
   //   isCompleted: true,
   //   isUrgent: false,
   // },
@@ -570,7 +566,7 @@ onMounted(async () => {
         eventTitle: item.eventTitle,
         targetDate: datePart,
         eventTime: timePart,
-        clinicName: "",
+        note: "",
         isCompleted: item.isCompleted,
         isUrgent: daysUntil >= 0 && daysUntil <= 3 && !item.isCompleted,
       };
@@ -736,7 +732,7 @@ const newReminder = ref({
   categoryId: "vaccine",
   targetDate: `${yearStr}-${monthStr}-${dateStr}`,
   eventTime: "12:00",
-  clinicName: "",
+  note: "",
 });
 
 function openAddForm() {
@@ -752,7 +748,7 @@ function openAddForm() {
     categoryId: "vaccine",
     targetDate: `${y}-${m}-${d}`, // 今天日期
     eventTime: `${h}:${min}`, // 當下時間
-    clinicName: "",
+    note: "",
   };
   showAddForm.value = true;
 }
@@ -790,7 +786,7 @@ async function handleCreateEvent() {
       eventTitle: newReminder.value.eventTitle,
       targetDate: newReminder.value.targetDate,
       eventTime: newReminder.value.eventTime,
-      clinicName: newReminder.value.clinicName,
+      note: newReminder.value.note,
       isCompleted: false,
       isUrgent: false,
     });

@@ -51,7 +51,8 @@ router.beforeEach((to, from, next) => {
     }).then((result) => {
       if (result.isConfirmed) {
         // 記住用戶原本想去哪，登入後可以導回來
-        next({ path: '/member/login', query: { redirect: to.fullPath } })
+        window.location.href = '/member/login'
+        next(false)
       } else {
         // 按取消就留在原本的頁面
         next(false)

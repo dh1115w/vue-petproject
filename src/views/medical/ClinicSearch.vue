@@ -206,14 +206,12 @@ import { ref, computed, onMounted } from "vue";
 import "@/css/medical/medical-clinic-search.css";
 import axios from "@/plugins/axios.js";
 import useUserStore from "@/stores/user.js";
-import { useRouter } from "vue-router";
 import Swal from "sweetalert2";
 
 // TODO：目前會員登入功能尚未串接，先用固定值測試收藏功能
 // 之後會員組做好登入後，這裡要改成從 src/stores/user.js 的 memberInfo.id 取得真實值
 // const TEMP_MEM_ID = 1;
 const userStore = useUserStore();
-const router = useRouter();
 
 // sessionStorage 的 key 名稱，記住「這次瀏覽期間」定位過的座標
 // sessionStorage 跟 localStorage 不同：分頁/瀏覽器關閉後資料會自動消失，符合「只記住這次使用期間」的需求
@@ -323,7 +321,7 @@ async function toggleFavorite(clinic) {
       cancelButtonColor: "#a0a09a",
     });
     if (result.isConfirmed) {
-      router.push("/member/login");
+      window.location.href = "/member/login";
     }
     return;
   }

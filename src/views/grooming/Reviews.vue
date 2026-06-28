@@ -215,7 +215,7 @@ export default {
       sortBy: 'newest',
       filterGroomer: 'all',
       currentPage: 1,
-      pageSize: 4, // 每頁顯示 4 筆評價
+      pageSize: 6, // 每頁顯示 6 筆評價（一排 3 個剛好排成兩排，不會有單一個落單）
       isLoggedIn: false, // 真正的登入狀態，created() 時從 user.js 共用資料源讀
       currentUserName: '', // 真正的會員姓名
       lightboxImage: null, // 儲存目前放大顯示的圖片

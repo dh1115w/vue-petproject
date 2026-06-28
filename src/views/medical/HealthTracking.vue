@@ -546,8 +546,14 @@ async function handleSubmitRecord() {
     );
     console.log("後端儲存成功:", response.data);
 
-    // 存成功後，重新向後端查詢最新的歷史日誌，更新畫面上的「真實資料」區塊
-    await fetchHistoryLogs();
+    // 存成功後，同步重新查詢所有需要更新的資料：
+    // 歷史日誌、體重趨勢卡片、體重折線圖、本週飲食長條圖
+    await Promise.all([
+      fetchHistoryLogs(),
+      fetchWeightTrend(),
+      fetchWeightChart(),
+      fetchFoodWaterChart(),
+    ]);
   } catch (error) {
     console.error("後端儲存失敗:", error);
     alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");

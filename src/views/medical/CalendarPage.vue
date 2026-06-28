@@ -193,12 +193,7 @@
             <div v-if="isSubscribed" class="line-setting-panel">
               <div class="setting-rule-row">
                 <span class="rule-icon">🔔</span>
-                <span class="rule-text">提醒前 1 天通知</span>
-                <span class="rule-check">✓</span>
-              </div>
-              <div class="setting-rule-row">
-                <span class="rule-icon">🔔</span>
-                <span class="rule-text">當天早上 8:00 通知</span>
+                <span class="rule-text">新增提醒時自動發送 LINE 通知</span>
                 <span class="rule-check">✓</span>
               </div>
               <button class="line-unbind-btn" @click="handleLineDisconnect">

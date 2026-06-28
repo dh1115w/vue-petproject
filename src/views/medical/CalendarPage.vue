@@ -463,61 +463,61 @@ const typeConfig = {
 // 3. 提醒事件核心資料（對應 ReminderEvents 表）
 // ==========================================================================
 const reminderEventsList = ref([
-  {
-    reminderId: 1,
-    petId: 1,
-    categoryId: "vaccine",
-    eventTitle: "狂犬病疫苗",
-    targetDate: "2026-04-25",
-    eventTime: "10:00",
-    clinicName: "台北動物醫院",
-    isCompleted: false,
-    isUrgent: true,
-  },
-  {
-    reminderId: 2,
-    petId: 1,
-    categoryId: "medicine",
-    eventTitle: "心絲蟲預防藥",
-    targetDate: "2026-04-28",
-    eventTime: "08:00",
-    clinicName: "",
-    isCompleted: false,
-    isUrgent: false,
-  },
-  {
-    reminderId: 3,
-    petId: 1,
-    categoryId: "checkup",
-    eventTitle: "年度健康檢查",
-    targetDate: "2026-05-03",
-    eventTime: "14:00",
-    clinicName: "台北動物醫院",
-    isCompleted: false,
-    isUrgent: false,
-  },
-  {
-    reminderId: 4,
-    petId: 1,
-    categoryId: "medicine",
-    eventTitle: "跳蚤預防藥",
-    targetDate: "2026-05-15",
-    eventTime: "08:00",
-    clinicName: "",
-    isCompleted: false,
-    isUrgent: false,
-  },
-  {
-    reminderId: 5,
-    petId: 1,
-    categoryId: "checkup",
-    eventTitle: "皮膚炎回診",
-    targetDate: "2026-04-10",
-    eventTime: "11:00",
-    clinicName: "愛寵動物診所",
-    isCompleted: true,
-    isUrgent: false,
-  },
+  // {
+  //   reminderId: 1,
+  //   petId: 1,
+  //   categoryId: "vaccine",
+  //   eventTitle: "狂犬病疫苗",
+  //   targetDate: "2026-04-25",
+  //   eventTime: "10:00",
+  //   clinicName: "台北動物醫院",
+  //   isCompleted: false,
+  //   isUrgent: true,
+  // },
+  // {
+  //   reminderId: 2,
+  //   petId: 1,
+  //   categoryId: "medicine",
+  //   eventTitle: "心絲蟲預防藥",
+  //   targetDate: "2026-04-28",
+  //   eventTime: "08:00",
+  //   clinicName: "",
+  //   isCompleted: false,
+  //   isUrgent: false,
+  // },
+  // {
+  //   reminderId: 3,
+  //   petId: 1,
+  //   categoryId: "checkup",
+  //   eventTitle: "年度健康檢查",
+  //   targetDate: "2026-05-03",
+  //   eventTime: "14:00",
+  //   clinicName: "台北動物醫院",
+  //   isCompleted: false,
+  //   isUrgent: false,
+  // },
+  // {
+  //   reminderId: 4,
+  //   petId: 1,
+  //   categoryId: "medicine",
+  //   eventTitle: "跳蚤預防藥",
+  //   targetDate: "2026-05-15",
+  //   eventTime: "08:00",
+  //   clinicName: "",
+  //   isCompleted: false,
+  //   isUrgent: false,
+  // },
+  // {
+  //   reminderId: 5,
+  //   petId: 1,
+  //   categoryId: "checkup",
+  //   eventTitle: "皮膚炎回診",
+  //   targetDate: "2026-04-10",
+  //   eventTime: "11:00",
+  //   clinicName: "愛寵動物診所",
+  //   isCompleted: true,
+  //   isUrgent: false,
+  // },
 ]);
 
 // LINE 綁定狀態（對應 OwnerLineProfiles.isSubscribed）
@@ -534,6 +534,7 @@ const reminderMessageType = ref("");
 
 // 頁面載入時，呼叫 API 取得 LINE 綁定狀態
 onMounted(async () => {
+  // --- 取得 LINE 綁定狀態 ---
   try {
     const res = await axios.get(
       `http://localhost:8080/api/medical/line/status/${TEMP_MEM_ID}`,
@@ -543,8 +544,41 @@ onMounted(async () => {
   } catch (err) {
     console.error("獲取 LINE 狀態失敗", err);
   }
-});
 
+  // --- 載入提醒事件列表 ---
+  try {
+    const res = await axios.get(
+      "http://localhost:8080/api/medical/reminder/list/1",
+    );
+
+    const categoryIdReverseMap = { 1: "vaccine", 2: "checkup", 3: "medicine" };
+
+    reminderEventsList.value = res.data.map((item) => {
+      const dateTime = item.targetDate;
+      const datePart = dateTime.split("T")[0];
+      const timePart = dateTime.split("T")[1].substring(0, 5);
+
+      const todayStr = `${yearStr}-${monthStr}-${dateStr}`;
+      const daysUntil = Math.ceil(
+        (new Date(datePart) - new Date(todayStr)) / (1000 * 60 * 60 * 24),
+      );
+
+      return {
+        reminderId: item.reminderId,
+        petId: item.petId,
+        categoryId: categoryIdReverseMap[item.categoryId] ?? "vaccine",
+        eventTitle: item.eventTitle,
+        targetDate: datePart,
+        eventTime: timePart,
+        clinicName: "",
+        isCompleted: item.isCompleted,
+        isUrgent: daysUntil >= 0 && daysUntil <= 3 && !item.isCompleted,
+      };
+    });
+  } catch (err) {
+    console.error("載入提醒列表失敗", err);
+  }
+});
 // 顯示 LINE 操作結果訊息，3 秒後自動清除
 function showLineMessage(msg, type) {
   lineMessage.value = msg;

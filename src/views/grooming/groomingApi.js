@@ -17,8 +17,9 @@ const mockAppointments = [
 // 已串接真正後端 API：GET /api/services
 // 註：後端目前還沒有 features（服務特色文字）、allowedGroomers（指定美容師）這兩個欄位，
 // 回傳資料裡不會有這兩個值，畫面上對應的地方會先顯示空白/全部美容師，之後後端補上再串。
-export const getAllServices = () => {
-  return axios.get('/api/services');
+// params 可帶 { type: 'dog' | 'cat' } 做服務頁的貓狗分頁過濾；不帶就回全部。
+export const getAllServices = (params) => {
+  return axios.get('/api/services', { params });
 };
 
 // 已串接真正後端 API：GET /api/available-slots
@@ -137,14 +138,14 @@ export const exportTodayAppointments = () => {
   return Promise.resolve({ data: csvContent });
 };
 
-// 已串接真正後端 API：GET /api/services（首頁「熱門服務項目」用）
-// 後端回傳的是完整服務（含 priceMap/durationMap），首頁卡片只需要前 3 筆、且欄位較精簡，
-// 所以這裡取前 3 筆，整理成首頁要的 { id, title, price, duration, desc } 格式。
+// 已串接真正後端 API：GET /api/services/featured（首頁「熱門服務項目」用）
+// 後端只回「後台勾選為熱門、且上架中」的服務（含 priceMap/durationMap），
+// 這裡取前 3 筆，整理成首頁要的 { id, title, price, duration, desc } 格式。
 //  - price：用 minPrice（卡片顯示「NT$ 600 起」）
 //  - duration：取小型(small)的時長，沒有的話退而取第一個有的體型時長
 //  - desc：對應後端新加的 description 欄位
 export const getFeaturedServices = () => {
-  return axios.get('/api/services').then(res => {
+  return axios.get('/api/services/featured').then(res => {
     const featured = res.data.slice(0, 3).map(s => {
       // durationMap 例如 { small: 60, mid: 75, big: 90 }；優先拿 small，沒有就拿第一個值
       const durationMap = s.durationMap || {};
@@ -229,6 +230,15 @@ export const updateService = (id, data) => {
   return adminAxios.put(`/api/admin/services/${id}`, data);
 };
 
+// 上傳服務圖片：POST /api/admin/services/image
+// file 是使用者選的圖片檔，用 FormData 裝成欄位名 file 送上去（後端用 @RequestParam("file") 接）
+// 後端會回 { url: "/api/services/images/xxx.jpg" }，前端把這個 url 填進表單的 imageUrl
+export const uploadServiceImage = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return adminAxios.post('/api/admin/services/image', formData);
+};
+
 // ===== StaffDashboard.vue 美容師管理分頁用（管理員）=====
 // 查全部美容師（含已離職，新的在前）：GET /api/admin/groomers
 export const getAdminGroomers = () => {
@@ -252,6 +262,15 @@ export const updateGroomer = (id, data) => {
   return adminAxios.put(`/api/admin/groomers/${id}`, data);
 };
 
+// 上傳美容師頭貼：POST /api/admin/groomers/photo
+// file 是使用者選的圖片檔，用 FormData 裝成欄位名 file 送上去（後端用 @RequestParam("file") 接）
+// 後端會回 { url: "/api/groomers/photos/xxx.jpg" }，前端把這個 url 填進表單的 photoUrl
+export const uploadGroomerPhoto = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return adminAxios.post('/api/admin/groomers/photo', formData);
+};
+
 // ===== StaffDashboard.vue 評價管理分頁用（管理員）=====
 // 查全部評價（含待審核/顯示/隱藏，新的在前）：GET /api/admin/reviews
 // status 有給（0待審核 1顯示 2隱藏）就只看該狀態，沒給就看全部
@@ -271,4 +290,10 @@ export const moderateReview = (id, status) => {
 // 一筆評價最多一筆回覆，後端會自動判斷新增或覆蓋
 export const replyToReview = (id, content) => {
   return adminAxios.post(`/api/admin/reviews/${id}/reply`, { content });
+};
+
+// 永久刪除評價：DELETE /api/admin/reviews/{id}
+// 跟「隱藏」不同，這會把評價連同照片、店家回覆從資料庫整個刪掉，刪了拉不回來
+export const deleteReview = (id) => {
+  return adminAxios.delete(`/api/admin/reviews/${id}`);
 };

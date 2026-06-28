@@ -405,8 +405,17 @@
           <label>注意事項
             <input v-model="serviceForm.note" type="text" placeholder="選填" />
           </label>
+          <label>服務圖片（選填）
+            <input type="file" accept="image/*" @change="handleServiceImageUpload" :disabled="serviceImageUploading" />
+            <span v-if="serviceImageUploading" style="font-size:13px;color:#888;">上傳中…</span>
+            <img v-else-if="serviceForm.imageUrl" :src="serviceForm.imageUrl" alt="圖片預覽"
+                 style="margin-top:6px;width:96px;height:96px;object-fit:cover;border-radius:8px;" />
+          </label>
           <label class="coupon-form-checkbox">
             <input v-model="serviceForm.isActive" type="checkbox" /> 上架（顯示在前台）
+          </label>
+          <label class="coupon-form-checkbox">
+            <input v-model="serviceForm.isFeatured" type="checkbox" /> 設為首頁熱門（首頁最多顯示 3 個）
           </label>
         </div>
 
@@ -506,11 +515,21 @@
           <label>年資（年）
             <input v-model.number="groomerForm.experience" type="number" min="0" placeholder="例：5" />
           </label>
-          <label>照片網址
-            <input v-model="groomerForm.photoUrl" type="text" placeholder="選填" />
+          <label>頭貼（選填）
+            <input type="file" accept="image/*" @change="handlePhotoUpload" :disabled="photoUploading" />
+            <span v-if="photoUploading" style="font-size:13px;color:#888;">上傳中…</span>
+            <img v-else-if="groomerForm.photoUrl" :src="groomerForm.photoUrl" alt="頭貼預覽"
+                 style="margin-top:6px;width:96px;height:96px;object-fit:cover;border-radius:8px;" />
           </label>
           <label>個人簡介
             <input v-model="groomerForm.bio" type="text" placeholder="選填" />
+          </label>
+          <label>可服務物種
+            <select v-model="groomerForm.serviceSpecies">
+              <option value="">皆可（不限）</option>
+              <option value="dog">只服務狗</option>
+              <option value="cat">只服務貓</option>
+            </select>
           </label>
           <label class="coupon-form-checkbox">
             <input v-model="groomerForm.isActive" type="checkbox" /> 在職（顯示在前台）
@@ -622,6 +641,7 @@
               <button v-if="r.status !== 1" @click="setReviewStatus(r.id, 1)" class="btn-success">通過</button>
               <button v-if="r.status !== 2" @click="setReviewStatus(r.id, 2)" class="btn-cancel">隱藏</button>
               <button @click="openReply(r)" class="btn-sm">{{ r.replyText ? '修改回覆' : '回覆' }}</button>
+              <button @click="removeReview(r.id)" class="btn-delete">刪除</button>
             </td>
           </tr>
         </tbody>
@@ -654,13 +674,16 @@ import {
   getServiceCategories,
   createService as apiCreateService,
   updateService as apiUpdateService,
+  uploadServiceImage as apiUploadServiceImage,
   getAdminGroomers,
   getSpecialtyCategories,
   createGroomer as apiCreateGroomer,
   updateGroomer as apiUpdateGroomer,
+  uploadGroomerPhoto as apiUploadGroomerPhoto,
   getAdminReviews,
   moderateReview as apiModerateReview,
-  replyToReview as apiReplyToReview
+  replyToReview as apiReplyToReview,
+  deleteReview as apiDeleteReview
 } from './groomingApi';
 import { appointmentStatusMap } from './groomingStatus';
 
@@ -1134,7 +1157,9 @@ const blankServiceForm = () => ({
   description: '',
   applicableSpecies: '',
   note: '',
+  imageUrl: '',     // 服務圖片網址（上傳後由後端回傳填入）
   isActive: true,
+  isFeatured: false, // 是否放上首頁熱門（預設不勾）
   // 三種體型的價格/時長分開填，送出時再組成 pricings 陣列
   priceSmall: null, durationSmall: null,
   priceMid: null, durationMid: null,
@@ -1195,7 +1220,9 @@ const openEditService = (s) => {
   f.description = s.description;
   f.applicableSpecies = s.applicableSpecies || '';
   f.note = s.note;
+  f.imageUrl = s.imageUrl || '';   // 後台 DTO 的圖片欄位叫 imageUrl，帶進表單預覽
   f.isActive = s.isActive;
+  f.isFeatured = s.isFeatured;
   (s.pricings || []).forEach(p => {
     if (p.size === 1) { f.priceSmall = p.price; f.durationSmall = p.duration; }
     else if (p.size === 2) { f.priceMid = p.price; f.durationMid = p.duration; }
@@ -1209,6 +1236,27 @@ const cancelServiceForm = () => {
   serviceFormVisible.value = false;
 };
 
+// 上傳服務圖片中的旗標（上傳時把輸入鎖住、顯示「上傳中」）
+const serviceImageUploading = ref(false);
+
+// 選好檔案後立刻上傳：成功就把後端回傳的完整網址填進 serviceForm.imageUrl，
+// 表單下方的預覽圖會自動顯示。真正存進 DB 是按「儲存」時才送出。
+const handleServiceImageUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;            // 沒選檔案就不做事
+  serviceImageUploading.value = true;
+  try {
+    const res = await apiUploadServiceImage(file);
+    serviceForm.value.imageUrl = res.data.url;   // 後端回的是完整網址，可直接給 <img>
+  } catch (err) {
+    const data = err.response && err.response.data;
+    const message = typeof data === 'string' ? data : (data && data.message) || '圖片上傳失敗';
+    alert(message);
+  } finally {
+    serviceImageUploading.value = false;
+  }
+};
+
 // 送出表單：依模式呼叫新增或編輯 API
 const submitService = async () => {
   try {
@@ -1218,7 +1266,9 @@ const submitService = async () => {
       description: serviceForm.value.description,
       applicableSpecies: serviceForm.value.applicableSpecies,
       note: serviceForm.value.note,
+      imageUrl: serviceForm.value.imageUrl,
       isActive: serviceForm.value.isActive,
+      isFeatured: serviceForm.value.isFeatured,
       pricings: buildPricings(serviceForm.value)
     };
     if (editingServiceId.value) {
@@ -1229,7 +1279,8 @@ const submitService = async () => {
     serviceFormVisible.value = false;
     await loadServices();
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '儲存服務失敗';
+    const data = err.response && err.response.data;
+    const message = typeof data === 'string' ? data : (data && data.message) || '儲存服務失敗';
     alert(message);
   }
 };
@@ -1252,6 +1303,7 @@ const blankGroomerForm = () => ({
   bio: '',
   experience: null,
   isActive: true,
+  serviceSpecies: '',
   specialtyIds: []
 });
 const groomerForm = ref(blankGroomerForm());
@@ -1288,6 +1340,7 @@ const openEditGroomer = (g) => {
     bio: g.bio,
     experience: g.experience,
     isActive: g.isActive,
+    serviceSpecies: g.serviceSpecies || '',
     specialtyIds: g.specialtyIds ? [...g.specialtyIds] : []
   };
   groomerFormVisible.value = true;
@@ -1295,6 +1348,27 @@ const openEditGroomer = (g) => {
 
 const cancelGroomerForm = () => {
   groomerFormVisible.value = false;
+};
+
+// 上傳頭貼中的旗標（上傳時把按鈕/輸入鎖住、顯示「上傳中」）
+const photoUploading = ref(false);
+
+// 選好檔案後立刻上傳：成功就把後端回傳的完整網址填進 groomerForm.photoUrl，
+// 表單下方的預覽圖會自動顯示。真正存進 DB 是按「儲存」時才送出。
+const handlePhotoUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;            // 沒選檔案就不做事
+  photoUploading.value = true;
+  try {
+    const res = await apiUploadGroomerPhoto(file);
+    groomerForm.value.photoUrl = res.data.url;   // 後端回的是完整網址，可直接給 <img>
+  } catch (err) {
+    const data = err.response && err.response.data;
+    const message = typeof data === 'string' ? data : (data && data.message) || '頭貼上傳失敗';
+    alert(message);
+  } finally {
+    photoUploading.value = false;
+  }
 };
 
 // 送出表單：依模式呼叫新增或編輯 API
@@ -1308,7 +1382,10 @@ const submitGroomer = async () => {
     groomerFormVisible.value = false;
     await loadGroomers();
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '儲存美容師失敗';
+    // 後端自訂錯誤是純文字字串；Spring 預設錯誤是物件，要取裡面的 message 欄位，
+    // 不然 alert 一個物件會印成「[object Object]」看不懂
+    const data = err.response && err.response.data;
+    const message = typeof data === 'string' ? data : (data && data.message) || '儲存美容師失敗';
     alert(message);
   }
 };
@@ -1361,6 +1438,18 @@ const openReply = async (review) => {
     await loadReviews(); // 重新載入，才看得到回覆
   } catch (err) {
     const message = err.response && err.response.data ? err.response.data : '送出回覆失敗';
+    alert(message);
+  }
+};
+
+// 永久刪除：跟「隱藏」不同，刪了就拉不回來，所以先跳出確認視窗再送
+const removeReview = async (id) => {
+  if (!confirm('確定要永久刪除這則評價嗎？刪除後無法復原（會連同照片、店家回覆一起刪掉）。')) return;
+  try {
+    await apiDeleteReview(id);
+    await loadReviews(); // 重新載入，刪掉的就不會再出現在清單
+  } catch (err) {
+    const message = err.response && err.response.data ? err.response.data : '刪除評價失敗';
     alert(message);
   }
 };</script>
@@ -1553,6 +1642,22 @@ const openReply = async (review) => {
 }
 .btn-cancel:hover {
   background-color: #7f8c8d;
+}
+
+/* 永久刪除按鈕（紅色，跟灰色的「隱藏」區別開來，提醒這是不可復原的動作） */
+.btn-delete {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: background 0.3s;
+}
+
+.btn-delete:hover {
+  background-color: #c0392b;
 }
 
 .coupon-form {

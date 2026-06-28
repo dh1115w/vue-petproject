@@ -17,10 +17,10 @@
 
           <div class="booking-visual-gallery">
             <div class="gallery-item dog-item">
-              <img src="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&h=400&fit=crop" alt="Dog Grooming" />
+              <img src="/grooming-img/dog1.jpg" alt="Dog Grooming" />
             </div>
             <div class="gallery-item cat-item">
-              <img src="https://images.unsplash.com/photo-1548546738-8509cb246ed3?w=500&h=400&fit=crop" alt="Cat Grooming" />
+              <img src="/grooming-img/dog2.jpg" alt="Dog Grooming" />
             </div>
           </div>
 
@@ -322,12 +322,17 @@ export default {
       }
       return null;
     },
-    // 新增：根據所選服務動態計算可選擇的美容師清單
+    // 根據「目前選的毛孩是貓還是狗」動態計算可選擇的美容師清單
     filteredGroomers() {
+      // 維持原本的「先選服務項目」限制（沒選服務時下拉顯示提示文字）
       if (!this.form.serviceId) return [];
-      const service = this.services.find(s => s.id == this.form.serviceId);
-      if (!service || !service.allowedGroomers) return this.groomers; // 若無設定則顯示全部
-      return this.groomers.filter(g => service.allowedGroomers.includes(g.id));
+      // 找出目前選的毛孩是貓還是狗
+      const pet = this.pets.find(p => p.id == this.form.petId);
+      const petType = pet ? pet.type : null;
+      // 抓不出毛孩物種（沒選毛孩、或物種文字看不出貓狗）就不過濾，顯示全部，不要整個擋掉
+      if (!petType) return this.groomers;
+      // 只留下「能服務這個物種」的美容師
+      return this.groomers.filter(g => this.groomerServes(g, petType));
     },
     // 新增：尋找目前輸入的優惠券
     appliedCoupon() {
@@ -390,6 +395,14 @@ export default {
           this.form.serviceId = ''; // 清空不相容的服務
         }
       }
+
+      // 換毛孩可能換了物種：若目前選的美容師不能服務新毛孩的物種，清掉讓客人重選
+      if (this.form.groomerId && pet.type) {
+        const currentGroomer = this.groomers.find(g => g.id == this.form.groomerId);
+        if (currentGroomer && !this.groomerServes(currentGroomer, pet.type)) {
+          this.form.groomerId = '';
+        }
+      }
     },
     // 當預約日期或美容師改變時，重新獲取可用時段
     'form.appointmentDate': 'handleDateOrGroomerChange',
@@ -447,6 +460,14 @@ export default {
       } catch (error) {
         console.error('Failed to fetch groomers:', error);
       }
+    },
+    // 判斷一位美容師能不能服務某個物種（petType 是 'dog' 或 'cat'）。
+    // serviceSpecies 為 null/空字串 代表「皆可」，貓狗都能服務；
+    // 例如存 "dog" 只服務狗、"cat" 只服務貓、"dog,cat" 兩種都行。
+    groomerServes(groomer, petType) {
+      const species = groomer.serviceSpecies;
+      if (!species) return true;
+      return species.split(',').map(s => s.trim()).includes(petType);
     },
     // 新增：呼叫 API 驗證優惠碼
     async verifyCoupon(code) {

@@ -119,7 +119,9 @@
         <p v-if="isAnalyzing && !healthAdvice" class="ai-form-subtitle">
           AI 分析中，請稍候...
         </p>
-        <pre class="health-advice-text">{{ healthAdvice }}</pre>
+        <pre class="health-advice-text" style="white-space: pre-wrap">{{
+          healthAdvice
+        }}</pre>
       </div>
     </div>
 
@@ -656,10 +658,16 @@ async function startHealthAnalysis(recordId) {
       let assembled = "";
       for (const line of lines) {
         if (line.startsWith("data:")) {
-          const content = line.slice(5); //
-          if (content.trim()) assembled += content;
+          const content = line.slice(5);
+          if (content === "" || content === " ") {
+            assembled += "\n"; // 空 data 行 = 換行
+          } else {
+            assembled += content; // 有內容就接上
+          }
         }
       }
+      // 把每個 ・ 前面加換行，讓條列各自一行
+      assembled = assembled.replace(/・/g, "\n・");
       healthAdvice.value = assembled;
     };
 

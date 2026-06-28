@@ -332,6 +332,7 @@
   word-break: break-word;
   margin: 0;
   font-family: inherit; /* 不要用等寬字體 */
+  line-height: 2;
 }
 
 @keyframes pulse {

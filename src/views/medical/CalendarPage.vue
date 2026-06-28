@@ -14,7 +14,9 @@
         <header class="calendar-header">
           <div class="header-text-group">
             <h1>行事曆提醒</h1>
-            <p class="subtitle">管理小福的疫苗、健檢與用藥提醒</p>
+            <p class="subtitle">
+              管理{{ currentPetName }}的疫苗、健檢與用藥提醒
+            </p>
           </div>
 
           <button class="add-event-btn" @click="openAddForm">
@@ -367,7 +369,7 @@
               </div>
             </div>
 
-            <!-- 欄位 4：備註 -->
+            <!-- 欄位 4：備註（選填） -->
             <div class="form-group">
               <label class="form-label">備註（選填）</label>
               <input
@@ -395,7 +397,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
 import useUserStore from "@/stores/user.js";
 import "@/css/medical/medical-calendar-page.css";
@@ -457,67 +459,35 @@ const typeConfig = {
 
 // ==========================================================================
 // 3. 提醒事件核心資料（對應 ReminderEvents 表）
+//    頁面載入時從後端取得，不再用假資料
 // ==========================================================================
-const reminderEventsList = ref([
-  // {
-  //   reminderId: 1,
-  //   petId: 1,
-  //   categoryId: "vaccine",
-  //   eventTitle: "狂犬病疫苗",
-  //   targetDate: "2026-04-25",
-  //   eventTime: "10:00",
-  //   note: "台北動物醫院",
-  //   isCompleted: false,
-  //   isUrgent: true,
-  // },
-  // {
-  //   reminderId: 2,
-  //   petId: 1,
-  //   categoryId: "medicine",
-  //   eventTitle: "心絲蟲預防藥",
-  //   targetDate: "2026-04-28",
-  //   eventTime: "08:00",
-  //   note: "",
-  //   isCompleted: false,
-  //   isUrgent: false,
-  // },
-  // {
-  //   reminderId: 3,
-  //   petId: 1,
-  //   categoryId: "checkup",
-  //   eventTitle: "年度健康檢查",
-  //   targetDate: "2026-05-03",
-  //   eventTime: "14:00",
-  //   note: "台北動物醫院",
-  //   isCompleted: false,
-  //   isUrgent: false,
-  // },
-  // {
-  //   reminderId: 4,
-  //   petId: 1,
-  //   categoryId: "medicine",
-  //   eventTitle: "跳蚤預防藥",
-  //   targetDate: "2026-05-15",
-  //   eventTime: "08:00",
-  //   note: "",
-  //   isCompleted: false,
-  //   isUrgent: false,
-  // },
-  // {
-  //   reminderId: 5,
-  //   petId: 1,
-  //   categoryId: "checkup",
-  //   eventTitle: "皮膚炎回診",
-  //   targetDate: "2026-04-10",
-  //   eventTime: "11:00",
-  //   note: "愛寵動物診所",
-  //   isCompleted: true,
-  //   isUrgent: false,
-  // },
-]);
+const reminderEventsList = ref([]);
 
-// LINE 綁定狀態（對應 OwnerLineProfiles.isSubscribed）
+// ==========================================================================
+// 4. 寵物切換（與健康追蹤頁同邏輯）
+// ==========================================================================
 const userStore = useUserStore();
+
+// 目前選中的寵物 ID
+function getPetId() {
+  if (userStore.selectPetId) return userStore.selectPetId;
+  if (userStore.pets.length > 0) return userStore.pets[0].id;
+  return null;
+}
+const currentPetId = computed(getPetId);
+
+// 目前選中的寵物名字（顯示在 subtitle 用）
+function getPetName() {
+  const pet = userStore.pets.find(function (p) {
+    return p.id === currentPetId.value;
+  });
+  return pet ? pet.name : "寵物";
+}
+const currentPetName = computed(getPetName);
+
+// ==========================================================================
+// 5. LINE 綁定狀態（對應 OwnerLineProfiles.isSubscribed）
+// ==========================================================================
 const TEMP_MEM_ID = 1;
 const isSubscribed = ref(false);
 const lineProfile = ref(null);
@@ -528,8 +498,53 @@ const lineMessageType = ref("");
 const reminderMessage = ref("");
 const reminderMessageType = ref("");
 
-// 頁面載入時，呼叫 API 取得 LINE 綁定狀態
-onMounted(async () => {
+// ==========================================================================
+// 6. 後端資料載入
+// ==========================================================================
+
+// 後端回傳的 categoryId 數字 → 前端字串 key 對照表
+const categoryIdReverseMap = { 1: "vaccine", 2: "checkup", 3: "medicine" };
+
+// 把後端回傳的一筆提醒資料，轉成前端需要的格式
+function mapReminder(item) {
+  const dateTime = item.targetDate; // "2026-06-28T08:00:00"
+  const datePart = dateTime.split("T")[0]; // "2026-06-28"
+  const timePart = dateTime.split("T")[1].substring(0, 5); // "08:00"
+
+  const todayStr = `${yearStr}-${monthStr}-${dateStr}`;
+  const daysUntil = Math.ceil(
+    (new Date(datePart) - new Date(todayStr)) / (1000 * 60 * 60 * 24),
+  );
+
+  return {
+    reminderId: item.reminderId,
+    petId: item.petId,
+    categoryId: categoryIdReverseMap[item.categoryId] ?? "vaccine",
+    eventTitle: item.eventTitle,
+    targetDate: datePart,
+    eventTime: timePart,
+    note: "",
+    isCompleted: item.isCompleted,
+    isUrgent: daysUntil >= 0 && daysUntil <= 3 && !item.isCompleted,
+  };
+}
+
+// 載入指定寵物的提醒列表（切換寵物時也會呼叫）
+async function fetchReminderList() {
+  if (!currentPetId.value) return;
+
+  try {
+    const res = await axios.get(
+      `http://localhost:8080/api/medical/reminder/list/${currentPetId.value}`,
+    );
+    reminderEventsList.value = res.data.map(mapReminder);
+  } catch (err) {
+    console.error("載入提醒列表失敗", err);
+  }
+}
+
+// 頁面載入時，同時取得 LINE 綁定狀態 + 提醒事件列表
+onMounted(async function () {
   // --- 取得 LINE 綁定狀態 ---
   try {
     const res = await axios.get(
@@ -541,45 +556,25 @@ onMounted(async () => {
     console.error("獲取 LINE 狀態失敗", err);
   }
 
-  // --- 載入提醒事件列表 ---
-  try {
-    const res = await axios.get(
-      "http://localhost:8080/api/medical/reminder/list/1",
-    );
-
-    const categoryIdReverseMap = { 1: "vaccine", 2: "checkup", 3: "medicine" };
-
-    reminderEventsList.value = res.data.map((item) => {
-      const dateTime = item.targetDate;
-      const datePart = dateTime.split("T")[0];
-      const timePart = dateTime.split("T")[1].substring(0, 5);
-
-      const todayStr = `${yearStr}-${monthStr}-${dateStr}`;
-      const daysUntil = Math.ceil(
-        (new Date(datePart) - new Date(todayStr)) / (1000 * 60 * 60 * 24),
-      );
-
-      return {
-        reminderId: item.reminderId,
-        petId: item.petId,
-        categoryId: categoryIdReverseMap[item.categoryId] ?? "vaccine",
-        eventTitle: item.eventTitle,
-        targetDate: datePart,
-        eventTime: timePart,
-        note: "",
-        isCompleted: item.isCompleted,
-        isUrgent: daysUntil >= 0 && daysUntil <= 3 && !item.isCompleted,
-      };
-    });
-  } catch (err) {
-    console.error("載入提醒列表失敗", err);
-  }
+  // --- 載入提醒列表 ---
+  await fetchReminderList();
 });
+
+// 切換寵物時，重新載入該寵物的提醒列表
+function onPetChange() {
+  fetchReminderList();
+}
+watch(currentPetId, onPetChange);
+
+// ==========================================================================
+// 7. 提示訊息函式
+// ==========================================================================
+
 // 顯示 LINE 操作結果訊息，3 秒後自動清除
 function showLineMessage(msg, type) {
   lineMessage.value = msg;
   lineMessageType.value = type;
-  setTimeout(() => {
+  setTimeout(function () {
     lineMessage.value = "";
   }, 3000);
 }
@@ -588,39 +583,42 @@ function showLineMessage(msg, type) {
 function showReminderMessage(msg, type) {
   reminderMessage.value = msg;
   reminderMessageType.value = type;
-  setTimeout(() => {
+  setTimeout(function () {
     reminderMessage.value = "";
   }, 3000);
 }
 
 // ==========================================================================
-// 4. 行事曆數學計算
+// 8. 行事曆數學計算
 // ==========================================================================
-const firstDayOfWeek = computed(() => {
+const firstDayOfWeek = computed(function () {
   return new Date(currentYear.value, currentMonth.value, 1).getDay();
 });
 
-const totalDaysInMonth = computed(() => {
+const totalDaysInMonth = computed(function () {
   return new Date(currentYear.value, currentMonth.value + 1, 0).getDate();
 });
 
-const selectedDateEvents = computed(() => {
-  return reminderEventsList.value.filter(
-    (e) => e.targetDate === selectedDate.value,
-  );
+const selectedDateEvents = computed(function () {
+  return reminderEventsList.value.filter(function (e) {
+    return e.targetDate === selectedDate.value;
+  });
 });
 
-const upcomingEventsList = computed(() => {
+const upcomingEventsList = computed(function () {
   return reminderEventsList.value
-    .filter(
-      (e) =>
-        !e.isCompleted && e.targetDate >= `${yearStr}-${monthStr}-${dateStr}`,
-    )
-    .sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+    .filter(function (e) {
+      return (
+        !e.isCompleted && e.targetDate >= `${yearStr}-${monthStr}-${dateStr}`
+      );
+    })
+    .sort(function (a, b) {
+      return a.targetDate.localeCompare(b.targetDate);
+    });
 });
 
 // ==========================================================================
-// 5. 行事曆切換與狀態判斷函式
+// 9. 行事曆切換與狀態判斷函式
 // ==========================================================================
 function formatDateStr(dayNum) {
   const y = currentYear.value;
@@ -631,7 +629,9 @@ function formatDateStr(dayNum) {
 
 function getEventsForDate(dayNum) {
   const target = formatDateStr(dayNum);
-  return reminderEventsList.value.filter((e) => e.targetDate === target);
+  return reminderEventsList.value.filter(function (e) {
+    return e.targetDate === target;
+  });
 }
 
 function getEventConfig(categoryId) {
@@ -646,7 +646,9 @@ function getEventConfig(categoryId) {
 }
 
 function checkHasUrgentEvent(dayNum) {
-  return getEventsForDate(dayNum).some((e) => e.isUrgent);
+  return getEventsForDate(dayNum).some(function (e) {
+    return e.isUrgent;
+  });
 }
 
 function checkIsSelected(dayNum) {
@@ -679,7 +681,9 @@ function nextMonth() {
   }
 }
 
-// LINE 綁定與解綁
+// ==========================================================================
+// 10. LINE 綁定與解綁
+// ==========================================================================
 async function handleLineConnect() {
   try {
     await axios.post(`http://localhost:8080/api/medical/line/update`, {
@@ -710,6 +714,9 @@ async function handleLineDisconnect() {
   }
 }
 
+// ==========================================================================
+// 11. 倒數文字
+// ==========================================================================
 function getCountdownText(targetDate) {
   const eventDate = new Date(targetDate);
   const todayDate = new Date(`${yearStr}-${monthStr}-${dateStr}`);
@@ -723,7 +730,7 @@ function getCountdownText(targetDate) {
 }
 
 // ==========================================================================
-// 6. 新增提醒彈窗邏輯
+// 12. 新增提醒彈窗邏輯
 // ==========================================================================
 const showAddForm = ref(false);
 
@@ -763,7 +770,10 @@ async function handleCreateEvent() {
     return;
   }
 
+  // categoryId 字串 key → 後端需要的數字
   const categoryIdMap = { vaccine: 1, checkup: 2, medicine: 3 };
+
+  // 合併日期 + 時間 → LocalDateTime 格式
   const targetDateTime = `${newReminder.value.targetDate}T${newReminder.value.eventTime}:00`;
 
   try {
@@ -771,17 +781,18 @@ async function handleCreateEvent() {
       "http://localhost:8080/api/medical/reminder/create",
       {
         memId: TEMP_MEM_ID,
-        petId: 1,
-        petName: "小福",
+        petId: currentPetId.value, // 目前選中的寵物 ID
+        petName: currentPetName.value, // 目前選中的寵物名字
         categoryId: categoryIdMap[newReminder.value.categoryId],
         eventTitle: newReminder.value.eventTitle,
         targetDate: targetDateTime,
       },
     );
 
+    // 用後端回傳的真實 reminderId 更新前端列表
     reminderEventsList.value.push({
       reminderId: res.data.reminderId,
-      petId: 1,
+      petId: currentPetId.value,
       categoryId: newReminder.value.categoryId,
       eventTitle: newReminder.value.eventTitle,
       targetDate: newReminder.value.targetDate,

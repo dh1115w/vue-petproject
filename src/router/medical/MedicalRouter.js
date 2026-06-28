@@ -6,12 +6,18 @@ import CalendarPage from '@/views/medical/CalendarPage.vue'
 import TaxiService from '@/views/medical/TaxiService.vue'
 
 const medicalRoutes = [
+  { path: '/medical', name: 'Dashboard', component: Dashboard },
+
+// 需要登入才能進入的頁面
   {path: '/medical',name: 'Dashboard',component: Dashboard},
-  {path: '/medical/healthtracking',name: 'HealthTracking',component: HealthTracking},
-  {path: '/medical/clinicsearch',name: 'ClinicSearch',component: ClinicSearch},
-  {path: '/medical/medicalrecords',name: 'MedicalRecords',component: MedicalRecords},
-  {path: '/medical/calendarpage',name: 'CalendarPage',component: CalendarPage},
-  {path: '/medical/taxiservice',name: 'TaxiService',component: TaxiService}
+  {path: '/medical/healthtracking',name: 'HealthTracking',component: HealthTracking, meta: { requiresAuth: true }},
+  {path: '/medical/clinicsearch',name: 'ClinicSearch',component: ClinicSearch, meta: { requiresAuth: true }},
+  {path: '/medical/medicalrecords',name: 'MedicalRecords',component: MedicalRecords, meta: { requiresAuth: true }},
+  {path: '/medical/calendarpage',name: 'CalendarPage',component: CalendarPage, meta: { requiresAuth: true }},
+  // {path: '/medical/taxiservice',name: 'TaxiService',component: TaxiService, meta: { requiresAuth: true }},
+
+  // 不需要登入（沒加 meta 就是預設不擋）
+  { path: '/medical/clinicsearch', name: 'ClinicSearch', component: ClinicSearch },
 ];
 
 export default medicalRoutes

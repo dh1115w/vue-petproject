@@ -205,10 +205,15 @@
 import { ref, computed, onMounted } from "vue";
 import "@/css/medical/medical-clinic-search.css";
 import axios from "@/plugins/axios.js";
+import useUserStore from "@/stores/user.js";
+import { useRouter } from "vue-router";
+import Swal from "sweetalert2";
 
 // TODO：目前會員登入功能尚未串接，先用固定值測試收藏功能
 // 之後會員組做好登入後，這裡要改成從 src/stores/user.js 的 memberInfo.id 取得真實值
-const TEMP_MEM_ID = 1;
+// const TEMP_MEM_ID = 1;
+const userStore = useUserStore();
+const router = useRouter();
 
 // sessionStorage 的 key 名稱，記住「這次瀏覽期間」定位過的座標
 // sessionStorage 跟 localStorage 不同：分頁/瀏覽器關閉後資料會自動消失，符合「只記住這次使用期間」的需求
@@ -305,6 +310,23 @@ const filteredClinics = computed(() => {
 
 // 切換收藏狀態（對應新增/刪除 UserFavoriteClinics 紀錄）
 async function toggleFavorite(clinic) {
+  if (!userStore.token) {
+    const result = await Swal.fire({
+      icon: "info",
+      iconColor: "rgb(107, 174, 138)",
+      title: "請先登入",
+      text: "收藏診所功能需要登入才能使用",
+      confirmButtonText: "前往登入",
+      confirmButtonColor: " rgb(107, 174, 138)",
+      showCancelButton: true,
+      cancelButtonText: "取消",
+      cancelButtonColor: "#a0a09a",
+    });
+    if (result.isConfirmed) {
+      router.push("/member/login");
+    }
+    return;
+  }
   const idx = clinicsList.value.findIndex(
     (c) => c.clinicId === clinic.clinicId,
   );
@@ -313,7 +335,7 @@ async function toggleFavorite(clinic) {
   try {
     const response = await axios.post("/api/medical/favorites/toggle", null, {
       params: {
-        memId: TEMP_MEM_ID,
+        memId: userStore.memberInfo.id, // 登入者的 id
         clinicId: clinic.clinicId,
       },
     });
@@ -464,14 +486,15 @@ async function fetchNearbyClinics() {
 
 // 查詢目前會員收藏了哪些診所 ID，更新 clinicsList 裡每張卡片的 isFavorited 狀態
 async function syncFavoriteStatus() {
+  // 未登入不查收藏，直接結束
+  if (!userStore.token) return;
+
   try {
     const response = await axios.get("/api/medical/favorites", {
-      params: { memId: TEMP_MEM_ID },
+      params: { memId: userStore.memberInfo.id },
     });
-
     // response.data 是一串診所 ID 陣列，例如 [70, 96, 128]
     const favoriteIds = response.data;
-
     // 用 Set 比對效率較好，clinicsList 裡的每張卡片，ID 有在收藏清單裡的就標記為已收藏
     const favoriteIdSet = new Set(favoriteIds);
     clinicsList.value.forEach((clinic) => {
@@ -479,7 +502,6 @@ async function syncFavoriteStatus() {
     });
   } catch (error) {
     console.error("查詢收藏狀態失敗", error);
-    // 查詢失敗不影響主要的搜尋結果顯示，所以這裡不彈出 alert 打擾使用者
   }
 }
 

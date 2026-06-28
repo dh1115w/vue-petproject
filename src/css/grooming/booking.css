@@ -58,7 +58,9 @@ body {
   margin-top: 1.25rem;
 }
 
-.grid-2 { grid-template-columns: repeat(2, 1fr); }
+/* 用 minmax(0, 1fr) 而非 1fr：避免下拉選單裡的長文字（例如「此日期與美容師無可用時段」）
+   把欄位撐寬、導致整個表單寬度忽大忽小。minmax(0,1fr) 讓欄位最小可縮到 0，固定各佔一半 */
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 /* ===== 卡片 ===== */
 .card {

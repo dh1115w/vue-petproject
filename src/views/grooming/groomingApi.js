@@ -28,6 +28,13 @@ export const getAvailableTimeSlots = (params) => {
   return axios.get('/api/available-slots', { params });
 };
 
+// 已串接真正後端 API：GET /api/groomer-availability
+// params 要帶 { date, pricing_id }，一次回傳「某天、某服務定價下」全部在職美容師的可預約狀態
+// 每筆回 { groomerId, available, slotCount }，預約頁用來在美容師下拉選單標示「尚有時段/已額滿」
+export const getGroomerAvailability = (params) => {
+  return axios.get('/api/groomer-availability', { params });
+};
+
 // 已串接真正後端 API：POST /api/secure/appointments（要登入會員才能用）
 // data 要帶 { petId, groomerId, pricingId, appointmentDate, startTime, note }
 export const createAppointment = (data) => {

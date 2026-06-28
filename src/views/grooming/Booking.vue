@@ -92,41 +92,48 @@
             </select>
           </div>
 
+          <!-- 預約日期移到美容師前面：先選日期，才能算出哪位美容師當天有空 -->
+          <div class="form-group">
+            <label for="aptDate">預約日期</label>
+            <input type="date" id="aptDate" v-model="form.appointmentDate" :min="minDate" required>
+            <!-- 店休公告 -->
+            <div v-if="isDateHoliday" class="holiday-announcement">
+              ⚠️ 很抱歉，當日為店休日，暫不提供美容服務。
+            </div>
+          </div>
+
           <div class="form-group">
             <label for="groomerSelect">指定美容師 (groomer_id)</label>
             <select id="groomerSelect" v-model="form.groomerId" required>
               <option value="">
-                {{ !form.serviceId ? '-- 請先選擇服務項目 --' : '-- 請選擇美容師 --' }}
-              </option> 
-              <option v-for="groomer in filteredGroomers" :key="groomer.id" :value="groomer.id">
-                {{ groomer.name }}
+                {{ !form.serviceId ? '-- 請先選擇服務項目 --' : (!form.appointmentDate || !form.size ? '-- 請先選好日期與體型 --' : '-- 請選擇美容師 --') }}
+              </option>
+              <!-- 已查到當天狀態時：沒空檔的美容師會標「已額滿/休假」且不能選 -->
+              <option
+                v-for="groomer in filteredGroomers"
+                :key="groomer.id"
+                :value="groomer.id"
+                :disabled="availabilityLoaded && !isGroomerAvailable(groomer.id)">
+                {{ groomerOptionLabel(groomer) }}
               </option>
             </select>
+            <div v-if="isLoadingAvailability" class="availability-hint">查詢美容師可預約狀態中...</div>
           </div>
-          <div class="form-group grid grid-2" style="padding:0; gap:15px; margin-top:0;">
-            <div>
-              <label for="aptDate">預約日期</label>
-              <input type="date" id="aptDate" v-model="form.appointmentDate" :min="minDate" required>
-              <!-- 新增：店休公告 -->
-              <div v-if="isDateHoliday" class="holiday-announcement">
-                ⚠️ 很抱歉，當日為店休日，暫不提供美容服務。
-              </div>
-            </div>
-            <div>
-              <label for="timeSlot">可用時段</label>
-              <select id="timeSlot" v-model="form.timeSlot" required :disabled="!form.appointmentDate || !form.groomerId || isLoadingTimeSlots || timeSlotsError">
-                <option value="" disabled>-- 請選擇時段 --</option>
-                <option v-if="isLoadingTimeSlots" disabled>載入中...</option>
-                <option v-else-if="timeSlotsError" disabled>載入失敗: {{ timeSlotsError }}</option>
-                <option v-else-if="!availableTimeSlots.length && form.appointmentDate && form.groomerId" disabled>此日期與美容師無可用時段</option>
-                <option 
-                  v-for="slot in availableTimeSlots" 
-                  :key="slot.value" 
-                  :value="slot.value">
-                  {{ slot.label }}
-                </option>
-              </select>
-            </div>
+
+          <div class="form-group">
+            <label for="timeSlot">可用時段</label>
+            <select id="timeSlot" v-model="form.timeSlot" required :disabled="!form.appointmentDate || !form.groomerId || isLoadingTimeSlots || timeSlotsError">
+              <option value="" disabled>-- 請選擇時段 --</option>
+              <option v-if="isLoadingTimeSlots" disabled>載入中...</option>
+              <option v-else-if="timeSlotsError" disabled>載入失敗: {{ timeSlotsError }}</option>
+              <option v-else-if="!availableTimeSlots.length && form.appointmentDate && form.groomerId" disabled>此日期與美容師無可用時段</option>
+              <option
+                v-for="slot in availableTimeSlots"
+                :key="slot.value"
+                :value="slot.value">
+                {{ slot.label }}
+              </option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -215,7 +222,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment, cancelAppointment } from './groomingApi'
+import { getAvailableTimeSlots, getGroomerAvailability, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment, cancelAppointment } from './groomingApi'
 import useUserStore from '@/stores/user.js'
 
 export default {
@@ -249,6 +256,9 @@ export default {
       groomers: [], // 改成從後端 fetchGroomers() 撈，見 mounted()
       services: [],
       availableTimeSlots: [], // 儲存可用的預約時段
+      groomerAvailability: {}, // 某天每位美容師的剩餘時段數：{ groomerId: slotCount }
+      availabilityLoaded: false, // 是否已查到當天美容師狀態（查到後才標示額滿/可選）
+      isLoadingAvailability: false, // 查詢美容師可預約狀態中
       isLoadingTimeSlots: false, // 載入時段的狀態
       timeSlotsError: null, // 載入時段的錯誤訊息
       incompatibleServiceWarning: '', // 儲存不相容服務的提示訊息
@@ -404,11 +414,15 @@ export default {
         }
       }
     },
-    // 當預約日期或美容師改變時，重新獲取可用時段
-    'form.appointmentDate': 'handleDateOrGroomerChange',
-    'form.groomerId': 'handleDateOrGroomerChange',
-    // 體型會影響服務要花多久（duration），所以也要重新查可用時段
-    'form.size': 'fetchAvailableTimeSlots',
+    // 日期改變：重查時段，也要重查「當天每位美容師有沒有空」
+    'form.appointmentDate': 'handleDateChange',
+    // 美容師改變：只要重查該美容師的可用時段（不影響其他美容師的狀態）
+    'form.groomerId': 'handleGroomerChange',
+    // 體型會影響服務要花多久（duration），時段與美容師狀態都要重查
+    'form.size'() {
+      this.fetchAvailableTimeSlots();
+      this.fetchGroomerAvailability();
+    },
     // 新增：監控服務項目，若切換服務後目前的美容師不符合資格，則重設美容師選擇
     // 同時，當服務被手動更改時，清除不相容服務的警告
     'form.serviceId'(newServiceId) {
@@ -417,8 +431,9 @@ export default {
       if (service && service.allowedGroomers && !service.allowedGroomers.includes(this.form.groomerId)) {
         this.form.groomerId = '';
       }
-      // 服務改變也會影響時長，重新查可用時段
+      // 服務改變也會影響時長，重新查可用時段與美容師狀態
       this.fetchAvailableTimeSlots();
+      this.fetchGroomerAvailability();
     },
     // 新增：監控優惠碼輸入，自動呼叫 API 驗證
     'form.couponCode'(newCode) {
@@ -541,8 +556,8 @@ export default {
         this.isLoadingTimeSlots = false;
       }
     },
-    handleDateOrGroomerChange() {
-      // 如果已選擇日期且該日期為店休/週一公休
+    // 日期改變：店休檢查 → 清空時段 → 重查時段 + 重查當天美容師狀態
+    handleDateChange() {
       if (this.form.appointmentDate && this.isDateHoliday) {
         this.triggerToast('⚠️ 此日期為店休日（週一公休或國定假日），請選擇其他日期。', 'error');
         this.form.appointmentDate = ''; // 強制清空已選日期
@@ -551,6 +566,58 @@ export default {
       }
       this.form.timeSlot = ''; // 清空已選時段
       this.fetchAvailableTimeSlots();
+      this.fetchGroomerAvailability();
+    },
+    // 美容師改變：清空時段 → 重查該美容師的可用時段（美容師狀態不受影響，不用重查）
+    handleGroomerChange() {
+      this.form.timeSlot = '';
+      this.fetchAvailableTimeSlots();
+    },
+    // 查「某天、某服務定價下」全部美容師有沒有空，結果存進 groomerAvailability 給下拉選單標示
+    async fetchGroomerAvailability() {
+      const { appointmentDate, serviceId, size } = this.form;
+      // 日期、服務、體型都要選好（且不是店休）才算得出來
+      if (!appointmentDate || !serviceId || !size || this.isDateHoliday) {
+        this.availabilityLoaded = false;
+        this.groomerAvailability = {};
+        return;
+      }
+      const pricingId = this.findPricingId(serviceId, size);
+      if (!pricingId) {
+        this.availabilityLoaded = false;
+        this.groomerAvailability = {};
+        return;
+      }
+      this.isLoadingAvailability = true;
+      try {
+        const response = await getGroomerAvailability({ date: appointmentDate, pricing_id: pricingId });
+        const map = {};
+        response.data.forEach(g => { map[g.groomerId] = g.slotCount; });
+        this.groomerAvailability = map;
+        this.availabilityLoaded = true;
+        // 若目前已選的美容師當天其實沒空，清掉讓使用者重選
+        if (this.form.groomerId && !this.isGroomerAvailable(this.form.groomerId)) {
+          this.form.groomerId = '';
+          this.form.timeSlot = '';
+        }
+      } catch (error) {
+        console.error('查詢美容師可預約狀態失敗:', error);
+        this.availabilityLoaded = false;
+        this.groomerAvailability = {};
+      } finally {
+        this.isLoadingAvailability = false;
+      }
+    },
+    // 這位美容師當天還有沒有空檔（slotCount > 0）
+    isGroomerAvailable(groomerId) {
+      return this.groomerAvailability[groomerId] > 0;
+    },
+    // 下拉選單上每位美容師要顯示的文字：還沒查到狀態前只顯示名字，查到後加上「尚有 N 個時段 / 已額滿」
+    groomerOptionLabel(groomer) {
+      if (!this.availabilityLoaded) return groomer.name;
+      const slots = this.groomerAvailability[groomer.id];
+      if (slots > 0) return `${groomer.name}（尚有 ${slots} 個時段）`;
+      return `${groomer.name}（已額滿/休假）`;
     },
     handleSubmit() {
       // 表單驗證 (在開啟確認彈窗前進行)
@@ -1057,6 +1124,13 @@ textarea {
 .btn-clear-coupon:hover {
   background-color: #eee;
   border-color: #ccc;
+}
+
+/* 美容師可預約狀態查詢中的小提示 */
+.availability-hint {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 5px;
 }
 
 /* 新增：優惠碼錯誤訊息樣式 */

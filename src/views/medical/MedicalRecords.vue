@@ -633,8 +633,20 @@ async function startHealthAnalysis(recordId) {
           }
         }
       }
-      // 把每個 ・ 前面加換行，讓條列各自一行
+      // 1. 把每個 ・ 前面加換行，讓條列各自一行
       assembled = assembled.replace(/・/g, "\n・");
+      // 2. 先把所有多重換行壓成單一，清乾淨
+      assembled = assembled.replace(/\n{2,}/g, "\n");
+      // 3. 只在這幾個大標題前面加一個空行，做出區塊分隔
+      const 大標題 = [
+        "日常照護重點",
+        "飲食與飲水注意事項",
+        "需要立即回診的警示症狀",
+        "用藥提醒",
+      ];
+      大標題.forEach((標題) => {
+        assembled = assembled.replace(標題, "\n" + 標題);
+      });
       healthAdvice.value = assembled;
     };
 

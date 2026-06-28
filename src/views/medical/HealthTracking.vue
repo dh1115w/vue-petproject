@@ -462,7 +462,7 @@ const statusNoteActivity = ref("低"); // 活動量        → PetHealthTracking
 const statusNoteExtra = ref(""); // 備註說明      → PetHealthTracking.statusNote
 
 // ── 最後更新時間（對應 PetHealthTracking.updatedAt）──────
-const updatedAt = ref("2026/06/11 18:30");
+const updatedAt = ref("今日尚未紀錄");
 
 // ── 喝水建議量 ──────
 const recommendedWater = computed(() => {
@@ -506,17 +506,6 @@ async function handleSubmitRecord() {
   const f = metricValueFood.value || "250";
   const n = statusNoteExtra.value || "無";
 
-  // 2. 取得當下時間並格式化
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const date = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-
-  const formattedDate = `${year} / ${month} / ${date}`;
-  updatedAt.value = `${year}/${month}/${date} ${hours}:${minutes}`;
-
   // 5. 串接 Java 後端
 
   // 5-1. 送出前先確認有沒有可用的寵物 id，沒有的話直接擋下來，不送 API
@@ -545,6 +534,16 @@ async function handleSubmitRecord() {
       postData,
     );
     console.log("後端儲存成功:", response.data);
+
+    // 後端儲存成功後，立即用前端當下時間更新「最後更新時間」
+    // 不依賴 fetchHistoryLogs 回傳的 recordDate，避免後端只記錄第一次建立時間導致顯示不更新
+    const now = new Date();
+    const y = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const h = String(now.getHours()).padStart(2, "0");
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    updatedAt.value = `${y}/${mo}/${d} ${h}:${mi}`;
 
     // 存成功後，同步重新查詢所有需要更新的資料：
     // 歷史日誌、體重趨勢卡片、體重折線圖、本週飲食長條圖
@@ -695,7 +694,7 @@ async function fetchHistoryLogs() {
 
     // 查詢結果依時間新到舊排序，所以第一筆就是「最新一筆紀錄」
     // 用它的時間更新「最後更新時間」欄位，這樣重新整理後也能顯示正確的時間，而不是寫死的初始值
-    if (response.data.length > 0) {
+    if (response.data.length > 0 && updatedAt.value === "今日尚未紀錄") {
       const latest = new Date(response.data[0].recordDate);
       const y = latest.getFullYear();
       const m = String(latest.getMonth() + 1).padStart(2, "0");

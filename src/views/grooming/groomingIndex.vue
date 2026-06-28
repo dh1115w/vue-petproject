@@ -61,8 +61,8 @@
             tabindex="0"
             role="button"
             title="點擊複製代碼"
-          >PET80</span> 
-          即享 8 折優惠。
+          >{{ promoData.promoCode }}</span>
+          {{ promoData.discountText }}。
         </p>
         
         <!-- 倒數計時器區塊 -->
@@ -156,6 +156,7 @@ export default {
         endDate: '',
         title: '',
         description: '',
+        discountText: '',
         tag: ''
       }
     }
@@ -197,6 +198,8 @@ export default {
         }
       } catch (error) {
         console.error('獲取首頁資料失敗:', error);
+        // 抓資料失敗時，把促銷橫幅藏起來，避免露出沒有內容的空殼橫幅
+        this.isPromoActive = false;
       }
     },
     startCountdown(endDateStr) {

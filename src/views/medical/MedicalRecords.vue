@@ -475,12 +475,35 @@ function handleViewFile(record) {
   );
 }
 
-// 下載檔案：同一支 API
-function handleDownloadFile(record) {
-  window.open(
-    `http://localhost:8080/api/medical/file/${record.recordId}`,
-    "_blank",
-  );
+// 下載檔案
+async function handleDownloadFile(record) {
+  try {
+    // 跟後端要檔案，responseType: "blob" 代表「用二進位格式接收，不要當文字」
+    const res = await axios.get(
+      `http://localhost:8080/api/medical/file/${record.recordId}`,
+      { responseType: "blob" },
+    );
+
+    // 把拿到的二進位資料，轉成瀏覽器可以用的暫時網址
+    const url = URL.createObjectURL(res.data);
+
+    // 建一個看不見的 <a> 連結，設好要存的檔名
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `病歷_${record.recordId}`; // 存檔名稱，例如：病歷_83
+
+    // 把連結放進頁面 → 自動點它 → 再把它移除
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 清除剛才建立的暫時網址，避免浪費記憶體
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    // 失敗的話在 console 印出錯誤，並跳出提示
+    console.error("下載失敗", e);
+    alert("❌ 下載失敗，請稍後再試。");
+  }
 }
 
 function getEventConfig(fileType) {

@@ -335,6 +335,13 @@
   line-height: 2;
 }
 
+.ai-form-error-msg {
+  margin-top: 10px;
+  color: #df4733;
+  font-size: 14px;
+  text-align: center;
+}
+
 @keyframes pulse {
   0%,
   100% {

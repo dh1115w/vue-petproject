@@ -13,7 +13,7 @@
       <header class="records-header">
         <div class="header-text-group">
           <h1>病歷紀錄</h1>
-          <p class="subtitle">管理小福的所有醫療紀錄與檢查報告</p>
+          <p class="subtitle">管理{{ name }}的所有醫療紀錄與檢查報告</p>
         </div>
 
         <button class="add-record-top-btn" @click="handleRecordInfo">
@@ -108,6 +108,11 @@
             確認儲存
           </button>
         </div>
+
+        <!-- 錯誤訊息顯示 -->
+        <p v-if="saveErrorMessage" class="ai-form-error-msg">
+          {{ saveErrorMessage }}
+        </p>
       </div>
     </div>
 
@@ -350,9 +355,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "@/plugins/axios.js";
 import "@/css/medical/medical-records.css";
+import useUserStore from "@/stores/user.js";
 
 // ==========================================================================
 // 1. UI 互動狀態
@@ -361,6 +367,22 @@ const searchQuery = ref("");
 const selectedTypeKey = ref("all");
 const expandedRecordId = ref(null);
 const dragging = ref(false);
+const userStore = useUserStore();
+const saveErrorMessage = ref("");
+
+// 切換寵物
+const currentPetId = computed(function () {
+  if (userStore.selectPetId) return userStore.selectPetId;
+  if (userStore.pets.length > 0) return userStore.pets[0].id;
+  return null;
+});
+
+const name = computed(function () {
+  var pet = userStore.pets.find(function (p) {
+    return p.id === currentPetId.value;
+  });
+  return pet ? pet.name : "寵物";
+});
 
 // AI 功能相關狀態
 const fileInputRef = ref(null);
@@ -406,9 +428,11 @@ const typeConfig = {
   },
 };
 
-const filterTabsList = computed(() => {
+const filterTabsList = computed(function () {
   const base = [{ key: "all", label: "全部" }];
-  Object.entries(typeConfig).forEach(([k, v]) => {
+  Object.entries(typeConfig).forEach(function (entry) {
+    var k = entry[0];
+    var v = entry[1];
     base.push({ key: k, label: v.label });
   });
   return base;
@@ -421,8 +445,9 @@ const medicalRecordsList = ref([]);
 
 // 從後端載入某寵物的所有病歷
 async function loadRecords() {
+  if (!currentPetId.value) return; // 沒有寵物就不查
   try {
-    const res = await axios.get("/api/medical/list/1"); // petId 先寫死 1
+    const res = await axios.get(`/api/medical/list/${currentPetId.value}`);
     medicalRecordsList.value = res.data;
   } catch (e) {
     console.error("載入病歷失敗", e);
@@ -432,31 +457,38 @@ async function loadRecords() {
 // 頁面載入時抓一次
 onMounted(loadRecords);
 
+// 切換寵物時重新載入對應病歷
+watch(currentPetId, function () {
+  loadRecords();
+});
+
 // ==========================================================================
 // 4. 篩選計算器
 // ==========================================================================
-const filteredRecords = computed(() => {
-  return medicalRecordsList.value.filter((record) => {
+const filteredRecords = computed(function () {
+  return medicalRecordsList.value.filter(function (record) {
     const matchSearch =
       (record.diagnosis && record.diagnosis.includes(searchQuery.value)) ||
       (record.clinicName && record.clinicName.includes(searchQuery.value)) ||
-      (record.tags && record.tags.some((t) => t.includes(searchQuery.value)));
+      (record.tags &&
+        record.tags.some(function (t) {
+          return t.includes(searchQuery.value);
+        }));
     const matchType =
       selectedTypeKey.value === "all" ||
       record.fileType === selectedTypeKey.value;
     return matchSearch && matchType;
   });
 });
-
 function getRecordCountByType(typeKey) {
-  return medicalRecordsList.value.filter((r) => r.fileType === typeKey).length;
+  return medicalRecordsList.value.filter(function (r) {
+    return r.fileType === typeKey;
+  }).length;
 }
-
-const totalFilesCount = computed(() => {
-  return medicalRecordsList.value.reduce(
-    (total, r) => total + (r.exportCount || 0),
-    0,
-  );
+const totalFilesCount = computed(function () {
+  return medicalRecordsList.value.reduce(function (total, r) {
+    return total + (r.exportCount || 0);
+  }, 0);
 });
 
 // ==========================================================================
@@ -502,7 +534,7 @@ async function handleDownloadFile(record) {
   } catch (e) {
     // 失敗的話在 console 印出錯誤，並跳出提示
     console.error("下載失敗", e);
-    alert("❌ 下載失敗，請稍後再試。");
+    saveErrorMessage.value = "❌ 下載失敗，請稍後再試。";
   }
 }
 
@@ -581,7 +613,7 @@ async function uploadAndParse(file) {
     parsedResult.value._file = file;
   } catch (error) {
     console.error("AI 辨識失敗：", error);
-    alert("❌ 辨識失敗，請確認檔案格式或稍後再試。");
+    saveErrorMessage.value = "❌ 辨識失敗，請確認檔案格式或稍後再試。";
   } finally {
     isParsingAI.value = false;
   }
@@ -590,9 +622,17 @@ async function uploadAndParse(file) {
 async function handleSaveRecord() {
   if (!parsedResult.value) return;
 
+  if (!currentPetId.value) {
+    saveErrorMessage.value = "⚠️ 尚未選擇寵物，請先選擇寵物後再儲存！";
+    return;
+  }
+
+  saveErrorMessage.value = ""; // 清除舊錯誤
+
   try {
     const formData = new FormData();
-    formData.append("petId", 1);
+
+    formData.append("petId", currentPetId.value);
     formData.append("file", parsedResult.value._file);
     formData.append("diagnosis", parsedResult.value.diagnosis || "待確認");
     formData.append("clinicName", parsedResult.value.clinicName || "");
@@ -628,7 +668,7 @@ async function handleSaveRecord() {
     await loadRecords();
   } catch (error) {
     console.error("儲存失敗：", error);
-    alert("❌ 儲存失敗，請稍後再試。");
+    saveErrorMessage.value = "儲存失敗，請稍後再試。";
   }
 }
 
@@ -637,7 +677,7 @@ async function startHealthAnalysis(recordId) {
   healthAdvice.value = "";
   isAnalyzing.value = true; // 開始：顯示「分析中」
 
-  return new Promise((resolve) => {
+  return new Promise(function (resolve) {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", `http://localhost:8080/api/medical/analyze/${recordId}`);
     xhr.setRequestHeader("Accept", "text/event-stream");
@@ -667,7 +707,7 @@ async function startHealthAnalysis(recordId) {
         "需要立即回診的警示症狀",
         "用藥提醒",
       ];
-      大標題.forEach((標題) => {
+      大標題.forEach(function (標題) {
         assembled = assembled.replace(標題, "\n" + 標題);
       });
       healthAdvice.value = assembled;

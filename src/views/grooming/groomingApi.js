@@ -78,11 +78,6 @@ export const getAdminStats = () => {
   return adminAxios.get('/api/admin/stats');
 };
 
-export const getAdminSchedule = () => {
-  console.log('[mock] getAdminSchedule 被呼叫');
-  return Promise.resolve({ data: mockAppointments });
-};
-
 // 已串接真正後端 API：GET /api/admin/shift-templates（班別模板：早班/晚班…，含起訖時間）
 export const getShiftTemplates = () => {
   return adminAxios.get('/api/admin/shift-templates');

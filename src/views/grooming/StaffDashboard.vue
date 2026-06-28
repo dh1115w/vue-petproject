@@ -690,6 +690,16 @@ import { appointmentStatusMap } from './groomingStatus';
 // 訂單狀態對照表（跟 Appointments.vue 用同一套，數字才是後端真正的狀態）
 const orderStatusMap = appointmentStatusMap;
 
+// 從 axios 錯誤物件取出「給人看的訊息」：後端回字串就直接用；
+// 回的是物件（例如預期外的 500 錯誤 JSON）就取它的 message；都拿不到就用預設訊息。
+// 避免直接 alert 物件時跳出 [object Object]。
+const getErrorMessage = (err, fallback) => {
+  const data = err.response && err.response.data;
+  if (typeof data === 'string' && data) return data;
+  if (data && data.message) return data.message;
+  return fallback;
+};
+
 // 排班狀態對照表（對應後端 GroomerSchedule.status；dot 是月曆上的顏色 class）
 const scheduleStatusMap = {
   0: { label: '排班中', dot: 'pending' },
@@ -712,7 +722,7 @@ const statusFilter = ref('all');
 const selectedDate = ref(new Date().toISOString().split('T')[0]);
 const todayStr = new Date().toISOString().split('T')[0];
 
-// 數據概覽（目前仍是後端 mock，之後要做再接）
+// 數據概覽（已接真後端 GET /api/admin/stats，由 fetchData 載入）；這裡只是進頁面前的預設值
 const stats = ref({ todayAppts: 0, pendingOrders: 0, avgRating: '0.0' });
 
 // 月曆視圖目前查看的月份
@@ -856,35 +866,37 @@ const buildScheduleRows = () => {
 
 // 初始化資料載入
 const fetchData = async () => {
+  // 先「同時」發出 5 個請求（並行，比較快），拿到 5 個 Promise 先放著
+  const statsP = getAdminStats();
+  const ordersP = getAdminOrders();
+  const blacklistP = getBlacklist();
+  const groomersP = getGroomers();
+  const shiftP = getShiftTemplates();
+
+  // 再各自 await + 各自 try/catch：任何一塊載入失敗只影響自己，其他塊照常顯示。
+  // （改掉舊版的 Promise.all「全有或全無」：以前只要一個 API 失敗，整個畫面都不會更新，
+  //   會造成「加入黑名單成功、但重新載入時別的 API 出錯，黑名單就沒刷新出來」的情況。）
+  try { stats.value = (await statsP).data; } catch (err) { console.error('統計數字載入失敗:', err); }
+  try { staffList.value = (await groomersP).data; } catch (err) { console.error('美容師清單載入失敗:', err); }
   try {
-    const [statsRes, ordersRes, blacklistRes, groomersRes, shiftRes] = await Promise.all([
-      getAdminStats(),
-      getAdminOrders(),
-      getBlacklist(),
-      getGroomers(),
-      getShiftTemplates()
-    ]);
-    stats.value = statsRes.data;
-    staffList.value = groomersRes.data;
-    shiftTemplates.value = shiftRes.data;
+    shiftTemplates.value = (await shiftP).data;
     // 月表格的預設班別 = 第一個班別
     if (shiftTemplates.value.length > 0 && gridShiftId.value == null) {
       gridShiftId.value = shiftTemplates.value[0].id;
     }
-
+  } catch (err) { console.error('班別載入失敗:', err); }
+  try {
     // 格式化 orders（status 保留後端原本的數字 0~5，畫面顯示用 orderStatusMap 轉文字）
+    const ordersRes = await ordersP;
     orders.value = ordersRes.data.map(o => ({
       ...o,
       service: o.serviceName
     }));
+  } catch (err) { console.error('訂單載入失敗:', err); }
+  try { blacklist.value = (await blacklistP).data; } catch (err) { console.error('黑名單載入失敗:', err); }
 
-    blacklist.value = blacklistRes.data;
-
-    // 載入排班（依目前檢視月份）並建立排班列
-    await loadSchedules();
-  } catch (err) {
-    console.error('Failed to load dashboard data:', err);
-  }
+  // 載入排班（依目前檢視月份）並建立排班列——也獨立 try/catch
+  try { await loadSchedules(); } catch (err) { console.error('排班載入失敗:', err); }
 };
 
 onMounted(fetchData);
@@ -929,7 +941,7 @@ const toggleCell = async (groomerId, date) => {
     }
     await loadSchedules();
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '更新排班失敗';
+    const message = getErrorMessage(err, '更新排班失敗');
     alert(message);
   }
 };
@@ -983,7 +995,7 @@ const saveScheduleRow = async (row) => {
     await loadSchedules(); // 重新載入，列表才會顯示「已排班」
     alert(`已儲存 ${row.groomerName} 於 ${selectedDate.value} 的排班`);
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '儲存排班失敗';
+    const message = getErrorMessage(err, '儲存排班失敗');
     alert(message);
   }
 };
@@ -1018,7 +1030,7 @@ const updateOrderStatus = async (id, newStatus) => {
     await updateAdminOrder(id, newStatus);
     await fetchData(); // 重新整理資料
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '更新訂單失敗';
+    const message = getErrorMessage(err, '更新訂單失敗');
     alert(message);
   }
 };
@@ -1037,7 +1049,7 @@ const addToBlacklist = async (memberId) => {
     alert(`會員 ${memberId} 已加入黑名單`);
     await fetchData(); // 重新載入，黑名單分頁才會看到這筆
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '加入黑名單失敗';
+    const message = getErrorMessage(err, '加入黑名單失敗');
     alert(message);
   }
 };
@@ -1049,7 +1061,7 @@ const removeBlacklist = async (item) => {
     await removeFromBlacklist(item.id);
     await fetchData(); // 重新載入列表（解除後就不會再出現在封鎖中清單）
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '解除黑名單失敗';
+    const message = getErrorMessage(err, '解除黑名單失敗');
     alert(message);
   }
 };
@@ -1126,7 +1138,7 @@ const submitCoupon = async () => {
     couponFormVisible.value = false;
     await loadCoupons();
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '儲存優惠券失敗';
+    const message = getErrorMessage(err, '儲存優惠券失敗');
     alert(message);
   }
 };
@@ -1420,7 +1432,7 @@ const setReviewStatus = async (id, status) => {
     await apiModerateReview(id, status);
     await loadReviews(); // 重新載入，狀態才會更新
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '更新評價狀態失敗';
+    const message = getErrorMessage(err, '更新評價狀態失敗');
     alert(message);
   }
 };
@@ -1437,7 +1449,7 @@ const openReply = async (review) => {
     await apiReplyToReview(review.id, content);
     await loadReviews(); // 重新載入，才看得到回覆
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '送出回覆失敗';
+    const message = getErrorMessage(err, '送出回覆失敗');
     alert(message);
   }
 };
@@ -1449,7 +1461,7 @@ const removeReview = async (id) => {
     await apiDeleteReview(id);
     await loadReviews(); // 重新載入，刪掉的就不會再出現在清單
   } catch (err) {
-    const message = err.response && err.response.data ? err.response.data : '刪除評價失敗';
+    const message = getErrorMessage(err, '刪除評價失敗');
     alert(message);
   }
 };</script>

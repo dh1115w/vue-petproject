@@ -15,6 +15,11 @@
               🐾 新增預約
             </router-link>
 
+            <!-- 綁定 LINE：按了去後端要授權網址再跳轉，授權完這個會員的 LINE 就綁到帳號，之後預約完成會收到 LINE 通知 -->
+            <button type="button" @click="bindLine" class="mini-page-btn" style="border-color: #06c755; color: #06c755; background: #fff; margin-right: 10px; cursor: pointer;">
+              🔗 綁定 LINE
+            </button>
+
             <label class="filter-label">篩選狀態：</label>
             <select v-model="filterStatus" class="status-select">
               <option value="all">顯示全部</option>
@@ -225,7 +230,7 @@
 
 <script>
 import NavBar from './NavBar.vue'; // 假設 NavBar 路徑正確
-import { getAppointments, cancelAppointment } from './groomingApi';
+import { getAppointments, cancelAppointment, getLineBindUrl } from './groomingApi';
 import { appointmentStatusMap } from './groomingStatus';
 
 export default {
@@ -299,8 +304,25 @@ export default {
   },
   created() {
     this.fetchAppointments(); // 組件創建時載入預約資料
+    // 從 LINE 綁定流程導回來時，後端會在網址帶 ?lineBound=success 或 fail，給使用者一個提示
+    const bound = this.$route.query.lineBound;
+    if (bound === 'success') {
+      alert('LINE 綁定成功！之後預約完成會收到 LINE 通知。');
+    } else if (bound === 'fail') {
+      alert('LINE 綁定失敗或已取消，請再試一次。');
+    }
   },
   methods: {
+    // 綁定 LINE：跟後端要授權網址，再把整個瀏覽器導去 LINE 授權頁
+    async bindLine() {
+      try {
+        const response = await getLineBindUrl();
+        window.location.href = response.data.url; // 後端回 { url }，直接整頁跳過去
+      } catch (err) {
+        console.error('取得 LINE 綁定網址失敗:', err);
+        alert('目前無法綁定 LINE，請稍後再試。');
+      }
+    },
     async fetchAppointments() {
       this.isLoading = true; // 開始載入，設定載入狀態為 true
       this.error = null; // 清除之前的錯誤訊息

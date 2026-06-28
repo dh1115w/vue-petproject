@@ -1,7 +1,7 @@
 ﻿import axios from '@/plugins/axios.js';
 import adminAxios from '@/plugins/grooming/adminAxios.js';
 
-// 還剩 StaffDashboard.vue 的「排班表格、統計數字」幾個 function 是 mock，其他都已經改成真正打後端 API
+// 還剩 StaffDashboard.vue 排班表格的時段邏輯由前端自行處理，其他（含統計數字/訂單/黑名單）都已改成真正打後端 API
 // （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
 //   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon、
 //   getAdminOrders、updateAdminOrder、submitGroomingReview、getBlacklist、addToBlacklist、removeFromBlacklist）
@@ -63,6 +63,12 @@ export const getAppointments = (params) => {
 // 已串接真正後端 API：POST /api/secure/appointments/{id}/cancel
 export const cancelAppointment = (id) => {
   return axios.post(`/api/secure/appointments/${id}/cancel`);
+};
+
+// 已串接真正後端 API：GET /api/secure/grooming/line/authorize-url（要登入會員才能用）
+// 回傳 { url: 'https://access.line.me/...' }，前端拿到後自己 window.location 跳過去授權
+export const getLineBindUrl = () => {
+  return axios.get('/api/secure/grooming/line/authorize-url');
 };
 
 // ===== Staff.vue 用 =====

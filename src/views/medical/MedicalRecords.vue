@@ -233,6 +233,15 @@
 
         <!-- 【可摺疊式病歷卡片列表】 -->
         <div class="records-list-stack">
+          <!-- 沒有資料時的提示 -->
+          <div
+            v-if="filteredRecords.length === 0"
+            class="pawcare-card"
+            style="text-align: center; padding: 32px; color: #999"
+          >
+            目前沒有符合條件的病歷紀錄
+          </div>
+
           <div
             v-for="record in filteredRecords"
             :key="record.recordId"
@@ -341,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import axios from "@/plugins/axios.js";
 import "@/css/medical/medical-records.css";
 
@@ -406,75 +415,22 @@ const filterTabsList = computed(() => {
 });
 
 // ==========================================================================
-// 3. 醫療紀錄假資料
+// 3. 醫療紀錄列表（從後端 API 載入，初始為空陣列）
 // ==========================================================================
-const medicalRecordsList = ref([
-  {
-    recordId: 1,
-    petId: 1,
-    recordDate: "2026/04/10",
-    diagnosis: "年度健康檢查報告",
-    clinicName: "台北動物醫院",
-    doctor: "陳獸醫師",
-    fileType: "checkup",
-    exportCount: 3,
-    tags: ["血液檢查", "X光", "心電圖"],
-    status: "正常",
-    medicalHistory: "整體健康狀況良好，建議半年後追蹤血液指數。",
-  },
-  {
-    recordId: 2,
-    petId: 1,
-    recordDate: "2026/03/22",
-    diagnosis: "皮膚炎回診紀錄",
-    clinicName: "愛寵動物診所",
-    doctor: "林獸醫師",
-    fileType: "followup",
-    exportCount: 1,
-    tags: ["皮膚科", "過敏"],
-    status: "追蹤中",
-    medicalHistory: "皮膚狀況改善中，繼續使用藥膏，兩週後回診。",
-  },
-  {
-    recordId: 3,
-    petId: 1,
-    recordDate: "2026/03/05",
-    diagnosis: "狂犬病疫苗接種",
-    clinicName: "台北動物醫院",
-    doctor: "陳獸醫師",
-    fileType: "vaccine",
-    exportCount: 1,
-    tags: ["疫苗", "狂犬病"],
-    status: "完成",
-    medicalHistory: "疫苗接種完成，下次接種時間：2027/03/05。",
-  },
-  {
-    recordId: 4,
-    petId: 1,
-    recordDate: "2026/01/15",
-    diagnosis: "腸胃炎急診紀錄",
-    clinicName: "24H 緊急動物醫院",
-    doctor: "王獸醫師",
-    fileType: "emergency",
-    exportCount: 2,
-    tags: ["急診", "腸胃", "點滴"],
-    status: "已康復",
-    medicalHistory: "急性腸胃炎，點滴治療後恢復良好。",
-  },
-  {
-    recordId: 5,
-    petId: 1,
-    recordDate: "2025/12/20",
-    diagnosis: "心絲蟲預防用藥",
-    clinicName: "台北動物醫院",
-    doctor: "陳獸醫師",
-    fileType: "medicine",
-    exportCount: 1,
-    tags: ["預防藥", "心絲蟲"],
-    status: "完成",
-    medicalHistory: "每月定期服用預防藥，下次：2026/01/20。",
-  },
-]);
+const medicalRecordsList = ref([]);
+
+// 從後端載入某寵物的所有病歷
+async function loadRecords() {
+  try {
+    const res = await axios.get("/api/medical/list/1"); // petId 先寫死 1
+    medicalRecordsList.value = res.data;
+  } catch (e) {
+    console.error("載入病歷失敗", e);
+  }
+}
+
+// 頁面載入時抓一次
+onMounted(loadRecords);
 
 // ==========================================================================
 // 4. 篩選計算器
@@ -482,9 +438,9 @@ const medicalRecordsList = ref([
 const filteredRecords = computed(() => {
   return medicalRecordsList.value.filter((record) => {
     const matchSearch =
-      record.diagnosis.includes(searchQuery.value) ||
-      record.clinicName.includes(searchQuery.value) ||
-      record.tags.some((t) => t.includes(searchQuery.value));
+      (record.diagnosis && record.diagnosis.includes(searchQuery.value)) ||
+      (record.clinicName && record.clinicName.includes(searchQuery.value)) ||
+      (record.tags && record.tags.some((t) => t.includes(searchQuery.value)));
     const matchType =
       selectedTypeKey.value === "all" ||
       record.fileType === selectedTypeKey.value;
@@ -498,7 +454,7 @@ function getRecordCountByType(typeKey) {
 
 const totalFilesCount = computed(() => {
   return medicalRecordsList.value.reduce(
-    (total, r) => total + r.exportCount,
+    (total, r) => total + (r.exportCount || 0),
     0,
   );
 });
@@ -511,12 +467,20 @@ function toggleExpandRecord(recordId) {
     expandedRecordId.value === recordId ? null : recordId;
 }
 
+// 查看檔案：用 recordId 開啟後端存的原始檔（瀏覽器會依檔案類型預覽）
 function handleViewFile(record) {
-  alert(`👁️ 正在為您開啟：\n【${record.diagnosis}】的報告原始檔`);
+  window.open(
+    `http://localhost:8080/api/medical/file/${record.recordId}`,
+    "_blank",
+  );
 }
 
+// 下載檔案：同一支 API
 function handleDownloadFile(record) {
-  alert(`📥 開始下載【${record.diagnosis}】的病歷檔案`);
+  window.open(
+    `http://localhost:8080/api/medical/file/${record.recordId}`,
+    "_blank",
+  );
 }
 
 function getEventConfig(fileType) {
@@ -636,6 +600,9 @@ async function handleSaveRecord() {
     console.log("儲存成功，recordId =", savedRecordId.value);
 
     await startHealthAnalysis(savedRecordId.value);
+
+    // 存完後重新載入列表，讓剛新增的病歷出現
+    await loadRecords();
   } catch (error) {
     console.error("儲存失敗：", error);
     alert("❌ 儲存失敗，請稍後再試。");

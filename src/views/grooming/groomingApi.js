@@ -1,4 +1,4 @@
-import axios from '@/plugins/axios.js';
+﻿import axios from '@/plugins/axios.js';
 import adminAxios from '@/plugins/grooming/adminAxios.js';
 
 // 還剩 StaffDashboard.vue 的「排班表格、統計數字」幾個 function 是 mock，其他都已經改成真正打後端 API
@@ -74,8 +74,8 @@ export const getGroomers = () => {
 
 // ===== StaffDashboard.vue 用 =====
 export const getAdminStats = () => {
-  console.log('[mock] getAdminStats 被呼叫');
-  return Promise.resolve({ data: { todayAppts: 8, pendingOrders: 3, avgRating: '4.8' } });
+  // 已串接真正後端 API：GET /api/admin/stats（後台首頁數據概覽）回傳 { todayAppts, pendingOrders, avgRating }
+  return adminAxios.get('/api/admin/stats');
 };
 
 export const getAdminSchedule = () => {
@@ -199,8 +199,10 @@ export const getReviews = () => {
 };
 
 // 已串接真正後端 API：POST /api/secure/reviews（要登入會員才能用）
-// data 要帶 { appointmentId, overallRating, serviceRating, envRating, priceRating, comment, isAnonymous }
-// 後端會檢查：這筆預約是不是你自己的、狀態是不是「已完成」、是不是已經評價過
+// 改用 multipart：data 傳 FormData，內含 appointmentId / overallRating / serviceRating /
+// envRating / priceRating / comment / isAnonymous，外加可選的 image 照片檔。
+// 傳 FormData 時 axios 會自動帶上 multipart/form-data 標頭，這裡不用手動設。
+// 後端會檢查：這筆預約是不是你自己的、狀態是不是「已完成」、是不是已經評價過、照片是否合格
 export const submitGroomingReview = (data) => {
   return axios.post('/api/secure/reviews', data);
 };

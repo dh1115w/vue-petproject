@@ -142,53 +142,39 @@ export const exportTodayAppointments = () => {
   return Promise.resolve({ data: csvContent });
 };
 
+// 已串接真正後端 API：GET /api/services（首頁「熱門服務項目」用）
+// 後端回傳的是完整服務（含 priceMap/durationMap），首頁卡片只需要前 3 筆、且欄位較精簡，
+// 所以這裡取前 3 筆，整理成首頁要的 { id, title, price, duration, desc } 格式。
+//  - price：用 minPrice（卡片顯示「NT$ 600 起」）
+//  - duration：取小型(small)的時長，沒有的話退而取第一個有的體型時長
+//  - desc：對應後端新加的 description 欄位
 export const getFeaturedServices = () => {
-  console.log('[mock] getFeaturedServices 被呼叫');
-
-  return Promise.resolve({
-    data: [
-      {
-        id: 1,
-        title: '基礎洗護',
-        price: 600,
-        duration: 60,
-        desc: '洗澡、吹整、清耳、剪指甲，日常清潔保養首選。'
-      },
-      {
-        id: 2,
-        title: '全套美容造型',
-        price: 1200,
-        duration: 120,
-        desc: '包含剪毛造型、SPA護膚、香氛護理，給毛孩煥然一新的外型。'
-      },
-      {
-        id: 3,
-        title: '藥浴護理',
-        price: 900,
-        duration: 90,
-        desc: '針對皮膚敏感或有皮膚問題的毛孩，提供專業藥浴療程。'
-      }
-    ]
+  return axios.get('/api/services').then(res => {
+    const featured = res.data.slice(0, 3).map(s => {
+      // durationMap 例如 { small: 60, mid: 75, big: 90 }；優先拿 small，沒有就拿第一個值
+      const durationMap = s.durationMap || {};
+      const duration = durationMap.small != null
+        ? durationMap.small
+        : Object.values(durationMap)[0];
+      return {
+        id: s.id,
+        title: s.title,
+        price: s.minPrice,
+        duration: duration,
+        desc: s.description
+      };
+    });
+    // 包成跟原本一樣的 { data } 結構，groomingIndex.vue 才不用改
+    return { data: featured };
   });
 };
 
+// 已串接真正後端 API：GET /api/coupons/active（首頁促銷橫幅用）
+// 回傳目前生效中、最快到期的那張優惠券，後端已換算成橫幅要的格式：
+//   { isActive, tag, title, description, promoCode, discountText, endDate }
+// 沒有進行中的優惠時 isActive 會是 false，首頁就把橫幅藏起來。
 export const getActivePromotion = () => {
-  console.log('[mock] getActivePromotion 被呼叫');
-
-  // 將結束時間設定為「現在起 3 天後」，方便測試倒數計時功能
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 3);
-
-  return Promise.resolve({
-    data: {
-      isActive: true,
-      endDate: endDate.toISOString(),
-      title: '夏日洗護優惠活動',
-      description: '即日起至優惠期間，全店美容服務輸入代碼',
-      tag: '限時優惠',
-      promoCode: 'PET80'
-    }
-  });
+  return axios.get('/api/coupons/active');
 };
 
 // 已串接真正後端 API：GET /api/reviews

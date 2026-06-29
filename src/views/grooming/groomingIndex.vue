@@ -294,7 +294,7 @@ export default {
 .grooming-hero-section {
   /* 換成寵物照片，並加入半透明遮罩確保文字易讀 */
   background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-              url('/grooming-img/hero-dog.jpg');
+              url('/grooming-img/image_ea51f7f9.png');
   background-size: cover;
   background-position: center;
   

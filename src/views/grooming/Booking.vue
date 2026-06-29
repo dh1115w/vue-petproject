@@ -4,7 +4,7 @@
 
     <main class="container page-content">
       <h2 class="section-title">預約寵物美容</h2>
-      <div class="grid grid-2" style="align-items: start; gap: 40px;">
+      <div class="grid grid-2" style="align-items: start; gap: 40px; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);">
         <div class="booking-info-side">
           <div class="card reminder-card">
             <h4>🐾 預約溫馨小叮嚀</h4>
@@ -58,9 +58,16 @@
 
           <!-- 新增連結至預約紀錄 -->
           <div style="margin-top: 20px; text-align: center;">
-            <router-link to="/grooming/appointments" class="btn btn-outline-alt" style="width: 100%; display: block; text-decoration: none;">
+            <router-link to="/grooming/appointments" class="btn btn-outline-alt" style="width: 100%; display: block; text-decoration: none; box-sizing: border-box;">
               📋 查看我的預約紀錄
             </router-link>
+          </div>
+
+          <!-- 加入 LINE 並綁定：按了把這個會員綁到 LINE，並開啟加 PETCARE 好友頁，之後預約完成會收到 LINE 通知 -->
+          <div style="margin-top: 10px; text-align: center;">
+            <button type="button" @click="joinAndBindLine" class="btn btn-outline-alt" style="width: 100%; display: block; border-color: #06c755; color: #06c755; cursor: pointer; box-sizing: border-box; font: inherit;">
+              🔗 加入 LINE 並綁定
+            </button>
           </div>
         </div>
 
@@ -222,7 +229,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, getGroomerAvailability, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment, cancelAppointment } from './groomingApi'
+import { getAvailableTimeSlots, getGroomerAvailability, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment, cancelAppointment, demoBindLine } from './groomingApi'
 import useUserStore from '@/stores/user.js'
 
 export default {
@@ -797,6 +804,25 @@ export default {
       setTimeout(() => {
         this.showToast = false;
       }, 3000); // 3秒後自動消失
+    },
+    // 加入 LINE 並綁定：呼叫後端把這個會員綁到 LINE，成功後開啟「加 PETCARE 好友」頁
+    async joinAndBindLine() {
+      // ⚠️ 先在「按下」的當下同步開一個空白分頁，等綁定成功再把它導到加好友頁。
+      //    若改成 await 之後才 window.open，瀏覽器會當成「非使用者操作」而把彈窗擋掉。
+      const addFriendWindow = window.open('', '_blank');
+      try {
+        const response = await demoBindLine();
+        this.triggerToast('✅ LINE 綁定成功！請加入官方帳號好友，預約完成就會收到通知', 'success');
+        const url = response.data.addFriendUrl;
+        if (url && url.startsWith('http') && addFriendWindow) {
+          addFriendWindow.location = url;   // 把剛剛開好的分頁導到加好友頁
+        } else if (addFriendWindow) {
+          addFriendWindow.close();          // 沒有有效網址就把空白分頁關掉
+        }
+      } catch (error) {
+        if (addFriendWindow) addFriendWindow.close();  // 綁定失敗，關掉空白分頁
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, '目前無法綁定 LINE，請稍後再試')}`, 'error');
+      }
     },
     // 把後端回傳的錯誤內容轉成「一定是字串」的訊息，不要讓畫面顯示 [object Object]
     // （後端有時候回的是純文字，但 Spring 系統發生未預期的錯誤時，回的會是一個物件）

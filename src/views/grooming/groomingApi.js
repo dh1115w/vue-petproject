@@ -78,6 +78,12 @@ export const getLineBindUrl = () => {
   return axios.get('/api/secure/grooming/line/authorize-url');
 };
 
+// 已串接真正後端 API：POST /api/secure/grooming/line/demo-bind（要登入會員才能用）
+// 後端把「目前登入的會員」直接綁到預設 LINE userId，回傳 { addFriendUrl } 給前端開加好友頁
+export const demoBindLine = () => {
+  return axios.post('/api/secure/grooming/line/demo-bind');
+};
+
 // ===== Staff.vue 用 =====
 // 已串接真正後端 API：GET /api/groomers
 // 註：後端目前還沒有 rating（評分，要等 Review 表）、isOnDuty（今日有沒有上班，要等 GroomerSchedule 表），

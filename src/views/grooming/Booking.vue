@@ -4,7 +4,7 @@
 
     <main class="container page-content">
       <h2 class="section-title">預約寵物美容</h2>
-      <div class="grid grid-2" style="align-items: start; gap: 40px; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);">
+      <div class="grid grid-2 booking-layout">
         <div class="booking-info-side">
           <div class="card reminder-card">
             <h4>🐾 預約溫馨小叮嚀</h4>
@@ -815,6 +815,27 @@ export default {
 
 <style scoped>
 @import '@/css/grooming/booking.css';
+
+/* ===== 預約頁專屬版面：用 !important 強制鎖死，避免其他組員的全域 CSS（.grid/.form-container 等同名 class）漏進來把版面擠壞 ===== */
+.booking-layout {
+  display: grid !important;                /* 強制是格線排版 */
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr) !important; /* 左 35%、右(表單) 65% */
+  gap: 30px !important;                    /* 左右兩欄的間距 */
+  align-items: start;
+}
+/* 表單卡片：強制填滿右欄、不要被外漏的 max-width 縮小 */
+.booking-layout .form-container {
+  width: 100% !important;
+  max-width: none !important;
+}
+/* 表單裡的下拉、輸入框、文字區：強制撐滿整個表單寬度 */
+.booking-layout .form-container select,
+.booking-layout .form-container input,
+.booking-layout .form-container textarea {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box;
+}
 
 .reminder-card {
   background: #f8f9fa; /* 改為極淺灰色，增加區隔感但不失統一風格 */

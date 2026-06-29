@@ -183,7 +183,8 @@ export const getFeaturedServices = () => {
         title: s.title,
         price: s.minPrice,
         duration: duration,
-        desc: s.description
+        desc: s.description,
+        image: s.image   // 服務圖片網址（後端 Service.imageUrl），首頁卡片要用
       };
     });
     // 包成跟原本一樣的 { data } 結構，groomingIndex.vue 才不用改

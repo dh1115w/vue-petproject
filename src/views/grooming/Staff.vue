@@ -254,9 +254,9 @@ export default {
 /* 美容師卡片網格與 Services.vue 統一 */
 .staff-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 60px 40px;
-  max-width: 900px;
+  max-width: 1280px;
   margin: 0 auto 100px;
   padding: 0 20px;
 }

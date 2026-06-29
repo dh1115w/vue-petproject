@@ -9,35 +9,73 @@
       </div>
     </header>
 
-    <section class="features-section container">
-      <h2 class="section-title">我們的堅持</h2>
-      <div class="grid grid-3">
-        <div class="feature-item">
-          <h4>全程透明公開</h4>
-          <p>開放式美容空間，家長最安心。</p>
+    <div class="band band-white">
+      <section class="features-section container reveal">
+        <h2 class="section-title" data-en="PROMISE">我們的堅持</h2>
+        <div class="grid grid-3">
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-eye"></i></div>
+            <h4>全程透明公開</h4>
+            <p>開放式美容空間，家長最安心。</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-leaf"></i></div>
+            <h4>天然草本洗劑</h4>
+            <p>嚴選低敏配方，呵護毛孩肌膚。</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-award"></i></div>
+            <h4>國際證照美容師</h4>
+            <p>豐富經驗，安撫毛孩緊張情緒。</p>
+          </div>
         </div>
-        <div class="feature-item">
-          <h4>天然草本洗劑</h4>
-          <p>嚴選低敏配方，呵護毛孩肌膚。</p>
+      </section>
+    </div>
+
+    <div class="band band-cream">
+    <section class="services-section container reveal">
+      <h2 class="section-title" data-en="SERVICES">熱門服務項目</h2>
+
+      <!-- 美容服務流程：當作熱門服務的副標，放在標題下、卡片上 -->
+      <div class="process-grid">
+        <div class="process-step">
+          <div class="process-icon"><i class="fas fa-calendar-check"></i></div>
+          <span class="process-num">STEP 1</span>
+          <h4>線上預約</h4>
         </div>
-        <div class="feature-item">
-          <h4>國際證照美容師</h4>
-          <p>豐富經驗，安撫毛孩緊張情緒。</p>
+        <div class="process-step">
+          <div class="process-icon"><i class="fas fa-comments"></i></div>
+          <span class="process-num">STEP 2</span>
+          <h4>專業諮詢</h4>
+        </div>
+        <div class="process-step">
+          <div class="process-icon"><i class="fas fa-cut"></i></div>
+          <span class="process-num">STEP 3</span>
+          <h4>細心美容</h4>
+        </div>
+        <div class="process-step">
+          <div class="process-icon"><i class="fas fa-heart"></i></div>
+          <span class="process-num">STEP 4</span>
+          <h4>接回毛孩</h4>
         </div>
       </div>
-    </section>
 
-    <section class="services-section container">
-      <h2 class="section-title">熱門服務項目</h2>
       <div class="grid grid-3">
         <div v-for="service in featuredServices" :key="service.id" class="card service-card">
+          <!-- 服務卡上方圖片：有 image 就用後端圖片，沒有或載入失敗就換成預設狗狗照 -->
+          <img
+            class="service-card-img"
+            :src="service.image || '/grooming-img/dog1.jpg'"
+            @error="useDefaultImage"
+            alt="服務照片"
+          />
           <div class="card-body">
             <h3 class="service-title-link">
               <router-link :to="{ path: '/grooming/booking', query: { serviceId: service.id } }" style="color: inherit; text-decoration: none;">{{ service.title }}</router-link>
             </h3>
             <p class="price">NT$ {{ service.price }} 起</p>
             <p class="duration">⏱ 時長：{{ service.duration }} 分鐘</p>
-            <p class="desc">{{ service.desc }}</p>
+            <p class="desc">{{ service.desc || '專業細心的美容護理，給毛孩最舒適放鬆的體驗。' }}</p>
           </div>
         </div>
       </div>
@@ -45,10 +83,12 @@
         <router-link to="/grooming/services" class="btn btn-outline">查看完整服務內容與價格表</router-link>
       </div>
     </section>
+    </div>
 
-    <!-- 精選好評區塊：只在有抓到評價時才顯示 -->
-    <section v-if="featuredReviews.length" class="testimonials-section container">
-      <h2 class="section-title">毛孩家長怎麼說</h2>
+    <!-- 精選好評區塊：只在有抓到評價時才顯示（外層 band 也跟著一起顯示/隱藏） -->
+    <div v-if="featuredReviews.length" class="band band-white">
+    <section class="testimonials-section container reveal">
+      <h2 class="section-title" data-en="REVIEWS">毛孩家長怎麼說</h2>
       <div class="grid grid-3">
         <div v-for="review in featuredReviews" :key="review.id" class="card testimonial-card">
           <div class="testimonial-stars">
@@ -65,9 +105,11 @@
         <router-link to="/grooming/reviews" class="btn btn-outline">查看更多顧客評價</router-link>
       </div>
     </section>
+    </div>
 
-    <!-- 優惠促銷區塊 -->
-    <section v-if="isPromoActive" ref="promoSection" class="promo-section container">
+    <!-- 優惠促銷區塊：滿版綠色帶（沒促銷時整條 band 一起隱藏） -->
+    <div v-if="isPromoActive" class="band band-promo">
+    <section ref="promoSection" class="promo-section container">
       <div class="promo-content">
         <div class="promo-tag">{{ promoData.tag }}</div>
         <h2>{{ promoData.title }}</h2>
@@ -106,6 +148,7 @@
 
       </div>
     </section>
+    </div>
 
     <!-- Toast 提示區塊 -->
     <transition name="toast-fade">
@@ -114,8 +157,9 @@
       </div>
     </transition>
 
-    <section class="contact-section container">
-      <h2 class="section-title">聯絡我們</h2>
+    <div class="band band-cream">
+    <section class="contact-section container reveal">
+      <h2 class="section-title" data-en="CONTACT">聯絡我們</h2>
       <div class="contact-grid">
         <a href="https://www.google.com/maps/search/?api=1&query=台北市大安區忠孝東路四段123號" target="_blank" rel="noopener noreferrer" class="contact-item contact-link" title="在 Google 地圖中開啟">
           <div class="contact-icon icon-address"><i class="fas fa-map-marker-alt"></i></div>
@@ -143,6 +187,7 @@
         <i class="fas fa-clock"></i> 營業時間： 10:00 - 20:00 (週一公休)
       </div>
     </section>
+    </div>
 
   </div>
 </template>
@@ -197,6 +242,12 @@ export default {
     if (this.$refs.promoSection) {
       this.observer.observe(this.$refs.promoSection);
     }
+
+    // 等畫面更新完（含 v-if 的好評區渲染好），再把所有 reveal 區塊加入觀察
+    await this.$nextTick();
+    this.$el.querySelectorAll('.reveal').forEach(el => {
+      this.observer.observe(el);
+    });
   },
   beforeUnmount() {
     if (this.observer) this.observer.disconnect();
@@ -279,6 +330,12 @@ export default {
       setTimeout(() => {
         this.showToast = false;
       }, 3000); // 3秒後自動消失
+    },
+    // 服務卡圖片載入失敗時（例如後端圖檔不存在）自動換成預設狗狗照
+    useDefaultImage(e) {
+      // 已經是預設圖就不再換，避免無限觸發 error
+      if (e.target.src.includes('dog1.jpg')) return;
+      e.target.src = '/grooming-img/dog1.jpg';
     }
   }
 }
@@ -287,6 +344,9 @@ export default {
 <style scoped>
 /* 引入 FontAwesome 圖示庫 CSS */
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
+/* 引入優雅襯線字 Playfair Display，只用在標題的英文浮水印上 */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap');
 
 @import '@/css/grooming/index.css';
 
@@ -299,14 +359,12 @@ export default {
   background-position: center;
   
   /* 調整為更適當的長方形比例 */
-  height: 400px; 
+  height: 400px;
   max-width: 1200px;
-  margin: 30px auto;
-  border-radius: 20px; /* 增加圓角讓視覺更柔和 */
+  margin: 0 auto;       /* 拿掉上下空隙，讓它跟上下色塊切齊（左右仍置中） */
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
 
 .grooming-hero-inner {
@@ -331,16 +389,95 @@ export default {
   text-align: center;
   letter-spacing: 0.4em;
   text-indent: 0.4em;   /* 抵銷最後一個字的右側間距，確保視覺完全置中 */
+  font-size: 1.85rem;   /* 放大中文標題（原本繼承 index.css 的 1.5rem） */
   font-weight: 700;
   margin-bottom: 30px;
   color: #2c3e50;
 }
 
+/* 標題後面的大字英文浮水印（ghost text）：只有掛了 data-en 的標題才出現 */
+.section-title[data-en] {
+  position: relative;
+}
+.section-title[data-en]::before {
+  content: attr(data-en);          /* 直接把 data-en 的值印出來當底字 */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Y 從 -50%(正中) 改成 -68%，把英文往上推，露在中文標題上方 */
+  transform: translate(-50%, -68%);
+  font-family: 'Playfair Display', Georgia, serif; /* 優雅高對比襯線字 */
+  font-size: clamp(4rem, 13vw, 6.5rem); /* 加大；手機自動縮小避免超出畫面 */
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-indent: 0;                  /* 不要被標題的 text-indent 影響 */
+  text-transform: uppercase;
+  color: rgba(107, 174, 138, 0.2); /* 提高不透明度，浮水印更明顯 */
+  white-space: nowrap;
+  z-index: -1;                     /* 沉到中文標題後面 */
+  pointer-events: none;
+}
+
+/* 進場動畫：捲到畫面前是隱形＋往下偏移，加上 is-visible 後淡入上滑 */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 全寬背景色帶：外層 .band 滿版上色，內層 .container 仍置中 */
+.band {
+  width: 100%;
+  padding: 50px 0;   /* 區塊上下間距改由 band 控制 */
+}
+.band > section {
+  /* 只歸零上下間距（交給 band 的 padding），保留左右 auto 讓 container 維持置中 */
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.band-white { background: #ffffff; }   /* 白 */
+.band-cream { background: #f3f0e8; }   /* 暖米（--muted） */
+/* 滿版綠色帶：綠色漸層降低不透明度，讓底圖狗狗照透出來、又不影響文字閱讀 */
+.band-promo {
+  background: linear-gradient(135deg, rgba(190, 230, 190, 0.8), rgba(108, 136, 108, 0.78)),
+              url('/grooming-img/dog3.jpg');
+  background-size: cover;
+  background-position: center;
+  padding: 64px 0; /* 滿版綠帶上下多留白，更舒展 */
+}
+
 .features-section, .services-section {
   margin-top: 50px;
 }
+
+/* 首頁服務區塊改成寬版：覆蓋共用 .container 的 1100px 上限，讓三張卡更寬 */
+.services-section.container {
+  max-width: 1140px;
+}
+/* 三張卡片強制等高：grid 預設就會把同一列拉成一樣高 */
+.services-section .grid {
+  align-items: stretch;
+}
 .feature-item {
   text-align: center;
+}
+/* 圖示徽章：圓形淡綠底＋主色圖示，讓「我們的堅持」這區更有份量 */
+.feature-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef5ef;       /* 淡綠底 */
+  color: var(--primary);     /* 主色圖示 */
+  font-size: 1.9rem;
 }
 .feature-item h4 {
   margin-top: 10px;
@@ -355,6 +492,114 @@ export default {
 .service-card {
   padding: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column; /* 圖片在上、文字在下，垂直排列 */
+  /* 全站 home.css 有個同名 .service-card 用 margin:auto !important 把卡片擠窄，
+     這裡用 !important 壓回 0，讓卡片正常撐滿 grid 格子 */
+  margin: 0 !important;
+}
+
+/* 服務卡上方的圖片：填滿寬度、固定高度，object-fit 讓圖片不變形 */
+.service-card-img {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;         /* 圖片填滿框框、超出的裁掉、不變形 */
+  object-position: center;   /* 以中心為基準裁切 */
+  background-color: #f0f0f0; /* 圖片載入前/載入中的底色 */
+}
+
+/* 文字區撐滿剩餘高度，讓三張卡底部對齊、整體等高 */
+.service-card .card-body {
+  padding: 20px 24px 22px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  text-align: center; /* 標題、價格、時長一律置中對齊 */
+}
+/* 標題預留固定高度：不管一行還是兩行，三張卡標題區都一樣高 */
+.service-card .service-title-link {
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+  min-height: 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.service-card .price {
+  font-size: 1.3rem;
+}
+.service-card .desc {
+  margin-top: 10px;
+}
+
+/* 美容服務流程：當作「熱門服務項目」的副標，夾在標題與服務卡之間 */
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 桌機四步驟並排 */
+  gap: 20px;
+  margin-top: 1.25rem;
+  margin-bottom: 36px; /* 與下方服務卡保持區隔 */
+}
+.process-step {
+  text-align: center;
+  padding: 4px 10px;
+  position: relative; /* 讓箭頭可以用絕對定位放在右邊 */
+  /* 不用卡片外觀（背景/陰影/圓角），避免看起來像可以點的按鈕 */
+}
+/* 步驟之間的「→」箭頭：最後一步不加 */
+.process-step:not(:last-child)::after {
+  content: '➜';               /* 用比較粗的箭頭符號 */
+  position: absolute;
+  top: 22px;                 /* 對齊縮小後圓形圖示的中心高度 */
+  right: -12px;              /* 落在格子之間的空隙上 */
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  font-weight: 900;          /* 加粗 */
+  color: var(--primary);
+  opacity: 0.6;
+}
+/* 綠色圓形圖示（縮小、低調） */
+.process-icon {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.95rem;
+}
+.process-num {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--primary);
+  margin-bottom: 2px;
+}
+.process-step h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 3px;
+}
+.process-step p {
+  font-size: 0.78rem;
+  color: #888;
+  line-height: 1.45;
+}
+/* 手機版：四步驟改成兩欄 */
+@media (max-width: 768px) {
+  .process-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* 兩欄時箭頭會指向空白，隱藏掉 */
+  .process-step:not(:last-child)::after {
+    display: none;
+  }
 }
 
 /* 精選好評區塊 */
@@ -430,6 +675,9 @@ export default {
   margin-top: 50px;
   margin-bottom: 80px;
   text-align: center;
+  /* 壓掉全域 home.css 洩進來的 display:flex（會把標題縮成文字寬、綠線貼字）。
+     改回 block，標題就跟其他區塊一樣滿版、綠線在最左 */
+  display: block;
 }
 
 .contact-grid {
@@ -491,22 +739,15 @@ export default {
   gap: 10px;
 }
 
-/* 宣傳區塊樣式 */
+/* 宣傳區塊樣式：綠色已搬到外層 .band-promo，這裡只負責文字排版與淡入動畫 */
 .promo-section {
-  background: linear-gradient(135deg, rgba(190, 230, 190, 0.95), rgba(108, 136, 108, 0.9)),
-              url('/grooming-img/dog3.jpg');
-  background-size: cover;
-  background-position: center;
   color: #166534;
   text-align: center;
-  padding: 40px 20px;
-  margin-top: 30px; 
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  
-  /* 初始狀態：透明且往下偏移 50px */
+  padding: 0 20px;
+
+  /* 初始狀態：透明且往下偏移（只有內容淡入，綠色帶固定不動）*/
   opacity: 0;
-  transform: translateY(50px);
+  transform: translateY(40px);
   transition: opacity 1.2s ease-out, transform 1s ease-out;
   will-change: opacity, transform;
 }
@@ -519,19 +760,19 @@ export default {
   border-radius: 50px;
   font-weight: bold;
   font-size: 0.8rem;
-  margin-bottom: 10px; /* 縮小間距 */
+  margin-bottom: 22px; /* 滿版後拉開間距，不要擠在一起 */
   letter-spacing: 1px;
 }
 
 .promo-content h2 {
   font-size: 1.8rem; /* 縮小標題字體 */
-  margin-bottom: 15px;
+  margin-bottom: 26px;
   text-shadow: 0 1px 4px rgba(255,255,255,0.8); /* 淺色背景使用亮色陰影增加立體感 */
 }
 
 .promo-content p {
   font-size: 1rem; /* 縮小描述字體 */
-  margin-bottom: 20px;
+  margin-bottom: 32px;
   line-height: 1.6;
 }
 

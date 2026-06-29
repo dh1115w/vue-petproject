@@ -1698,35 +1698,44 @@ const removeService = async (id) => {
   color: #27ae60;
 }
 
-.btn-cancel {
-  background-color: #95a5a6;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 5px;
-  transition: background 0.3s;
-}
-.btn-cancel:hover {
-  background-color: #7f8c8d;
-}
-
-/* 永久刪除按鈕（紅色，跟灰色的「隱藏」區別開來，提醒這是不可復原的動作） */
+/* ===== 後台表格「操作」欄按鈕：統一大小與風格，排在一起才整齊，只有顏色不同 ===== */
+/* 四種按鈕共用的尺寸／形狀 */
+.btn-sm,
+.btn-success,
+.btn-cancel,
 .btn-delete {
-  background-color: #e74c3c;
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;          /* 最小寬度一致，單字按鈕也能對齊 */
+  padding: 6px 14px;
+  margin: 0 6px 4px 0;      /* 右邊與下方留間距，按鈕多時換行也不會黏在一起 */
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #fff;
   cursor: pointer;
-  margin-right: 5px;
+  vertical-align: middle;
+  white-space: nowrap;       /* 按鈕文字不換行 */
   transition: background 0.3s;
 }
 
-.btn-delete:hover {
-  background-color: #c0392b;
-}
+/* 編輯／回覆：藍色 */
+.btn-sm { background-color: #3498db; }
+.btn-sm:hover { background-color: #2c80b4; }
+
+/* 通過：綠色 */
+.btn-success { background-color: #27ae60; }
+.btn-success:hover { background-color: #1e8c4e; }
+
+/* 隱藏／取消：灰色 */
+.btn-cancel { background-color: #95a5a6; }
+.btn-cancel:hover { background-color: #7f8c8d; }
+
+/* 永久刪除：紅色（跟灰色的「隱藏」區別開來，提醒這是不可復原的動作） */
+.btn-delete { background-color: #e74c3c; }
+.btn-delete:hover { background-color: #c0392b; }
 
 .coupon-form {
   background: #fff;

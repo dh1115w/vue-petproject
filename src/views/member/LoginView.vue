@@ -55,9 +55,21 @@ const password = ref('')
 // 密碼是否顯示成明碼：false=圓點（預設）、true=看得到文字
 const showPassword = ref(false)
 
-// 進入頁面時：動態載入 Google reCAPTCHA 腳本（只載一次，避免重複塞 script）
+// 進入頁面時：載入 Google reCAPTCHA，並把畫面上的 .g-recaptcha 變成打勾框
 onMounted(() => {
-  // 先檢查頁面上是不是已經載過這支腳本，載過就不重複載
+  // 情況 A：腳本已經載過了（例如登出後再回到登入頁，整頁沒重載）
+  // grecaptcha 已經存在，但這個元件是全新的，裡面是一個空的 .g-recaptcha div，
+  // 沒人會自動幫它畫，所以我們要「手動」叫 grecaptcha 把它畫出來
+  if (window.grecaptcha && window.grecaptcha.render) {
+    // grecaptcha.render(要畫的元素, { 設定 })：把空 div 渲染成打勾框
+    window.grecaptcha.render(document.querySelector('.g-recaptcha'), {
+      sitekey: RECAPTCHA_SITE_KEY
+    })
+    return
+  }
+
+  // 情況 B：腳本還沒載過（第一次進登入頁）→ 動態載入腳本
+  // 腳本第一次載入時，會自動把畫面上的 .g-recaptcha 渲染成打勾框，不用我們手動畫
   const existed = document.querySelector('script[src="https://www.google.com/recaptcha/api.js"]')
   if (existed) {
     return

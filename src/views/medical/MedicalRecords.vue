@@ -13,7 +13,7 @@
       <header class="records-header">
         <div class="header-text-group">
           <h1>病歷紀錄</h1>
-          <p class="subtitle">管理小福的所有醫療紀錄與檢查報告</p>
+          <p class="subtitle">管理{{ name }}的所有醫療紀錄與檢查報告</p>
         </div>
 
         <button class="add-record-top-btn" @click="handleRecordInfo">
@@ -108,6 +108,11 @@
             確認儲存
           </button>
         </div>
+
+        <!-- 錯誤訊息顯示 -->
+        <p v-if="saveErrorMessage" class="ai-form-error-msg">
+          {{ saveErrorMessage }}
+        </p>
       </div>
     </div>
 
@@ -119,7 +124,9 @@
         <p v-if="isAnalyzing && !healthAdvice" class="ai-form-subtitle">
           AI 分析中，請稍候...
         </p>
-        <pre class="health-advice-text">{{ healthAdvice }}</pre>
+        <pre class="health-advice-text" style="white-space: pre-wrap">{{
+          healthAdvice
+        }}</pre>
       </div>
     </div>
 
@@ -231,6 +238,15 @@
 
         <!-- 【可摺疊式病歷卡片列表】 -->
         <div class="records-list-stack">
+          <!-- 沒有資料時的提示 -->
+          <div
+            v-if="filteredRecords.length === 0"
+            class="pawcare-card"
+            style="text-align: center; padding: 32px; color: #999"
+          >
+            目前沒有符合條件的病歷紀錄
+          </div>
+
           <div
             v-for="record in filteredRecords"
             :key="record.recordId"
@@ -339,9 +355,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "@/plugins/axios.js";
 import "@/css/medical/medical-records.css";
+import useUserStore from "@/stores/user.js";
 
 // ==========================================================================
 // 1. UI 互動狀態
@@ -350,6 +367,22 @@ const searchQuery = ref("");
 const selectedTypeKey = ref("all");
 const expandedRecordId = ref(null);
 const dragging = ref(false);
+const userStore = useUserStore();
+const saveErrorMessage = ref("");
+
+// 切換寵物
+const currentPetId = computed(function () {
+  if (userStore.selectPetId) return userStore.selectPetId;
+  if (userStore.pets.length > 0) return userStore.pets[0].id;
+  return null;
+});
+
+const name = computed(function () {
+  var pet = userStore.pets.find(function (p) {
+    return p.id === currentPetId.value;
+  });
+  return pet ? pet.name : "寵物";
+});
 
 // AI 功能相關狀態
 const fileInputRef = ref(null);
@@ -395,110 +428,67 @@ const typeConfig = {
   },
 };
 
-const filterTabsList = computed(() => {
+const filterTabsList = computed(function () {
   const base = [{ key: "all", label: "全部" }];
-  Object.entries(typeConfig).forEach(([k, v]) => {
+  Object.entries(typeConfig).forEach(function (entry) {
+    var k = entry[0];
+    var v = entry[1];
     base.push({ key: k, label: v.label });
   });
   return base;
 });
 
 // ==========================================================================
-// 3. 醫療紀錄假資料
+// 3. 醫療紀錄列表（從後端 API 載入，初始為空陣列）
 // ==========================================================================
-const medicalRecordsList = ref([
-  {
-    recordId: 1,
-    petId: 1,
-    recordDate: "2026/04/10",
-    diagnosis: "年度健康檢查報告",
-    clinicName: "台北動物醫院",
-    doctor: "陳獸醫師",
-    fileType: "checkup",
-    exportCount: 3,
-    tags: ["血液檢查", "X光", "心電圖"],
-    status: "正常",
-    medicalHistory: "整體健康狀況良好，建議半年後追蹤血液指數。",
-  },
-  {
-    recordId: 2,
-    petId: 1,
-    recordDate: "2026/03/22",
-    diagnosis: "皮膚炎回診紀錄",
-    clinicName: "愛寵動物診所",
-    doctor: "林獸醫師",
-    fileType: "followup",
-    exportCount: 1,
-    tags: ["皮膚科", "過敏"],
-    status: "追蹤中",
-    medicalHistory: "皮膚狀況改善中，繼續使用藥膏，兩週後回診。",
-  },
-  {
-    recordId: 3,
-    petId: 1,
-    recordDate: "2026/03/05",
-    diagnosis: "狂犬病疫苗接種",
-    clinicName: "台北動物醫院",
-    doctor: "陳獸醫師",
-    fileType: "vaccine",
-    exportCount: 1,
-    tags: ["疫苗", "狂犬病"],
-    status: "完成",
-    medicalHistory: "疫苗接種完成，下次接種時間：2027/03/05。",
-  },
-  {
-    recordId: 4,
-    petId: 1,
-    recordDate: "2026/01/15",
-    diagnosis: "腸胃炎急診紀錄",
-    clinicName: "24H 緊急動物醫院",
-    doctor: "王獸醫師",
-    fileType: "emergency",
-    exportCount: 2,
-    tags: ["急診", "腸胃", "點滴"],
-    status: "已康復",
-    medicalHistory: "急性腸胃炎，點滴治療後恢復良好。",
-  },
-  {
-    recordId: 5,
-    petId: 1,
-    recordDate: "2025/12/20",
-    diagnosis: "心絲蟲預防用藥",
-    clinicName: "台北動物醫院",
-    doctor: "陳獸醫師",
-    fileType: "medicine",
-    exportCount: 1,
-    tags: ["預防藥", "心絲蟲"],
-    status: "完成",
-    medicalHistory: "每月定期服用預防藥，下次：2026/01/20。",
-  },
-]);
+const medicalRecordsList = ref([]);
+
+// 從後端載入某寵物的所有病歷
+async function loadRecords() {
+  if (!currentPetId.value) return; // 沒有寵物就不查
+  try {
+    const res = await axios.get(`/api/medical/list/${currentPetId.value}`);
+    medicalRecordsList.value = res.data;
+  } catch (e) {
+    console.error("載入病歷失敗", e);
+  }
+}
+
+// 頁面載入時抓一次
+onMounted(loadRecords);
+
+// 切換寵物時重新載入對應病歷
+watch(currentPetId, function () {
+  loadRecords();
+});
 
 // ==========================================================================
 // 4. 篩選計算器
 // ==========================================================================
-const filteredRecords = computed(() => {
-  return medicalRecordsList.value.filter((record) => {
+const filteredRecords = computed(function () {
+  return medicalRecordsList.value.filter(function (record) {
     const matchSearch =
-      record.diagnosis.includes(searchQuery.value) ||
-      record.clinicName.includes(searchQuery.value) ||
-      record.tags.some((t) => t.includes(searchQuery.value));
+      (record.diagnosis && record.diagnosis.includes(searchQuery.value)) ||
+      (record.clinicName && record.clinicName.includes(searchQuery.value)) ||
+      (record.tags &&
+        record.tags.some(function (t) {
+          return t.includes(searchQuery.value);
+        }));
     const matchType =
       selectedTypeKey.value === "all" ||
       record.fileType === selectedTypeKey.value;
     return matchSearch && matchType;
   });
 });
-
 function getRecordCountByType(typeKey) {
-  return medicalRecordsList.value.filter((r) => r.fileType === typeKey).length;
+  return medicalRecordsList.value.filter(function (r) {
+    return r.fileType === typeKey;
+  }).length;
 }
-
-const totalFilesCount = computed(() => {
-  return medicalRecordsList.value.reduce(
-    (total, r) => total + r.exportCount,
-    0,
-  );
+const totalFilesCount = computed(function () {
+  return medicalRecordsList.value.reduce(function (total, r) {
+    return total + (r.exportCount || 0);
+  }, 0);
 });
 
 // ==========================================================================
@@ -509,12 +499,43 @@ function toggleExpandRecord(recordId) {
     expandedRecordId.value === recordId ? null : recordId;
 }
 
+// 查看檔案：用 recordId 開啟後端存的原始檔（瀏覽器會依檔案類型預覽）
 function handleViewFile(record) {
-  alert(`👁️ 正在為您開啟：\n【${record.diagnosis}】的報告原始檔`);
+  window.open(
+    `http://localhost:8080/api/medical/file/${record.recordId}`,
+    "_blank",
+  );
 }
 
-function handleDownloadFile(record) {
-  alert(`📥 開始下載【${record.diagnosis}】的病歷檔案`);
+// 下載檔案
+async function handleDownloadFile(record) {
+  try {
+    // 跟後端要檔案，responseType: "blob" 代表「用二進位格式接收，不要當文字」
+    const res = await axios.get(
+      `http://localhost:8080/api/medical/file/${record.recordId}`,
+      { responseType: "blob" },
+    );
+
+    // 把拿到的二進位資料，轉成瀏覽器可以用的暫時網址
+    const url = URL.createObjectURL(res.data);
+
+    // 建一個看不見的 <a> 連結，設好要存的檔名
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `病歷_${record.recordId}`; // 存檔名稱，例如：病歷_83
+
+    // 把連結放進頁面 → 自動點它 → 再把它移除
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 清除剛才建立的暫時網址，避免浪費記憶體
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    // 失敗的話在 console 印出錯誤，並跳出提示
+    console.error("下載失敗", e);
+    saveErrorMessage.value = "❌ 下載失敗，請稍後再試。";
+  }
 }
 
 function getEventConfig(fileType) {
@@ -592,7 +613,7 @@ async function uploadAndParse(file) {
     parsedResult.value._file = file;
   } catch (error) {
     console.error("AI 辨識失敗：", error);
-    alert("❌ 辨識失敗，請確認檔案格式或稍後再試。");
+    saveErrorMessage.value = "❌ 辨識失敗，請確認檔案格式或稍後再試。";
   } finally {
     isParsingAI.value = false;
   }
@@ -601,9 +622,17 @@ async function uploadAndParse(file) {
 async function handleSaveRecord() {
   if (!parsedResult.value) return;
 
+  if (!currentPetId.value) {
+    saveErrorMessage.value = "⚠️ 尚未選擇寵物，請先選擇寵物後再儲存！";
+    return;
+  }
+
+  saveErrorMessage.value = ""; // 清除舊錯誤
+
   try {
     const formData = new FormData();
-    formData.append("petId", 1);
+
+    formData.append("petId", currentPetId.value);
     formData.append("file", parsedResult.value._file);
     formData.append("diagnosis", parsedResult.value.diagnosis || "待確認");
     formData.append("clinicName", parsedResult.value.clinicName || "");
@@ -634,9 +663,12 @@ async function handleSaveRecord() {
     console.log("儲存成功，recordId =", savedRecordId.value);
 
     await startHealthAnalysis(savedRecordId.value);
+
+    // 存完後重新載入列表，讓剛新增的病歷出現
+    await loadRecords();
   } catch (error) {
     console.error("儲存失敗：", error);
-    alert("❌ 儲存失敗，請稍後再試。");
+    saveErrorMessage.value = "儲存失敗，請稍後再試。";
   }
 }
 
@@ -645,7 +677,7 @@ async function startHealthAnalysis(recordId) {
   healthAdvice.value = "";
   isAnalyzing.value = true; // 開始：顯示「分析中」
 
-  return new Promise((resolve) => {
+  return new Promise(function (resolve) {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", `http://localhost:8080/api/medical/analyze/${recordId}`);
     xhr.setRequestHeader("Accept", "text/event-stream");
@@ -656,10 +688,28 @@ async function startHealthAnalysis(recordId) {
       let assembled = "";
       for (const line of lines) {
         if (line.startsWith("data:")) {
-          const content = line.slice(5); //
-          if (content.trim()) assembled += content;
+          const content = line.slice(5);
+          if (content === "" || content === " ") {
+            assembled += "\n"; // 空 data 行 = 換行
+          } else {
+            assembled += content; // 有內容就接上
+          }
         }
       }
+      // 1. 把每個 ・ 前面加換行，讓條列各自一行
+      assembled = assembled.replace(/・/g, "\n・");
+      // 2. 先把所有多重換行壓成單一，清乾淨
+      assembled = assembled.replace(/\n{2,}/g, "\n");
+      // 3. 只在這幾個大標題前面加一個空行，做出區塊分隔
+      const 大標題 = [
+        "日常照護重點",
+        "飲食與飲水注意事項",
+        "需要立即回診的警示症狀",
+        "用藥提醒",
+      ];
+      大標題.forEach(function (標題) {
+        assembled = assembled.replace(標題, "\n" + 標題);
+      });
       healthAdvice.value = assembled;
     };
 

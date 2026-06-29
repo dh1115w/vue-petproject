@@ -33,6 +33,7 @@
               v-model="metricValueWeight"
               placeholder="例：13.6"
               class="form-input"
+              @wheel.prevent
             />
           </div>
 
@@ -44,10 +45,11 @@
               v-model="metricValueWater"
               placeholder="例 : 480"
               class="form-input"
+              @wheel.prevent
             />
             <p class="input-tip-text">
               <span v-if="metricValueWeight > 0">
-                建議每日 {{ recommendedWater }}（體重 × 60ml）
+                建議每日 {{ recommendedWater }}ml（體重 × 60ml）
               </span>
               <span v-else> 建議每日飲水量：體重 × 60ml </span>
             </p>
@@ -61,6 +63,7 @@
               v-model="metricValueFood"
               placeholder="例：250"
               class="form-input"
+              @wheel.prevent
             />
           </div>
 
@@ -255,16 +258,43 @@
               <p style="margin: 0">請先登入，即可查看醫護提醒</p>
             </div>
             <template v-else>
-              <div class="reminder-item">
+              <div v-if="vaccineReminder" class="reminder-item">
                 <h4>疫苗進度</h4>
-                <div class="progress-bar">
-                  <div class="progress-fill" style="width: 60%"></div>
-                </div>
-                <p>距離下次狂犬病疫苗還有 15 天</p>
+                <p
+                  style="
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #888;
+                    margin-top: 6px;
+                  "
+                >
+                  {{ vaccineReminder.text }}
+                </p>
               </div>
-              <div class="reminder-item">
+              <div v-else class="reminder-item">
+                <h4>疫苗進度</h4>
+                <p style="color: #aaa; font-size: 13px; margin-top: 6px">
+                  尚無疫苗提醒
+                </p>
+              </div>
+              <div v-if="dewormReminder" class="reminder-item">
                 <h4>驅蟲提醒</h4>
-                <p>下次日期：6/25</p>
+                <p
+                  style="
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #888;
+                    margin-top: 6px;
+                  "
+                >
+                  {{ dewormReminder.text }}
+                </p>
+              </div>
+              <div v-else class="reminder-item">
+                <h4>驅蟲提醒</h4>
+                <p style="color: #aaa; font-size: 13px; margin-top: 6px">
+                  尚無驅蟲提醒
+                </p>
               </div>
             </template>
           </div>
@@ -462,7 +492,7 @@ const statusNoteActivity = ref("低"); // 活動量        → PetHealthTracking
 const statusNoteExtra = ref(""); // 備註說明      → PetHealthTracking.statusNote
 
 // ── 最後更新時間（對應 PetHealthTracking.updatedAt）──────
-const updatedAt = ref("2026/06/11 18:30");
+const updatedAt = ref("今日尚未紀錄");
 
 // ── 喝水建議量 ──────
 const recommendedWater = computed(() => {
@@ -506,17 +536,6 @@ async function handleSubmitRecord() {
   const f = metricValueFood.value || "250";
   const n = statusNoteExtra.value || "無";
 
-  // 2. 取得當下時間並格式化
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const date = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-
-  const formattedDate = `${year} / ${month} / ${date}`;
-  updatedAt.value = `${year}/${month}/${date} ${hours}:${minutes}`;
-
   // 5. 串接 Java 後端
 
   // 5-1. 送出前先確認有沒有可用的寵物 id，沒有的話直接擋下來，不送 API
@@ -546,8 +565,24 @@ async function handleSubmitRecord() {
     );
     console.log("後端儲存成功:", response.data);
 
-    // 存成功後，重新向後端查詢最新的歷史日誌，更新畫面上的「真實資料」區塊
-    await fetchHistoryLogs();
+    // 後端儲存成功後，立即用前端當下時間更新「最後更新時間」
+    // 不依賴 fetchHistoryLogs 回傳的 recordDate，避免後端只記錄第一次建立時間導致顯示不更新
+    const now = new Date();
+    const y = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const h = String(now.getHours()).padStart(2, "0");
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    updatedAt.value = `${y}/${mo}/${d} ${h}:${mi}`;
+
+    // 存成功後，同步重新查詢所有需要更新的資料：
+    // 歷史日誌、體重趨勢卡片、體重折線圖、本週飲食長條圖
+    await Promise.all([
+      fetchHistoryLogs(),
+      fetchWeightTrend(),
+      fetchWeightChart(),
+      fetchFoodWaterChart(),
+    ]);
   } catch (error) {
     console.error("後端儲存失敗:", error);
     alert("資料儲存至伺服器失敗，但已暫時更新於畫面。");
@@ -689,7 +724,7 @@ async function fetchHistoryLogs() {
 
     // 查詢結果依時間新到舊排序，所以第一筆就是「最新一筆紀錄」
     // 用它的時間更新「最後更新時間」欄位，這樣重新整理後也能顯示正確的時間，而不是寫死的初始值
-    if (response.data.length > 0) {
+    if (response.data.length > 0 && updatedAt.value === "今日尚未紀錄") {
       const latest = new Date(response.data[0].recordDate);
       const y = latest.getFullYear();
       const m = String(latest.getMonth() + 1).padStart(2, "0");
@@ -1019,9 +1054,51 @@ function renderFoodWaterChart(labels, waterValues, foodValues) {
 
 // 頁面載入完成後，統一執行所有需要的初始查詢：
 // 歷史健康日誌、體重變化趨勢圖、體重狀態趨勢、本週飲食紀錄圖
+
+// ==========================================================================
+// 醫護提醒快訊：疫苗進度 + 驅蟲提醒
+// ==========================================================================
+const vaccineReminder = ref(null);
+const dewormReminder = ref(null);
+
+async function fetchReminderCard() {
+  if (!currentPetId.value) return;
+  try {
+    const response = await instance.get(
+      `/api/medical/reminder/list/${currentPetId.value}`,
+    );
+    const list = response.data;
+    const now = new Date();
+    const upcoming = list
+      .filter(
+        (r) => !r.isCompleted && !r.isDeleted && new Date(r.targetDate) > now,
+      )
+      .sort((a, b) => new Date(a.targetDate) - new Date(b.targetDate));
+    function toCard(reminder) {
+      const target = new Date(reminder.targetDate);
+      const daysLeft = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+      const mo = String(target.getMonth() + 1).padStart(2, "0");
+      const d = String(target.getDate()).padStart(2, "0");
+      const urgentText = `距離下次「${reminder.eventTitle}」還有 ${daysLeft} 天！`;
+      const normalText = `距離下次「${reminder.eventTitle}」還有 ${daysLeft} 天（${mo}/${d}）`;
+      return { daysLeft, text: daysLeft <= 7 ? urgentText : normalText };
+    }
+    const vac = upcoming.find((r) => r.categoryId === 1);
+    vaccineReminder.value = vac ? toCard(vac) : null;
+    const dew = upcoming.find((r) => r.categoryId === 3);
+    dewormReminder.value = dew ? toCard(dew) : null;
+  } catch (error) {
+    console.error("查詢提醒卡片失敗:", error);
+  }
+}
+watch(currentPetId, () => {
+  fetchReminderCard();
+});
+
 onMounted(() => {
   fetchHistoryLogs();
   fetchWeightTrend();
+  fetchReminderCard();
 
   // 等 100 毫秒，讓 Vue 把 canvas 畫到畫面上，再畫圖表
   setTimeout(() => {

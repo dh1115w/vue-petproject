@@ -10,17 +10,30 @@
         <div class="nav-dropdown">
           <RouterLink to="/grooming" class="nav-link">美容</RouterLink>
           <div class="dropdown-menu">
-            <RouterLink to="/grooming/services" class="dropdown-item">服務項目</RouterLink>
-            <RouterLink to="/grooming/staff" class="dropdown-item">美容師團隊</RouterLink>
-            <RouterLink to="/grooming/booking" class="dropdown-item">線上預約</RouterLink>
-            <RouterLink to="/grooming/appointments" class="dropdown-item">預約紀錄</RouterLink>
-            <RouterLink to="/grooming/reviews" class="dropdown-item">評價專區</RouterLink>
-            <RouterLink to="/grooming/StaffDashboard" class="dropdown-item">員工後台</RouterLink>
+            <RouterLink to="/grooming/services" class="dropdown-item"
+              >服務項目</RouterLink
+            >
+            <RouterLink to="/grooming/staff" class="dropdown-item"
+              >美容師團隊</RouterLink
+            >
+            <RouterLink to="/grooming/booking" class="dropdown-item"
+              >線上預約</RouterLink
+            >
+            <RouterLink to="/grooming/appointments" class="dropdown-item"
+              >預約紀錄</RouterLink
+            >
+            <RouterLink to="/grooming/reviews" class="dropdown-item"
+              >評價專區</RouterLink
+            >
+            <RouterLink to="/grooming/StaffDashboard" class="dropdown-item"
+              >員工後台</RouterLink
+            >
           </div>
         </div>
         <!-- 醫療選單 -->
         <div class="nav-dropdown">
-          <RouterLink to="/medical" class="nav-link">醫療</RouterLink>
+          <!-- <RouterLink to="/medical" class="nav-link">醫療</RouterLink> -->
+          <span class="nav-link" style="cursor: pointer">醫療</span>
           <div class="dropdown-menu">
             <RouterLink to="/medical/healthtracking" class="dropdown-item"
               >健康狀態追蹤</RouterLink
@@ -34,9 +47,8 @@
             <RouterLink to="/medical/clinicsearch" class="dropdown-item"
               >附近診所搜尋</RouterLink
             >
-            <RouterLink to="/medical/taxiservice" class="dropdown-item"
-              >寵物接送服務</RouterLink
-            >
+            <!-- <RouterLink to="/medical/taxiservice" class="dropdown-item"
+              >寵物接送服務</RouterLink -->
           </div>
         </div>
 
@@ -48,7 +60,9 @@
         <!-- 已登入：顯示圓形頭像 + 名字 -->
         <div class="nav-dropdown" v-else>
           <!-- slice(0, 4)：只取帳號前四個字，避免太長超出圓形頭像 -->
-          <div class="user-avatar">{{ userStore.memberInfo.account.slice(0, 4) }}</div>
+          <div class="user-avatar">
+            {{ userStore.memberInfo.account.slice(0, 4) }}
+          </div>
           <div class="dropdown-menu">
             <RouterLink to="/grooming/member" class="dropdown-item"
               >會員專區</RouterLink

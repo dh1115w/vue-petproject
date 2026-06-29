@@ -792,4 +792,20 @@
   .modal-cancel-btn:hover {
     background-color: var(--muted);
   }
+
+  .line-feedback-msg {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .msg-success {
+    background-color: rgba(107, 174, 138, 0.15);
+    color: #3a8a5e;
+  }
+  .msg-error {
+    background-color: rgba(223, 71, 51, 0.1);
+    color: #c0392b;
+  }
 }

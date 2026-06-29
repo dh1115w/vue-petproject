@@ -226,6 +226,11 @@ export const updateCoupon = (id, data) => {
   return adminAxios.put(`/api/admin/coupons/${id}`, data);
 };
 
+// 已串接真正後端 API：DELETE /api/admin/coupons/{id}（永久刪除優惠券，已被付款用過的會被後端擋下）
+export const deleteCoupon = (id) => {
+  return adminAxios.delete(`/api/admin/coupons/${id}`);
+};
+
 // ===== StaffDashboard.vue 服務管理分頁用（管理員）=====
 // 查全部服務（含已下架，新的在前）：GET /api/admin/services
 export const getAdminServices = () => {
@@ -247,6 +252,11 @@ export const createService = (data) => {
 // 編輯服務：PUT /api/admin/services/{id}
 export const updateService = (id, data) => {
   return adminAxios.put(`/api/admin/services/${id}`, data);
+};
+
+// 刪除服務：DELETE /api/admin/services/{id}（會連同各體型定價一起刪；已被預約用過的會被後端擋下）
+export const deleteService = (id) => {
+  return adminAxios.delete(`/api/admin/services/${id}`);
 };
 
 // 上傳服務圖片：POST /api/admin/services/image

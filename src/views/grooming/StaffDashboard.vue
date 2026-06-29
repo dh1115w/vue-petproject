@@ -369,7 +369,10 @@
                 {{ c.isActive ? '啟用中' : '已停用' }}
               </span>
             </td>
-            <td><button @click="openEditCoupon(c)" class="btn-sm">編輯</button></td>
+            <td>
+              <button @click="openEditCoupon(c)" class="btn-sm">編輯</button>
+              <button @click="removeCoupon(c.id)" class="btn-delete">刪除</button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -473,7 +476,10 @@
                 {{ s.isActive ? '上架中' : '已下架' }}
               </span>
             </td>
-            <td><button @click="openEditService(s)" class="btn-sm">編輯</button></td>
+            <td>
+              <button @click="openEditService(s)" class="btn-sm">編輯</button>
+              <button @click="removeService(s.id)" class="btn-delete">刪除</button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -485,6 +491,12 @@
 
       <div class="tool-bar">
         <button @click="openCreateGroomer" class="btn-primary">+ 新增美容師</button>
+      </div>
+
+      <!-- 在職 / 離職 分頁切換 -->
+      <div class="tab-menu">
+        <button :class="{ active: groomerFilter === 'active' }" @click="groomerFilter = 'active'">在職</button>
+        <button :class="{ active: groomerFilter === 'resigned' }" @click="groomerFilter = 'resigned'">離職</button>
       </div>
 
       <!-- 新增/編輯表單（groomerFormVisible 為 true 才顯示）-->
@@ -564,10 +576,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-if="groomers.length === 0">
-            <td colspan="7" style="text-align: center; color: #888;">目前沒有美容師，按右上角「新增美容師」建立一位</td>
+          <tr v-if="groomersToShow().length === 0">
+            <td colspan="7" style="text-align: center; color: #888;">
+              {{ groomerFilter === 'resigned' ? '目前沒有離職的美容師' : '目前沒有在職的美容師，按右上角「新增美容師」建立一位' }}
+            </td>
           </tr>
-          <tr v-for="g in groomers" :key="g.id">
+          <tr v-for="g in groomersToShow()" :key="g.id">
             <td>{{ g.name }}</td>
             <td>{{ g.phone }}</td>
             <td>{{ g.email }}</td>
@@ -670,10 +684,12 @@ import {
   getCoupons,
   createCoupon as apiCreateCoupon,
   updateCoupon as apiUpdateCoupon,
+  deleteCoupon as apiDeleteCoupon,
   getAdminServices,
   getServiceCategories,
   createService as apiCreateService,
   updateService as apiUpdateService,
+  deleteService as apiDeleteService,
   uploadServiceImage as apiUploadServiceImage,
   getAdminGroomers,
   getSpecialtyCategories,
@@ -1300,6 +1316,8 @@ const submitService = async () => {
 // ===== 美容師管理分頁 =====
 const groomers = ref([]);
 const specialtyCategories = ref([]);
+// 美容師分頁：'active' 看在職、'resigned' 看離職（預設先看在職）
+const groomerFilter = ref('active');
 const groomerFormVisible = ref(false);
 const editingGroomerId = ref(null); // null = 新增模式，有值 = 正在編輯哪位
 
@@ -1329,6 +1347,15 @@ const loadGroomers = async () => {
   } catch (err) {
     console.error('載入美容師失敗:', err);
   }
+};
+
+// 依目前分頁（在職/離職）篩選要顯示的美容師
+// isActive 為 true 代表在職、false 代表已離職
+const groomersToShow = () => {
+  if (groomerFilter.value === 'resigned') {
+    return groomers.value.filter(g => !g.isActive);
+  }
+  return groomers.value.filter(g => g.isActive);
 };
 
 // 打開「新增」表單
@@ -1462,6 +1489,30 @@ const removeReview = async (id) => {
     await loadReviews(); // 重新載入，刪掉的就不會再出現在清單
   } catch (err) {
     const message = getErrorMessage(err, '刪除評價失敗');
+    alert(message);
+  }
+};
+
+// 刪除優惠券：已被付款用過的會被後端擋下，回傳的友善訊息直接 alert 出來
+const removeCoupon = async (id) => {
+  if (!confirm('確定要永久刪除這張優惠券嗎？刪除後無法復原。')) return;
+  try {
+    await apiDeleteCoupon(id);
+    await loadCoupons(); // 重新載入清單
+  } catch (err) {
+    const message = getErrorMessage(err, '刪除優惠券失敗');
+    alert(message);
+  }
+};
+
+// 刪除服務：會連同各體型定價一起刪；已被預約用過的會被後端擋下
+const removeService = async (id) => {
+  if (!confirm('確定要永久刪除這個服務嗎？刪除後無法復原（會連同各體型定價一起刪掉）。')) return;
+  try {
+    await apiDeleteService(id);
+    await loadServices(); // 重新載入清單
+  } catch (err) {
+    const message = getErrorMessage(err, '刪除服務失敗');
     alert(message);
   }
 };</script>

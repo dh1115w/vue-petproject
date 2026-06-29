@@ -49,7 +49,7 @@
             />
             <p class="input-tip-text">
               <span v-if="metricValueWeight > 0">
-                建議每日 {{ recommendedWater }}（體重 × 60ml）
+                建議每日 {{ recommendedWater }}ml（體重 × 60ml）
               </span>
               <span v-else> 建議每日飲水量：體重 × 60ml </span>
             </p>

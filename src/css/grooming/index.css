@@ -46,41 +46,7 @@ body {
   margin-bottom: 1.5rem;
 }
 
-/* ===== 英雄橫幅（療癒漸層）===== */
-.hero {
-  background: linear-gradient(135deg, #6bae8a, #7bb3d4);
-  min-height: 380px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #ffffff;
-  padding: 2rem;
-  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.hero-content h1 {
-  font-size: 2.6rem;
-  font-weight: 800;
-  margin-bottom: 1rem;
-  color: #ffffff;
-}
-
-.hero-content p {
-  font-size: 1.15rem;
-  margin-bottom: 1.75rem;
-  opacity: 0.95;
-}
-
-/* 英雄區內按鈕：白底綠字更顯眼 */
-.hero .btn-primary {
-  background-color: #ffffff;
-  color: var(--primary);
-}
-
-.hero .btn-primary:hover {
-  background-color: #f3f0e8;
-}
+/* 註：舊的 .hero / .hero-content 樣式已移除（沒有任何頁面使用），首頁橫幅改用 groomingIndex.vue 內的 .grooming-hero-section */
 
 /* ===== 網格 ===== */
 .grid {
@@ -107,16 +73,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* ===== 特色項目 ===== */
-.feature-item h4 {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--foreground);
-}
-
-.feature-item p {
-  color: var(--muted-foreground);
-}
+/* 註：.feature-item 只有首頁用到，樣式已整合到 groomingIndex.vue 的 <style scoped> 裡 */
 
 /* ===== 服務項目卡內文字 ===== */
 .price {
@@ -174,7 +131,4 @@ footer {
 /* ===== 手機版 ===== */
 @media (max-width: 768px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .hero { min-height: 300px; }
-  .hero-content h1 { font-size: 2rem; }
-  .hero-content p { font-size: 1rem; }
 }

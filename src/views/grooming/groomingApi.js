@@ -1,10 +1,10 @@
-import axios from '@/plugins/axios.js';
+﻿import axios from '@/plugins/axios.js';
 import adminAxios from '@/plugins/grooming/adminAxios.js';
 
-// 還剩 StaffDashboard.vue 的「排班表格、統計數字、黑名單」幾個 function 是 mock，其他都已經改成真正打後端 API
+// 還剩 StaffDashboard.vue 排班表格的時段邏輯由前端自行處理，其他（含統計數字/訂單/黑名單）都已改成真正打後端 API
 // （getAllServices、getGroomers、getReviews、getAvailableTimeSlots、createAppointment、getAppointments、
 //   cancelAppointment、createGroomingPayment、captureGroomingPayment、validateCoupon、
-//   getAdminOrders、updateAdminOrder、submitGroomingReview）
+//   getAdminOrders、updateAdminOrder、submitGroomingReview、getBlacklist、addToBlacklist、removeFromBlacklist）
 
 // ===== 共用假資料 =====
 const mockAppointments = [
@@ -17,14 +17,29 @@ const mockAppointments = [
 // 已串接真正後端 API：GET /api/services
 // 註：後端目前還沒有 features（服務特色文字）、allowedGroomers（指定美容師）這兩個欄位，
 // 回傳資料裡不會有這兩個值，畫面上對應的地方會先顯示空白/全部美容師，之後後端補上再串。
-export const getAllServices = () => {
-  return axios.get('/api/services');
+// params 可帶 { type: 'dog' | 'cat' } 做服務頁的貓狗分頁過濾；不帶就回全部。
+export const getAllServices = (params) => {
+  return axios.get('/api/services', { params });
 };
 
 // 已串接真正後端 API：GET /api/available-slots
-// params 要帶 { groomer_id, date, pricing_id }，後端會依排班、已有預約、服務時長算出空檔
+// params 要帶 { groomerId, date, pricingId }，後端會依排班、已有預約、服務時長算出空檔
 export const getAvailableTimeSlots = (params) => {
   return axios.get('/api/available-slots', { params });
+};
+
+// 已串接真正後端 API：GET /api/groomer-availability
+// params 要帶 { date, pricingId }，一次回傳「某天、某服務定價下」全部在職美容師的可預約狀態
+// 每筆回 { groomerId, available, slotCount }，預約頁用來在美容師下拉選單標示「尚有時段/已額滿」
+export const getGroomerAvailability = (params) => {
+  return axios.get('/api/groomer-availability', { params });
+};
+
+// 已串接真正後端 API：GET /api/groomer-available-dates
+// params 要帶 { groomerId, pricingId }（可選 from/to），回傳「這位美容師未來哪幾天有空」的日期字串陣列，
+// 例如 ["2026-06-30","2026-07-02"]；新版預約頁用來讓「預約日期」下拉只列出有空的日子
+export const getGroomerAvailableDates = (params) => {
+  return axios.get('/api/groomer-available-dates', { params });
 };
 
 // 已串接真正後端 API：POST /api/secure/appointments（要登入會員才能用）
@@ -64,6 +79,18 @@ export const cancelAppointment = (id) => {
   return axios.post(`/api/secure/appointments/${id}/cancel`);
 };
 
+// 已串接真正後端 API：GET /api/secure/grooming/line/authorize-url（要登入會員才能用）
+// 回傳 { url: 'https://access.line.me/...' }，前端拿到後自己 window.location 跳過去授權
+export const getLineBindUrl = () => {
+  return axios.get('/api/secure/grooming/line/authorize-url');
+};
+
+// 已串接真正後端 API：POST /api/secure/grooming/line/demo-bind（要登入會員才能用）
+// 後端把「目前登入的會員」直接綁到預設 LINE userId，回傳 { addFriendUrl } 給前端開加好友頁
+export const demoBindLine = () => {
+  return axios.post('/api/secure/grooming/line/demo-bind');
+};
+
 // ===== Staff.vue 用 =====
 // 已串接真正後端 API：GET /api/groomers
 // 註：後端目前還沒有 rating（評分，要等 Review 表）、isOnDuty（今日有沒有上班，要等 GroomerSchedule 表），
@@ -74,13 +101,31 @@ export const getGroomers = () => {
 
 // ===== StaffDashboard.vue 用 =====
 export const getAdminStats = () => {
-  console.log('[mock] getAdminStats 被呼叫');
-  return Promise.resolve({ data: { todayAppts: 8, pendingOrders: 3, avgRating: '4.8' } });
+  // 已串接真正後端 API：GET /api/admin/stats（後台首頁數據概覽）回傳 { todayAppts, pendingOrders, avgRating }
+  return adminAxios.get('/api/admin/stats');
 };
 
-export const getAdminSchedule = () => {
-  console.log('[mock] getAdminSchedule 被呼叫');
-  return Promise.resolve({ data: mockAppointments });
+// 已串接真正後端 API：GET /api/admin/shift-templates（班別模板：早班/晚班…，含起訖時間）
+export const getShiftTemplates = () => {
+  return adminAxios.get('/api/admin/shift-templates');
+};
+
+// 已串接真正後端 API：GET /api/admin/schedules（查某段日期、全部美容師的排班）
+// params 帶 { startDate, endDate }（可選 groomer_id）；每筆回 { id, groomerId, groomerName, scheduleDate, shiftId, shiftName, startTime, endTime, status }
+export const getAdminSchedules = (params) => {
+  return adminAxios.get('/api/admin/schedules', { params });
+};
+
+// 已串接真正後端 API：POST /api/admin/schedules（新增或更新某美容師某天的排班，upsert）
+// data 帶 { groomerId, shiftId, scheduleDate, status }
+export const upsertSchedule = (data) => {
+  return adminAxios.post('/api/admin/schedules', data);
+};
+
+// 已串接真正後端 API：DELETE /api/admin/schedules（刪除某美容師某天的排班，月表格改成「休假」時用）
+// params 帶 { groomer_id, date }；那天若已有預約後端會擋（回 400）
+export const deleteSchedule = (params) => {
+  return adminAxios.delete('/api/admin/schedules', { params });
 };
 
 // 已串接真正後端 API：GET /api/admin/appointments（要登入管理員才能用，看全部會員的預約）
@@ -95,14 +140,21 @@ export const updateAdminOrder = (id, newStatus, cancelReason = null) => {
   return adminAxios.post(`/api/admin/appointments/${id}/status`, { status: newStatus, cancelReason });
 };
 
+// 已串接真正後端 API：GET /api/admin/blacklist（要登入管理員才能用，只回封鎖中的）
+// 回傳每筆 { id, userId, userName, userPhone, categoryName, reason, startDate, endDate }
 export const getBlacklist = () => {
-  console.log('[mock] getBlacklist 被呼叫');
-  return Promise.resolve({ data: [] });
+  return adminAxios.get('/api/admin/blacklist');
 };
 
+// 已串接真正後端 API：POST /api/admin/blacklist
+// data 要帶 { memberId, reason }（categoryId 不傳，後端會自己挑預設分類）
 export const addToBlacklist = (data) => {
-  console.log('[mock] addToBlacklist 被呼叫，內容：', data);
-  return Promise.resolve({ data: { success: true } });
+  return adminAxios.post('/api/admin/blacklist', data);
+};
+
+// 已串接真正後端 API：POST /api/admin/blacklist/{id}/remove（解除封鎖，把狀態改成已解除）
+export const removeFromBlacklist = (id) => {
+  return adminAxios.post(`/api/admin/blacklist/${id}/remove`);
 };
 
 export const exportTodayAppointments = () => {
@@ -112,53 +164,39 @@ export const exportTodayAppointments = () => {
   return Promise.resolve({ data: csvContent });
 };
 
+// 已串接真正後端 API：GET /api/services/featured（首頁「熱門服務項目」用）
+// 後端只回「後台勾選為熱門、且上架中」的服務（含 priceMap/durationMap），
+// 這裡取前 3 筆，整理成首頁要的 { id, title, price, duration, desc } 格式。
+//  - price：用 minPrice（卡片顯示「NT$ 600 起」）
+//  - duration：取小型(small)的時長，沒有的話退而取第一個有的體型時長
+//  - desc：對應後端新加的 description 欄位
 export const getFeaturedServices = () => {
-  console.log('[mock] getFeaturedServices 被呼叫');
-
-  return Promise.resolve({
-    data: [
-      {
-        id: 1,
-        title: '基礎洗護',
-        price: 600,
-        duration: 60,
-        desc: '洗澡、吹整、清耳、剪指甲，日常清潔保養首選。'
-      },
-      {
-        id: 2,
-        title: '全套美容造型',
-        price: 1200,
-        duration: 120,
-        desc: '包含剪毛造型、SPA護膚、香氛護理，給毛孩煥然一新的外型。'
-      },
-      {
-        id: 3,
-        title: '藥浴護理',
-        price: 900,
-        duration: 90,
-        desc: '針對皮膚敏感或有皮膚問題的毛孩，提供專業藥浴療程。'
-      }
-    ]
+  return axios.get('/api/services/featured').then(res => {
+    const featured = res.data.slice(0, 3).map(s => {
+      // durationMap 例如 { small: 60, mid: 75, big: 90 }；優先拿 small，沒有就拿第一個值
+      const durationMap = s.durationMap || {};
+      const duration = durationMap.small != null
+        ? durationMap.small
+        : Object.values(durationMap)[0];
+      return {
+        id: s.id,
+        title: s.title,
+        price: s.minPrice,
+        duration: duration,
+        desc: s.description
+      };
+    });
+    // 包成跟原本一樣的 { data } 結構，groomingIndex.vue 才不用改
+    return { data: featured };
   });
 };
 
+// 已串接真正後端 API：GET /api/coupons/active（首頁促銷橫幅用）
+// 回傳目前生效中、最快到期的那張優惠券，後端已換算成橫幅要的格式：
+//   { isActive, tag, title, description, promoCode, discountText, endDate }
+// 沒有進行中的優惠時 isActive 會是 false，首頁就把橫幅藏起來。
 export const getActivePromotion = () => {
-  console.log('[mock] getActivePromotion 被呼叫');
-
-  // 將結束時間設定為「現在起 3 天後」，方便測試倒數計時功能
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 3);
-
-  return Promise.resolve({
-    data: {
-      isActive: true,
-      endDate: endDate.toISOString(),
-      title: '夏日洗護優惠活動',
-      description: '即日起至優惠期間，全店美容服務輸入代碼',
-      tag: '限時優惠',
-      promoCode: 'PET80'
-    }
-  });
+  return axios.get('/api/coupons/active');
 };
 
 // 已串接真正後端 API：GET /api/reviews
@@ -169,186 +207,129 @@ export const getReviews = () => {
 };
 
 // 已串接真正後端 API：POST /api/secure/reviews（要登入會員才能用）
-// data 要帶 { appointmentId, overallRating, serviceRating, envRating, priceRating, comment, isAnonymous }
-// 後端會檢查：這筆預約是不是你自己的、狀態是不是「已完成」、是不是已經評價過
+// 改用 multipart：data 傳 FormData，內含 appointmentId / overallRating / serviceRating /
+// envRating / priceRating / comment / isAnonymous，外加可選的 image 照片檔。
+// 傳 FormData 時 axios 會自動帶上 multipart/form-data 標頭，這裡不用手動設。
+// 後端會檢查：這筆預約是不是你自己的、狀態是不是「已完成」、是不是已經評價過、照片是否合格
 export const submitGroomingReview = (data) => {
   return axios.post('/api/secure/reviews', data);
 };
-// import axios from '@/api/axios'; // 確保此路徑指向您的 axios 實例
-// import useUserStore from '@/stores/user.js';
 
-// /**
-//  * 設定 Axios 請求攔截器
-//  * 在發送請求前，自動從 Pinia Store 取得 Token 並放入 Authorization Header
-//  */
-// axios.interceptors.request.use(
-//   (config) => {
-//     const userStore = useUserStore();
-//     if (userStore.token) {
-//       config.headers.Authorization = `Bearer ${userStore.token}`;
-//     }
-//     return config;
-//   },
-//   (error) => Promise.reject(error)
-// );
+// ===== StaffDashboard.vue 優惠券管理分頁用（管理員）=====
+// 已串接真正後端 API：GET /api/admin/coupons（查全部優惠券，新的在前）
+export const getCoupons = () => {
+  return adminAxios.get('/api/admin/coupons');
+};
 
-// /**
-//  * 設定 Axios 響應攔截器
-//  * 統一處理 Token 過期或權限不足 (401) 的情況
-//  */
-// axios.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     if (error.response && error.response.status === 401) {
-//       // 如果收到 401，通常代表 Token 已失效，可以導向登入頁
-//       window.location.href = '/member/login';
-//     }
-//     return Promise.reject(error);
-//   }
-// );
+// 已串接真正後端 API：POST /api/admin/coupons（新增一張優惠券）
+// data 要帶 { code, name, description, discountType, discountValue, minOrderAmount,
+//            maxDiscount, totalQty, startDate, endDate, isActive }
+export const createCoupon = (data) => {
+  return adminAxios.post('/api/admin/coupons', data);
+};
 
-// /**
-//  * 【首頁與通用資訊】
-//  */
-// /**
-//  * 取得首頁展示的熱門服務
-//  */
-// export const getFeaturedServices = () => {
-//   return axios.get('/api/featured-services');
-// };
+// 已串接真正後端 API：PUT /api/admin/coupons/{id}（編輯既有優惠券）
+export const updateCoupon = (id, data) => {
+  return adminAxios.put(`/api/admin/coupons/${id}`, data);
+};
 
-// /**
-//  * 取得當前進行中的優惠活動
-//  */
-// export const getActivePromotion = () => {
-//   return axios.get('/api/active-promotion');
-// };
+// 已串接真正後端 API：DELETE /api/admin/coupons/{id}（永久刪除優惠券，已被付款用過的會被後端擋下）
+export const deleteCoupon = (id) => {
+  return adminAxios.delete(`/api/admin/coupons/${id}`);
+};
 
-// getAllServices、getGroomers 已經在上面改成真正打後端 API 了，這裡不用留參考版本
+// ===== StaffDashboard.vue 服務管理分頁用（管理員）=====
+// 查全部服務（含已下架，新的在前）：GET /api/admin/services
+export const getAdminServices = () => {
+  return adminAxios.get('/api/admin/services');
+};
 
-// /**
-//  * 【毛孩與會員管理】
-//  */
-// export const getPets = (params) => {
-//   return axios.get('/api/pets', { params });
-// };
+// 服務分類下拉用（只回啟用中的分類）：GET /api/admin/services/categories
+export const getServiceCategories = () => {
+  return adminAxios.get('/api/admin/services/categories');
+};
 
-// export const addPet = (data) => {
-//   return axios.post('/api/pets', data);
-// };
+// 新增服務：POST /api/admin/services
+// data 要帶 { categoryId, name, description, applicableSpecies, imageUrl, note, isActive,
+//            pricings: [{ size, price, duration }] }
+export const createService = (data) => {
+  return adminAxios.post('/api/admin/services', data);
+};
 
-// export const updatePet = (id, data) => {
-//   return axios.patch(`/api/pets/${id}`, data);
-// };
+// 編輯服務：PUT /api/admin/services/{id}
+export const updateService = (id, data) => {
+  return adminAxios.put(`/api/admin/services/${id}`, data);
+};
 
-// export const deletePet = (id) => {
-//   return axios.delete(`/api/pets/${id}`);
-// };
+// 刪除服務：DELETE /api/admin/services/{id}（會連同各體型定價一起刪；已被預約用過的會被後端擋下）
+export const deleteService = (id) => {
+  return adminAxios.delete(`/api/admin/services/${id}`);
+};
 
-// export const updateMemberInfo = (data) => {
-//   return axios.patch('/api/member/profile', data);
-// };
+// 上傳服務圖片：POST /api/admin/services/image
+// file 是使用者選的圖片檔，用 FormData 裝成欄位名 file 送上去（後端用 @RequestParam("file") 接）
+// 後端會回 { url: "/api/services/images/xxx.jpg" }，前端把這個 url 填進表單的 imageUrl
+export const uploadServiceImage = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return adminAxios.post('/api/admin/services/image', formData);
+};
 
-// /**
-//  * 驗證優惠碼
-//  */
-// export const validateCoupon = (code) => {
-//   return axios.post('/api/coupons/validate', { code });
-// };
+// ===== StaffDashboard.vue 美容師管理分頁用（管理員）=====
+// 查全部美容師（含已離職，新的在前）：GET /api/admin/groomers
+export const getAdminGroomers = () => {
+  return adminAxios.get('/api/admin/groomers');
+};
 
-// /**
-//  * 發送通知 (Line Notify)
-//  */
-// export const sendNotification = (data) => {
-//   return axios.post('/api/notifications/line', data);
-// };
+// 專長類別勾選用（只回啟用中的）：GET /api/admin/groomers/specialties
+export const getSpecialtyCategories = () => {
+  return adminAxios.get('/api/admin/groomers/specialties');
+};
 
-// getAvailableTimeSlots、createAppointment、getAppointments、cancelAppointment
-// 都已經在上面改成真正打後端 API 了，這裡不用留參考版本
+// 新增美容師：POST /api/admin/groomers
+// data 要帶 { name, phone, email, gender, birth, hireDate, photoUrl, bio,
+//            experience, isActive, specialtyIds: [..] }
+export const createGroomer = (data) => {
+  return adminAxios.post('/api/admin/groomers', data);
+};
 
-// /**
-//  * 更新預約狀態 (用於模擬美容進度切換)
-//  */
-// export const updateAppointmentStatus = (id, status) => {
-//   return axios.patch(`/api/appointments/${id}/status`, { status });
-// };
+// 編輯美容師：PUT /api/admin/groomers/{id}
+export const updateGroomer = (id, data) => {
+  return adminAxios.put(`/api/admin/groomers/${id}`, data);
+};
 
-// /**
-//  * 【評價系統】
-//  */
-// getReviews 已經在上面改成真正打後端 API 了，這裡不用留參考版本
+// 上傳美容師頭貼：POST /api/admin/groomers/photo
+// file 是使用者選的圖片檔，用 FormData 裝成欄位名 file 送上去（後端用 @RequestParam("file") 接）
+// 後端會回 { url: "/api/groomers/photos/xxx.jpg" }，前端把這個 url 填進表單的 photoUrl
+export const uploadGroomerPhoto = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return adminAxios.post('/api/admin/groomers/photo', formData);
+};
 
-// /**
-//  * 取得會員目前可進行評價的已完成預約
-//  */
-// export const getUnreviewedAppointments = () => {
-//   return axios.get('/api/unreviewed-appointments');
-// };
+// ===== StaffDashboard.vue 評價管理分頁用（管理員）=====
+// 查全部評價（含待審核/顯示/隱藏，新的在前）：GET /api/admin/reviews
+// status 有給（0待審核 1顯示 2隱藏）就只看該狀態，沒給就看全部
+export const getAdminReviews = (status) => {
+  // status 是 null/undefined 時不帶 params，後端就回全部
+  const params = (status === null || status === undefined) ? {} : { status };
+  return adminAxios.get('/api/admin/reviews', { params });
+};
 
-// /**
-//  * 提交新的評論 (包含圖片)
-//  */
-// export const submitGroomingReview = (formData) => {
-//   return axios.post('/api/reviews', formData, {
-//     headers: { 'Content-Type': 'multipart/form-data' }
-//   });
-// };
+// 審核評價：POST /api/admin/reviews/{id}/status
+// status 只能是 1（顯示）或 2（隱藏）
+export const moderateReview = (id, status) => {
+  return adminAxios.post(`/api/admin/reviews/${id}/status`, { status });
+};
 
-// /**
-//  * 【管理後台專用】
-//  */
-// /**
-//  * 取得後台數據概覽 (今日預約數、待處理訂單、評分)
-//  */
-// export const getAdminStats = () => {
-//   return axios.get('/api/admin/stats');
-// };
+// 店家回覆：POST /api/admin/reviews/{id}/reply
+// 一筆評價最多一筆回覆，後端會自動判斷新增或覆蓋
+export const replyToReview = (id, content) => {
+  return adminAxios.post(`/api/admin/reviews/${id}/reply`, { content });
+};
 
-// /**
-//  * 取得管理端排班資料
-//  */
-// export const getAdminSchedule = (params) => {
-//   return axios.get('/api/admin/schedule', { params });
-// };
-
-// /**
-//  * 更新特定排班時段狀態 (開放/關閉)
-//  */
-// export const updateAdminSlot = (id, data) => {
-//   return axios.patch(`/api/admin/schedule/${id}`, data);
-// };
-
-// /**
-//  * 取得所有預約訂單 (管理端)
-//  */
-// export const getAdminOrders = (params) => {
-//   return axios.get('/api/admin/orders', { params });
-// };
-
-// /**
-//  * 更新訂單狀態 (開始、完成、取消)
-//  */
-// export const updateAdminOrder = (id, status) => {
-//   return axios.patch(`/api/admin/orders/${id}`, { status });
-// };
-
-// /**
-//  * 取得黑名單列表
-//  */
-// export const getBlacklist = () => {
-//   return axios.get('/api/admin/blacklist');
-// };
-
-// /**
-//  * 加入黑名單
-//  */
-// export const addToBlacklist = (data) => {
-//   return axios.post('/api/admin/blacklist', data);
-// };
-
-// /**
-//  * 匯出今日預約清單
-//  */
-// export const exportTodayAppointments = () => {
-//   return axios.get('/api/admin/export-today', { responseType: 'blob' });
-// };
+// 永久刪除評價：DELETE /api/admin/reviews/{id}
+// 跟「隱藏」不同，這會把評價連同照片、店家回覆從資料庫整個刪掉，刪了拉不回來
+export const deleteReview = (id) => {
+  return adminAxios.delete(`/api/admin/reviews/${id}`);
+};

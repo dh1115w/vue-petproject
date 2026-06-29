@@ -69,12 +69,10 @@
                     class="mini-page-btn"
                     style="border-color: #f39c12; color: #f39c12;"
                   >評價服務</button>
-                  <button
+                  <span
                     v-else-if="apt.status === 3 && apt.isReviewed"
-                    @click="viewReview(apt)" 
-                    class="mini-page-btn"
-                    style="border-color: #9b59b6; color: #9b59b6;"
-                  >查看評價</button>
+                    class="badge badge-success"
+                  >已評價</span>
                   <span 
                     v-else-if="isReviewExpired(apt)" 
                     class="badge badge-secondary"
@@ -228,6 +226,7 @@
 <script>
 import NavBar from './NavBar.vue'; // 假設 NavBar 路徑正確
 import { getAppointments, cancelAppointment } from './groomingApi';
+import { appointmentStatusMap } from './groomingStatus';
 
 export default {
   name: 'Appointments',
@@ -237,14 +236,7 @@ export default {
       appointments: [], // 將預約資料初始化為空陣列
       // 註：後端真正的狀態是 0~5（待確認/已確認/進行中/已完成/已取消/未到店），
       // 跟舊版的 0~3（已收到預約/已完成/已取消/進行中）對不起來，已經改成跟後端一致
-      statusMap: {
-        0: { label: '待確認', class: 'badge-info' },
-        1: { label: '已確認', class: 'badge-info' },
-        2: { label: '美容進行中', class: 'badge-warning' },
-        3: { label: '服務已完成', class: 'badge-success' },
-        4: { label: '預約已取消', class: 'badge-secondary' },
-        5: { label: '未到店', class: 'badge-secondary' }
-      },
+      statusMap: appointmentStatusMap,
       filterStatus: 'all',
       currentAptPage: 1,
       aptPageSize: 5,
@@ -274,7 +266,7 @@ export default {
         let bVal = b[key];
 
         // 日期排序特殊處理
-        if (key === 'date') { aVal = new Date(aVal); bVal = new Date(bVal); }
+        if (key === 'date') { aVal = this.parseApiDate(aVal); bVal = this.parseApiDate(bVal); }
         if (aVal < bVal) return -1 * order;
         if (aVal > bVal) return 1 * order;
         return 0;
@@ -307,6 +299,13 @@ export default {
   },
   created() {
     this.fetchAppointments(); // 組件創建時載入預約資料
+    // 從 LINE 綁定流程導回來時，後端會在網址帶 ?lineBound=success 或 fail，給使用者一個提示
+    const bound = this.$route.query.lineBound;
+    if (bound === 'success') {
+      alert('LINE 綁定成功！之後預約完成會收到 LINE 通知。');
+    } else if (bound === 'fail') {
+      alert('LINE 綁定失敗或已取消，請再試一次。');
+    }
   },
   methods: {
     async fetchAppointments() {
@@ -318,16 +317,6 @@ export default {
 
         const response = await getAppointments(params);
         let remoteData = response.data;
-
-        // 檢查路由 state 中是否有剛產生的預約
-        if (window.history.state && window.history.state.newAppointment) {
-          const newApt = window.history.state.newAppointment;
-          // 檢查是否已經存在於遠端資料中（避免重複顯示）
-          const isDuplicate = remoteData.some(apt => apt.date === newApt.date && apt.petName === newApt.petName);
-          if (!isDuplicate) {
-            remoteData = [newApt, ...remoteData];
-          }
-        }
 
         this.appointments = remoteData; 
       } catch (err) {
@@ -368,22 +357,36 @@ export default {
       } catch (error) {
         console.error('取消預約失敗:', error);
         // 後端有給原因的話（例如「這筆預約目前的狀態不能取消」），顯示真正的原因
-        const message = error.response && error.response.data ? error.response.data : '取消預約失敗，請稍後再試。';
+        const message = this.extractErrorMessage(error, '取消預約失敗，請稍後再試。');
         alert(message);
       } finally {
         this.closeCancelModal();
       }
     },
+    // 把後端回傳的錯誤轉成可讀字串：字串直接用、物件取 message、否則用預設訊息
+    // （跟 Booking.vue 的同名方法一致，避免錯誤訊息顯示成「[object Object]」）
+    extractErrorMessage(error, fallback) {
+      const data = error.response ? error.response.data : null;
+      if (!data) return fallback;
+      if (typeof data === 'string') return data;
+      if (data.message) return data.message;
+      return fallback;
+    },
     goToReview(apt) {
       // 評價表單統一在 Reviews.vue，這裡帶上 appointmentId，讓那邊自動選定這筆預約
       this.$router.push({ path: '/grooming/reviews', query: { appointmentId: apt.id } });
+    },
+    // 把後端日期字串（如 "2026-06-22 10:00"，空格分隔）轉成 Date 物件：
+    // 換成 ISO 的 'T' 才能在 Safari/Firefox 正確解析；null/空字串回 Invalid Date（不丟錯）
+    parseApiDate(dateStr) {
+      return new Date((dateStr || '').replace(' ', 'T'));
     },
     canReview(apt) {
       // 1. 狀態必須是「已完成」(3) 且「尚未評價」
       if (apt.status !== 3 || apt.isReviewed) return false;
 
       // 2. 計算時間差（毫秒轉天數）
-      const aptDate = new Date(apt.date);
+      const aptDate = this.parseApiDate(apt.date);
       const now = new Date();
       const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
 
@@ -394,14 +397,10 @@ export default {
       // 1. 狀態必須是「已完成」(3) 且「尚未評價」
       if (apt.status !== 3 || apt.isReviewed) return false;
 
-      const aptDate = new Date(apt.date);
+      const aptDate = this.parseApiDate(apt.date);
       const now = new Date();
       const diffInDays = (now - aptDate) / (1000 * 60 * 60 * 24);
       return diffInDays > 7;
-    },
-    viewReview(appointment) {
-      // 實作查看評價的邏輯，這裡先用 alert 示範
-      alert(`您的評價內容：\n評分：${appointment.reviewRating} 星\n評語：${appointment.reviewComment || '無'}`);
     }
   }
 }

@@ -4,7 +4,7 @@
 
     <main class="container page-content">
       <h2 class="section-title">預約寵物美容</h2>
-      <div class="grid grid-2" style="align-items: start; gap: 40px;">
+      <div class="grid grid-2" style="align-items: start; gap: 40px; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);">
         <div class="booking-info-side">
           <div class="card reminder-card">
             <h4>🐾 預約溫馨小叮嚀</h4>
@@ -17,10 +17,10 @@
 
           <div class="booking-visual-gallery">
             <div class="gallery-item dog-item">
-              <img src="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500&h=400&fit=crop" alt="Dog Grooming" />
+              <img src="/grooming-img/dog1.jpg" alt="Dog Grooming" />
             </div>
             <div class="gallery-item cat-item">
-              <img src="https://images.unsplash.com/photo-1548546738-8509cb246ed3?w=500&h=400&fit=crop" alt="Cat Grooming" />
+              <img src="/grooming-img/dog2.jpg" alt="Dog Grooming" />
             </div>
           </div>
 
@@ -58,23 +58,30 @@
 
           <!-- 新增連結至預約紀錄 -->
           <div style="margin-top: 20px; text-align: center;">
-            <router-link to="/grooming/Appointments" class="btn btn-outline-alt" style="width: 100%; display: block; text-decoration: none;">
+            <router-link to="/grooming/appointments" class="btn btn-outline-alt" style="width: 100%; display: block; text-decoration: none; box-sizing: border-box;">
               📋 查看我的預約紀錄
             </router-link>
+          </div>
+
+          <!-- 加入 LINE 並綁定：按了把這個會員綁到 LINE，並開啟加 PETCARE 好友頁，之後預約完成會收到 LINE 通知 -->
+          <div style="margin-top: 10px; text-align: center;">
+            <button type="button" @click="joinAndBindLine" class="btn btn-outline-alt" style="width: 100%; display: block; border-color: #06c755; color: #06c755; cursor: pointer; box-sizing: border-box; font: inherit;">
+              🔗 加入 LINE 並綁定
+            </button>
           </div>
         </div>
 
         <form class="form-container" style="margin-top: 0;" @submit.prevent="handleSubmit">
           <div class="form-group">
             <label for="petSelect">選擇您的毛孩 (pet_id)</label>
-            <select id="petSelect" v-model="form.pet_id" required> 
+            <select id="petSelect" v-model="form.petId" required> 
               <option value="">-- 請選擇毛孩 --</option>
               <option v-for="pet in pets" :key="pet.id" :value="pet.id">{{ pet.name }} ({{ pet.breed }}/{{ pet.age }}歲)</option>
             </select>
           </div>
           <div class="form-group">
             <label for="petSize">毛孩體型 (Size)</label>
-            <select id="petSize" v-model="form.pet_size" required>
+            <select id="petSize" v-model="form.size" required>
               <option value="" disabled>-- 請選擇體型 --</option>
               <option value="small">小型 - 5kg 以下</option>
               <option value="mid">中型 - 5-15kg</option>
@@ -86,47 +93,55 @@
             <div v-if="incompatibleServiceWarning" class="warning-message">
               {{ incompatibleServiceWarning }}
             </div>
-            <select id="serviceSelect" v-model="form.service_id" required>
+            <select id="serviceSelect" v-model="form.serviceId" required>
               <option value="">-- 請選擇服務 --</option>
               <option v-for="service in filteredServices" :key="service.id" :value="service.id">{{ service.title }}</option>
             </select>
           </div>
 
+          <!-- 先選美容師（依毛孩貓狗物種篩選），再依美容師列出可預約日期 -->
           <div class="form-group">
-            <label for="groomerSelect">指定美容師 (groomer_id)</label>
-            <select id="groomerSelect" v-model="form.groomer_id" required>
+            <label for="groomerSelect">指定美容師 (groomerId)</label>
+            <select id="groomerSelect" v-model="form.groomerId" required>
               <option value="">
-                {{ !form.service_id ? '-- 請先選擇服務項目 --' : '-- 請選擇美容師 --' }}
-              </option> 
-              <option v-for="groomer in filteredGroomers" :key="groomer.id" :value="groomer.id">
+                {{ !form.serviceId ? '-- 請先選擇服務項目 --' : '-- 請選擇美容師 --' }}
+              </option>
+              <option
+                v-for="groomer in filteredGroomers"
+                :key="groomer.id"
+                :value="groomer.id">
                 {{ groomer.name }}
               </option>
             </select>
           </div>
-          <div class="form-group grid grid-2" style="padding:0; gap:15px; margin-top:0;">
-            <div>
-              <label for="aptDate">預約日期</label>
-              <input type="date" id="aptDate" v-model="form.apt_date_date" :min="minDate" required>
-              <!-- 新增：店休公告 -->
-              <div v-if="isDateHoliday" class="holiday-announcement">
-                ⚠️ 很抱歉，當日為店休日，暫不提供美容服務。
-              </div>
-            </div>
-            <div>
-              <label for="timeSlot">可用時段</label>
-              <select id="timeSlot" v-model="form.timeSlot" required :disabled="!form.apt_date_date || !form.groomer_id || isLoadingTimeSlots || timeSlotsError">
-                <option value="" disabled>-- 請選擇時段 --</option>
-                <option v-if="isLoadingTimeSlots" disabled>載入中...</option>
-                <option v-else-if="timeSlotsError" disabled>載入失敗: {{ timeSlotsError }}</option>
-                <option v-else-if="!availableTimeSlots.length && form.apt_date_date && form.groomer_id" disabled>此日期與美容師無可用時段</option>
-                <option 
-                  v-for="slot in availableTimeSlots" 
-                  :key="slot.value" 
-                  :value="slot.value">
-                  {{ slot.label }}
-                </option>
-              </select>
-            </div>
+
+          <!-- 預約日期：下拉只列出「這位美容師有排班、且還有空位」的日期 -->
+          <div class="form-group">
+            <label for="aptDate">預約日期</label>
+            <select id="aptDate" v-model="form.appointmentDate" required :disabled="!form.groomerId || isLoadingDates">
+              <option value="" disabled>
+                {{ !form.groomerId ? '-- 請先選擇美容師 --' : '-- 請選擇日期 --' }}
+              </option>
+              <option v-if="isLoadingDates" disabled>載入可預約日期中...</option>
+              <option v-else-if="!availableDates.length && form.groomerId" disabled>這位美容師近期無可預約日期</option>
+              <option v-for="d in availableDates" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="timeSlot">可用時段</label>
+            <select id="timeSlot" v-model="form.timeSlot" required :disabled="!form.appointmentDate || !form.groomerId || isLoadingTimeSlots || timeSlotsError">
+              <option value="" disabled>-- 請選擇時段 --</option>
+              <option v-if="isLoadingTimeSlots" disabled>載入中...</option>
+              <option v-else-if="timeSlotsError" disabled>載入失敗: {{ timeSlotsError }}</option>
+              <option v-else-if="!availableTimeSlots.length && form.appointmentDate && form.groomerId" disabled>此日期與美容師無可用時段</option>
+              <option
+                v-for="slot in availableTimeSlots"
+                :key="slot.value"
+                :value="slot.value">
+                {{ slot.label }}
+              </option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -137,12 +152,12 @@
           <div class="form-group">
             <label for="couponCode">優惠碼 (Coupon Code)</label>
             <div style="display: flex; gap: 10px; align-items: center;">
-              <input type="text" id="couponCode" v-model="form.coupon_code" placeholder="輸入折扣碼，例如 PET80" style="flex: 1; text-transform: uppercase;">
+              <input type="text" id="couponCode" v-model="form.couponCode" placeholder="輸入折扣碼，例如 PET80" style="flex: 1; text-transform: uppercase;">
               <!-- 清空按鈕：僅在有輸入內容時顯示 -->
               <button 
-                v-if="form.coupon_code" 
+                v-if="form.couponCode" 
                 type="button" 
-                @click="form.coupon_code = ''" 
+                @click="form.couponCode = ''" 
                 class="btn-clear-coupon"
                 title="清空優惠碼"
               >
@@ -157,7 +172,7 @@
 
           <div class="form-group">
             <label for="notes">備註事項 (notes)</label>
-            <textarea id="notes" rows="4" v-model="form.notes" placeholder="請註明毛孩是否有過敏史、近期手術或特殊排斥行為..."></textarea>
+            <textarea id="notes" rows="4" v-model="form.note" placeholder="請註明毛孩是否有過敏史、近期手術或特殊排斥行為..."></textarea>
           </div>
 
           <div style="text-align: center; margin-top: 30px;">
@@ -167,18 +182,18 @@
       </div>
 
       <!-- 確認預約彈窗 (Modal) -->
-      <div v-if="isConfirmModalOpen" class="modal-overlay" @click.self="isConfirmModalOpen = false">
+      <div v-if="isConfirmModalOpen" class="modal-overlay" @click.self="closeConfirmModal">
         <div class="card modal-content">
           <h3 class="modal-title">確認您的預約資訊</h3>
           <div class="modal-body">
             <p>毛孩：<strong>{{ selectedPetName }}</strong></p>
-            <p>體型：<strong>{{ form.pet_size === 'small' ? '小型' : form.pet_size === 'mid' ? '中型' : '大型' }}</strong></p>
+            <p>體型：<strong>{{ form.size === 'small' ? '小型' : form.size === 'mid' ? '中型' : '大型' }}</strong></p>
             <p>服務：<strong>{{ selectedService ? selectedService.title : '未選擇' }}</strong></p>
             <p>美容師：<strong>{{ selectedGroomerName }}</strong></p>
-            <p>日期：<strong>{{ form.apt_date_date }}</strong></p>
+            <p>日期：<strong>{{ form.appointmentDate }}</strong></p>
             <p>時段：<strong>{{ form.timeSlot }}</strong></p>
             <p v-if="estimatedDuration">預估時長：<strong>{{ estimatedDuration }} 分鐘</strong></p>
-            <p v-if="form.notes">備註：<strong>{{ form.notes }}</strong></p>
+            <p v-if="form.note">備註：<strong>{{ form.note }}</strong></p>
             <p v-if="estimatedPrice">預估金額：<strong>NT$ {{ estimatedPrice }}</strong></p>
             <p v-if="appliedCoupon" style="color: #2ecc71;">已套用優惠：<strong>{{ appliedCoupon.label }}</strong></p>
             <hr />
@@ -191,7 +206,7 @@
             <button type="button" @click="confirmBooking" class="btn btn-primary flex-1" :disabled="isProcessingPayment">
               {{ isProcessingPayment ? '處理中...' : '前往付款' }}
             </button>
-            <button type="button" @click="isConfirmModalOpen = false" class="btn btn-cancel flex-1">取消</button>
+            <button type="button" @click="closeConfirmModal" class="btn btn-cancel flex-1">取消</button>
           </div>
           <!-- 後端已經建立好 PayPal 訂單，這裡渲染 PayPal 官方按鈕讓使用者真正付款 -->
           <div v-else class="modal-actions" style="flex-direction: column; align-items: stretch;">
@@ -215,7 +230,7 @@
 
 <script>
 import NavBar from './NavBar.vue'
-import { getAvailableTimeSlots, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment } from './groomingApi'
+import { getAvailableTimeSlots, getGroomerAvailableDates, createAppointment, getAllServices, getGroomers, validateCoupon, createGroomingPayment, captureGroomingPayment, cancelAppointment, demoBindLine } from './groomingApi'
 import useUserStore from '@/stores/user.js'
 
 export default {
@@ -225,17 +240,15 @@ export default {
     return {
       // 表單資料
       form: {
-        member_id: 1, // 假設會員ID為1，實際應從登入狀態獲取
-        // pet_id, pet_size, service_id, groomer_id, apt_date_date, timeSlot, notes
-        pet_id: '',
-        pet_size: '',
-        service_id: '',
-        groomer_id: '',
-        apt_date_date: '',
+        // petId, size, serviceId, groomerId, appointmentDate, timeSlot, note, couponCode
+        petId: '',
+        size: '',
+        serviceId: '',
+        groomerId: '',
+        appointmentDate: '',
         timeSlot: '',
-        notes: '',
-        coupon_code: '',
-        payment_method: 'paypal'
+        note: '',
+        couponCode: '',
       },
       isConfirmModalOpen: false, // 控制確認預約彈窗顯示
       showToast: false,          // 控制 Toast 顯示
@@ -243,7 +256,7 @@ export default {
       toastType: 'success',      // Toast 類型 (success / error)
       isProcessingPayment: false, // 是否正在處理金流（true 時按鈕要顯示 loading、不能再按）
       paypalOrderId: null,       // 跟後端建立好的 PayPal 訂單 id，PayPal 按鈕要用這個
-      pendingAppointmentData: null, // 暫存剛建立的預約資料，付款成功後要拿來發 Line 通知
+      createdAppointmentId: null, // 「已建立但還沒付款」的預約 id；使用者若放棄付款，要靠它叫後端取消、釋放時段
       apiCoupon: null,           // 儲存 API 驗證後的優惠券資訊
       couponTimer: null,         // 用於 debounce 請求 (防抖)
       couponError: null,         // 新增：儲存優惠碼錯誤訊息
@@ -251,11 +264,14 @@ export default {
       groomers: [], // 改成從後端 fetchGroomers() 撈，見 mounted()
       services: [],
       availableTimeSlots: [], // 儲存可用的預約時段
+      availableDates: [],     // 選定美容師後，這位美容師「有空可預約」的日期清單（給日期下拉用）
+      isLoadingDates: false,  // 載入可預約日期的狀態
       isLoadingTimeSlots: false, // 載入時段的狀態
       timeSlotsError: null, // 載入時段的錯誤訊息
       incompatibleServiceWarning: '', // 儲存不相容服務的提示訊息
-      // 對應後端 app.js 的店休設定
-      shopHolidays: ['2024-06-20', '2024-12-25', '2024-01-01'],
+      // 國定假日等指定店休日（格式 YYYY-MM-DD）。已清掉過時的 2024 範例日期；
+      // 要設特定店休日時把日期填進這個陣列，週一固定公休由下面的 fixedWeeklyOffDay 控制
+      shopHolidays: [],
       fixedWeeklyOffDay: 1, // 週一公休
       minDate: new Date().toLocaleDateString('sv-SE') // 取得 YYYY-MM-DD 格式的今天日期
     }
@@ -271,64 +287,69 @@ export default {
       type: this.speciesToType(pet.species)
     }));
     if (userStore.selectPetId) {
-      this.form.pet_id = userStore.selectPetId;
+      this.form.petId = userStore.selectPetId;
     }
 
     // 檢查網址是否有傳遞 petId 參數，如果有則自動選取該毛孩
     if (this.$route.query.petId) {
-      this.form.pet_id = this.$route.query.petId;
+      this.form.petId = this.$route.query.petId;
     }
     // 檢查網址是否有傳遞 serviceId 參數，如果有則自動選取該服務
     if (this.$route.query.serviceId) {
-      this.form.service_id = this.$route.query.serviceId;
+      this.form.serviceId = this.$route.query.serviceId;
     }
   },
   computed: {
     // 根據選中的 service_id 找出對應的服務物件
     selectedService() {
-      return this.services.find(s => s.id == this.form.service_id);
+      return this.services.find(s => s.id == this.form.serviceId);
     },
     selectedPetName() {
-      const pet = this.pets.find(p => p.id == this.form.pet_id);
+      const pet = this.pets.find(p => p.id == this.form.petId);
       return pet ? `${pet.name} (${pet.breed}/${pet.age}歲)` : '未選擇';
     },
     selectedGroomerName() {
-      const groomer = this.groomers.find(g => g.id == this.form.groomer_id);
+      const groomer = this.groomers.find(g => g.id == this.form.groomerId);
       return groomer ? groomer.name : '未選擇';
     },
     // 新增：根據毛孩種類過濾可選服務
     filteredServices() {
       // 如果尚未選擇毛孩（例如從服務頁面直接跳轉過來），顯示所有服務，確保自動填入功能正常
-      if (!this.form.pet_id) return this.services;
-      const pet = this.pets.find(p => p.id == this.form.pet_id);
+      if (!this.form.petId) return this.services;
+      const pet = this.pets.find(p => p.id == this.form.petId);
       // pet.type 判斷不出來（物種文字看不出貓狗）時，先顯示全部服務，不要整個擋掉
       if (!pet || !pet.type) return this.services;
-      return this.services.filter(s => s.allowedSpecies.includes(pet.type));
+      return this.services.filter(s => !s.allowedSpecies || s.allowedSpecies.includes(pet.type));
     },
     // 新增：動態計算預估價格
     estimatedPrice() {
-      if (!this.form.pet_size || !this.form.service_id) return null;
-      const service = this.services.find(s => s.id == this.form.service_id);
+      if (!this.form.size || !this.form.serviceId) return null;
+      const service = this.services.find(s => s.id == this.form.serviceId);
       if (service && service.priceMap) {
-        return service.priceMap[this.form.pet_size] || service.minPrice;
+        return service.priceMap[this.form.size] || service.minPrice;
       }
       return null;
     },
     // 新增：動態計算預估時長
     estimatedDuration() {
-      if (!this.form.pet_size || !this.form.service_id) return null;
-      const service = this.services.find(s => s.id == this.form.service_id);
+      if (!this.form.size || !this.form.serviceId) return null;
+      const service = this.services.find(s => s.id == this.form.serviceId);
       if (service && service.durationMap) {
-        return service.durationMap[this.form.pet_size] || service.duration;
+        return service.durationMap[this.form.size] || service.duration;
       }
       return null;
     },
-    // 新增：根據所選服務動態計算可選擇的美容師清單
+    // 根據「目前選的毛孩是貓還是狗」動態計算可選擇的美容師清單
     filteredGroomers() {
-      if (!this.form.service_id) return [];
-      const service = this.services.find(s => s.id == this.form.service_id);
-      if (!service || !service.allowedGroomers) return this.groomers; // 若無設定則顯示全部
-      return this.groomers.filter(g => service.allowedGroomers.includes(g.id));
+      // 維持原本的「先選服務項目」限制（沒選服務時下拉顯示提示文字）
+      if (!this.form.serviceId) return [];
+      // 找出目前選的毛孩是貓還是狗
+      const pet = this.pets.find(p => p.id == this.form.petId);
+      const petType = pet ? pet.type : null;
+      // 抓不出毛孩物種（沒選毛孩、或物種文字看不出貓狗）就不過濾，顯示全部，不要整個擋掉
+      if (!petType) return this.groomers;
+      // 只留下「能服務這個物種」的美容師
+      return this.groomers.filter(g => this.groomerServes(g, petType));
     },
     // 新增：尋找目前輸入的優惠券
     appliedCoupon() {
@@ -359,18 +380,13 @@ export default {
     }
     // 新增：根據選定日期判斷是否為店休
     ,isDateHoliday() {
-      if (!this.form.apt_date_date) return false;
-      
-      // 解析日期（使用 replace 確保相容性）
-      const date = new Date(this.form.apt_date_date.replace(/-/g, '/'));
-      const day = date.getDay();
-      
-      return day === this.fixedWeeklyOffDay || this.shopHolidays.includes(this.form.apt_date_date);
+      if (!this.form.appointmentDate) return false;
+      return this.isHolidayDate(this.form.appointmentDate);
     }
   },
   watch: {
     // 新增：當切換毛孩時，自動帶入體型；若原選服務不適用該種類，則重設服務
-    'form.pet_id'(newPetId, oldPetId) {
+    'form.petId'(newPetId, oldPetId) {
       // 清除任何先前的警告訊息
       this.incompatibleServiceWarning = '';
 
@@ -380,36 +396,51 @@ export default {
       // 自動根據毛孩檔案預填體型，但使用者仍可手動更改
       // 寵物資料庫沒填過體型的話 pet.size 會是 null，這種情況就不帶入，維持讓客人自己選
       if (pet.size) {
-        this.form.pet_size = pet.size;
+        this.form.size = pet.size;
       }
 
       // 只有「之前已經選過服務」才需要檢查現在這隻寵物還適不適用
-      if (this.form.service_id) {
-        const previouslySelectedService = this.services.find(s => s.id == this.form.service_id);
-        if (previouslySelectedService && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
+      if (this.form.serviceId) {
+        const previouslySelectedService = this.services.find(s => s.id == this.form.serviceId);
+        if (previouslySelectedService && previouslySelectedService.allowedSpecies && !previouslySelectedService.allowedSpecies.includes(pet.type)) {
           this.incompatibleServiceWarning = `您選擇的毛孩 (${pet.name}) 不適用「${previouslySelectedService.title}」服務，請重新選擇。`;
-          this.form.service_id = ''; // 清空不相容的服務
+          this.form.serviceId = ''; // 清空不相容的服務
+        }
+      }
+
+      // 換毛孩可能換了物種：若目前選的美容師不能服務新毛孩的物種，清掉讓客人重選
+      if (this.form.groomerId && pet.type) {
+        const currentGroomer = this.groomers.find(g => g.id == this.form.groomerId);
+        if (currentGroomer && !this.groomerServes(currentGroomer, pet.type)) {
+          this.form.groomerId = '';
         }
       }
     },
-    // 當預約日期或美容師改變時，重新獲取可用時段
-    'form.apt_date_date': 'handleDateOrGroomerChange',
-    'form.groomer_id': 'handleDateOrGroomerChange',
-    // 體型會影響服務要花多久（duration），所以也要重新查可用時段
-    'form.pet_size': 'fetchAvailableTimeSlots',
+    // 日期改變：清空時段，重查這天的可用時段
+    'form.appointmentDate': 'handleDateChange',
+    // 美容師改變：清空日期與時段，重查這位美容師的可預約日期
+    'form.groomerId': 'handleGroomerChange',
+    // 體型會影響服務要花多久（duration），連帶影響可預約日期：清掉已選日期/時段，重查可預約日期
+    'form.size'() {
+      this.form.appointmentDate = '';
+      this.form.timeSlot = '';
+      this.fetchGroomerAvailableDates();
+    },
     // 新增：監控服務項目，若切換服務後目前的美容師不符合資格，則重設美容師選擇
     // 同時，當服務被手動更改時，清除不相容服務的警告
-    'form.service_id'(newServiceId) {
+    'form.serviceId'(newServiceId) {
       this.incompatibleServiceWarning = ''; // 服務改變時清除警告
       const service = this.services.find(s => s.id == newServiceId);
-      if (service && service.allowedGroomers && !service.allowedGroomers.includes(this.form.groomer_id)) {
-        this.form.groomer_id = '';
+      if (service && service.allowedGroomers && !service.allowedGroomers.includes(this.form.groomerId)) {
+        this.form.groomerId = '';
       }
-      // 服務改變也會影響時長，重新查可用時段
-      this.fetchAvailableTimeSlots();
+      // 服務改變也會影響時長，連帶影響可預約日期：清掉已選日期/時段，重查可預約日期
+      this.form.appointmentDate = '';
+      this.form.timeSlot = '';
+      this.fetchGroomerAvailableDates();
     },
     // 新增：監控優惠碼輸入，自動呼叫 API 驗證
-    'form.coupon_code'(newCode) {
+    'form.couponCode'(newCode) {
       clearTimeout(this.couponTimer);
       this.couponError = null; // 清除之前的錯誤訊息
       if (!newCode) {
@@ -449,6 +480,14 @@ export default {
         console.error('Failed to fetch groomers:', error);
       }
     },
+    // 判斷一位美容師能不能服務某個物種（petType 是 'dog' 或 'cat'）。
+    // serviceSpecies 為 null/空字串 代表「皆可」，貓狗都能服務；
+    // 例如存 "dog" 只服務狗、"cat" 只服務貓、"dog,cat" 兩種都行。
+    groomerServes(groomer, petType) {
+      const species = groomer.serviceSpecies;
+      if (!species) return true;
+      return species.split(',').map(s => s.trim()).includes(petType);
+    },
     // 新增：呼叫 API 驗證優惠碼
     async verifyCoupon(code) {
       this.couponError = null; // 每次驗證前先清除錯誤訊息
@@ -477,19 +516,23 @@ export default {
         }
       }
     },
+    // 用服務 id + 體型找出對應的 pricingId（後端要靠這個查價格、時長）；找不到回 null
+    findPricingId(serviceId, size) {
+      const service = this.services.find(s => s.id == serviceId);
+      return service && service.pricingIdMap ? service.pricingIdMap[size] : null;
+    },
     async fetchAvailableTimeSlots() {
-      const { apt_date_date, groomer_id, service_id, pet_size } = this.form;
+      const { appointmentDate, groomerId, serviceId, size } = this.form;
 
       // 日期、美容師、服務、體型都要選好，才知道要算哪個服務的可用時段
-      if (!apt_date_date || !groomer_id || !service_id || !pet_size) {
+      if (!appointmentDate || !groomerId || !serviceId || !size) {
         this.availableTimeSlots = [];
         this.timeSlotsError = null;
         return;
       }
 
       // 用服務 + 體型找出對應的 pricingId（送給後端用來查時長）
-      const service = this.services.find(s => s.id == service_id);
-      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[pet_size] : null;
+      const pricingId = this.findPricingId(serviceId, size);
       if (!pricingId) {
         this.availableTimeSlots = [];
         this.timeSlotsError = null;
@@ -501,9 +544,9 @@ export default {
 
       try {
         const response = await getAvailableTimeSlots({
-          date: apt_date_date,
-          groomer_id,
-          pricing_id: pricingId
+          date: appointmentDate,
+          groomerId: groomerId,
+          pricingId: pricingId
         });
         this.availableTimeSlots = response.data;
 
@@ -517,26 +560,57 @@ export default {
         this.isLoadingTimeSlots = false;
       }
     },
-    handleDateOrGroomerChange() {
-      // 如果已選擇日期且該日期為店休/週一公休
-      if (this.form.apt_date_date && this.isDateHoliday) {
-        this.triggerToast('⚠️ 此日期為店休日（週一公休或國定假日），請選擇其他日期。', 'error');
-        this.form.apt_date_date = ''; // 強制清空已選日期
-        this.form.timeSlot = '';      // 同時清空時段
-        return;
-      }
+    // 日期改變：清空時段 → 重查這天的可用時段
+    handleDateChange() {
       this.form.timeSlot = ''; // 清空已選時段
       this.fetchAvailableTimeSlots();
     },
+    // 美容師改變：清空日期與時段 → 重查這位美容師有空的日期
+    handleGroomerChange() {
+      this.form.appointmentDate = '';
+      this.form.timeSlot = '';
+      this.fetchGroomerAvailableDates();
+    },
+    // 查「這位美容師、這個服務定價」未來有空的日期，存進 availableDates 給日期下拉用
+    async fetchGroomerAvailableDates() {
+      const { groomerId, serviceId, size } = this.form;
+      // 美容師、服務、體型都要選好才算得出來
+      if (!groomerId || !serviceId || !size) {
+        this.availableDates = [];
+        return;
+      }
+      const pricingId = this.findPricingId(serviceId, size);
+      if (!pricingId) {
+        this.availableDates = [];
+        return;
+      }
+      this.isLoadingDates = true;
+      try {
+        const response = await getGroomerAvailableDates({ groomerId: groomerId, pricingId: pricingId });
+        // 後端回來的日期再濾掉店休日（週一公休或國定假日），跟送出時的檢查保持一致
+        this.availableDates = response.data.filter(d => !this.isHolidayDate(d));
+      } catch (error) {
+        console.error('查詢美容師可預約日期失敗:', error);
+        this.availableDates = [];
+      } finally {
+        this.isLoadingDates = false;
+      }
+    },
+    // 判斷某個日期字串（YYYY-MM-DD）是不是店休日：週一公休或落在指定的國定假日清單裡
+    isHolidayDate(dateStr) {
+      // 用 replace 把 - 換成 / 解析，避免某些瀏覽器把 '2026-06-30' 當成 UTC 而差一天
+      const date = new Date(dateStr.replace(/-/g, '/'));
+      return date.getDay() === this.fixedWeeklyOffDay || this.shopHolidays.includes(dateStr);
+    },
     handleSubmit() {
       // 表單驗證 (在開啟確認彈窗前進行)
-      if (!this.form.pet_id || !this.form.service_id || !this.form.groomer_id || !this.form.apt_date_date || !this.form.timeSlot) {
+      if (!this.form.petId || !this.form.serviceId || !this.form.groomerId || !this.form.appointmentDate || !this.form.timeSlot) {
         alert('請填寫所有必填欄位！');
         return;
       }
 
       // 二次檢查防止過去日期
-      if (this.form.apt_date_date < this.minDate) {
+      if (this.form.appointmentDate < this.minDate) {
         alert('不可預約過去的日期！');
         return;
       }
@@ -552,24 +626,23 @@ export default {
       this.isProcessingPayment = true;
 
       // 用服務 + 體型找出對應的 pricingId，後端要靠這個查價格、時長
-      const service = this.services.find(s => s.id == this.form.service_id);
-      const pricingId = service && service.pricingIdMap ? service.pricingIdMap[this.form.pet_size] : null;
+      const pricingId = this.findPricingId(this.form.serviceId, this.form.size);
 
       const appointmentData = {
-        petId: parseInt(this.form.pet_id),
-        groomerId: parseInt(this.form.groomer_id),
+        petId: parseInt(this.form.petId),
+        groomerId: parseInt(this.form.groomerId),
         pricingId: pricingId,
-        appointmentDate: this.form.apt_date_date,
+        appointmentDate: this.form.appointmentDate,
         startTime: this.form.timeSlot,
-        note: this.form.notes
+        note: this.form.note
       };
-      // 留著給付款成功後的 Line 通知用
-      this.pendingAppointmentData = appointmentData;
 
       let appointmentId;
       try {
         const response = await createAppointment(appointmentData);
         appointmentId = response.data.id;
+        // 記下這筆預約 id：它現在已經佔住時段了，等一下如果使用者放棄付款，要靠它叫後端取消
+        this.createdAppointmentId = appointmentId;
       } catch (error) {
         this.isProcessingPayment = false;
         // 後端驗證沒通過時（例如時段被搶走了），把原因顯示給使用者看，不要靜默失敗
@@ -582,11 +655,13 @@ export default {
         const paymentResponse = await createGroomingPayment({
           appointmentId,
           amount: this.depositAmount,
-          couponCode: this.appliedCoupon ? this.form.coupon_code : null
+          couponCode: this.appliedCoupon ? this.form.couponCode : null
         });
         this.paypalOrderId = paymentResponse.data.paypalOrderId;
       } catch (error) {
         this.isProcessingPayment = false;
+        // PayPal 訂單沒建成功，等於沒辦法付款了，把剛剛建立的預約取消掉，不要留一筆卡住時段
+        await this.cancelPendingAppointment();
         this.triggerToast(`❌ ${this.extractErrorMessage(error, 'PayPal 訂單建立失敗，請重新嘗試')}`, 'error');
         return;
       }
@@ -620,11 +695,24 @@ export default {
         return;
       }
 
+      // 先把容器清空，避免「取消付款→再次前往付款」時舊的 PayPal 按鈕沒被清掉、疊出兩顆
+      const container = document.getElementById('paypal-button-container')
+      if (container) {
+        container.innerHTML = ''
+      }
+
       window.paypal.Buttons({
         // 訂單已經在後端建立好了，這裡只要回傳訂單 id，不用重新建立
         createOrder: () => this.paypalOrderId,
         onApprove: async (data) => {
           await this.handlePayPalApprove(data.orderID);
+        },
+        // 使用者在 PayPal 視窗按「取消」或直接關掉視窗時會進到這裡：
+        // 把剛建立的預約取消掉，釋放時段，不要留一筆沒付款的卡在那
+        onCancel: async () => {
+          await this.cancelPendingAppointment();
+          this.paypalOrderId = null;
+          this.triggerToast('已取消付款，這筆預約未成立', 'error');
         },
         onError: (err) => {
           // 印到 console 方便除錯（按 F12 看 Console 分頁）
@@ -643,6 +731,9 @@ export default {
         return;
       }
 
+      // 付款成功了，這筆預約正式成立，清掉「待取消」的記號（不可以再被當成棄單去取消）
+      this.createdAppointmentId = null;
+
       // 關閉確認彈窗
       this.isConfirmModalOpen = false;
       this.paypalOrderId = null;
@@ -653,17 +744,34 @@ export default {
       // 延遲跳轉頁面，讓使用者有時間看到 Toast 通知
       setTimeout(() => {
         // 預約成功後跳轉至紀錄頁面
-        this.$router.push('/grooming/Appointments');
+        this.$router.push('/grooming/appointments');
         // 重置表單 (在跳轉後進行，避免影響 Toast 訊息的顯示)
-        this.form = { pet_id: '', service_id: '', groomer_id: '', apt_date_date: '', timeSlot: '', notes: '', coupon_code: '' };
+        this.form = { petId: '', size: '', serviceId: '', groomerId: '', appointmentDate: '', timeSlot: '', note: '', couponCode: '' };
       }, 1500); // 1.5 秒後跳轉
-
-      // 呼叫 Line 通知方法 (這部分通常由後端處理更安全)
-      this.sendLineNotification(this.pendingAppointmentData);
     },
-    // 使用者在 PayPal 按鈕渲染出來後反悔，取消這次付款，回到「前往付款」畫面
-    cancelPayPalPayment() {
+    // 使用者在 PayPal 按鈕渲染出來後反悔，按「取消付款」：
+    // 先把剛建立、還沒付款的預約取消掉（釋放時段），再回到「前往付款」畫面
+    async cancelPayPalPayment() {
+      await this.cancelPendingAppointment();
       this.paypalOrderId = null;
+    },
+    // 共用：把「已建立但還沒付款」的預約叫後端取消，釋放它佔住的時段。
+    // 取消成功或這筆本來就不存在都沒關係；取消失敗也不擋使用者操作（只記在 console）。
+    async cancelPendingAppointment() {
+      if (!this.createdAppointmentId) return;
+      const idToCancel = this.createdAppointmentId;
+      this.createdAppointmentId = null; // 先清掉，避免同一筆被重複取消
+      try {
+        await cancelAppointment(idToCancel);
+      } catch (error) {
+        console.error('取消未付款預約失敗:', error);
+      }
+    },
+    // 關閉確認彈窗：如果裡面有「已建立但還沒付款」的預約，一起取消掉，避免關掉視窗就留下孤兒預約卡住時段
+    async closeConfirmModal() {
+      await this.cancelPendingAppointment();
+      this.paypalOrderId = null;
+      this.isConfirmModalOpen = false;
     },
     triggerToast(message, type = 'success') {
       this.toastMessage = message;
@@ -673,6 +781,25 @@ export default {
         this.showToast = false;
       }, 3000); // 3秒後自動消失
     },
+    // 加入 LINE 並綁定：呼叫後端把這個會員綁到 LINE，成功後開啟「加 PETCARE 好友」頁
+    async joinAndBindLine() {
+      // ⚠️ 先在「按下」的當下同步開一個空白分頁，等綁定成功再把它導到加好友頁。
+      //    若改成 await 之後才 window.open，瀏覽器會當成「非使用者操作」而把彈窗擋掉。
+      const addFriendWindow = window.open('', '_blank');
+      try {
+        const response = await demoBindLine();
+        this.triggerToast('✅ LINE 綁定成功！請加入官方帳號好友，預約完成就會收到通知', 'success');
+        const url = response.data.addFriendUrl;
+        if (url && url.startsWith('http') && addFriendWindow) {
+          addFriendWindow.location = url;   // 把剛剛開好的分頁導到加好友頁
+        } else if (addFriendWindow) {
+          addFriendWindow.close();          // 沒有有效網址就把空白分頁關掉
+        }
+      } catch (error) {
+        if (addFriendWindow) addFriendWindow.close();  // 綁定失敗，關掉空白分頁
+        this.triggerToast(`❌ ${this.extractErrorMessage(error, '目前無法綁定 LINE，請稍後再試')}`, 'error');
+      }
+    },
     // 把後端回傳的錯誤內容轉成「一定是字串」的訊息，不要讓畫面顯示 [object Object]
     // （後端有時候回的是純文字，但 Spring 系統發生未預期的錯誤時，回的會是一個物件）
     extractErrorMessage(error, fallback) {
@@ -681,21 +808,6 @@ export default {
       if (typeof data === 'string') return data;
       if (data.message) return data.message;
       return fallback;
-    },
-    async sendLineNotification(appointmentData) {
-      // 實際應用中，這裡應該向您的後端 API 發送請求，由後端負責發送 Line 通知
-      // 這樣可以避免將 Line Notify Token 暴露在前端程式碼中
-      console.log('Attempting to send Line notification...');
-      try {
-        // 模擬後端 API 呼叫
-        // const response = await axios.post('/api/send-line-notification', {
-        //   message: `您的寵物美容預約已成功！\n毛孩: ${appointmentData.pet_id}\n時間: ${appointmentData.apt_date}`,
-        //   userId: appointmentData.member_id // 或其他識別用戶的資訊
-        // });
-        console.log('Line notification simulated: Appointment confirmation sent for', appointmentData.apt_date);
-      } catch (error) {
-        console.error('Failed to send Line notification:', error);
-      }
     }
   }
 }
@@ -1014,6 +1126,13 @@ textarea {
 .btn-clear-coupon:hover {
   background-color: #eee;
   border-color: #ccc;
+}
+
+/* 美容師可預約狀態查詢中的小提示 */
+.availability-hint {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 5px;
 }
 
 /* 新增：優惠碼錯誤訊息樣式 */

@@ -126,7 +126,9 @@ export default {
           // 如果後端沒給按鈕文字或高亮，設定預設值
           buttonText: service.buttonText || (this.filterType === 'cat' ? '預約貓咪服務' : '立即預約'),
           highlight: service.id === 2, // 模擬：精緻造型預設高亮
-          prices: this.formatPriceMap(service.priceMap, service.allowedSpecies)
+          prices: this.formatPriceMap(service.priceMap, service.allowedSpecies),
+          // 把後端的服務描述(description)拆成一條條特色，餵給卡片上原本就有的 ✓ 清單顯示
+          features: this.splitDescription(service.description)
         }));
       } catch (error) {
         console.error('Failed to load services:', error);
@@ -135,7 +137,9 @@ export default {
     formatPriceMap(priceMap, allowedSpecies) {
       if (!priceMap) return [];
       
-      const isCatOnly = allowedSpecies.length === 1 && allowedSpecies[0] === 'cat';
+      // allowedSpecies 為 null（不限物種）時不能直接讀 .length，會報錯；
+      // 先用 allowedSpecies && 擋掉 null，不限物種就當作不是「只限貓」，用犬類標籤
+      const isCatOnly = allowedSpecies && allowedSpecies.length === 1 && allowedSpecies[0] === 'cat';
       const labels = isCatOnly
         ? { small: '短毛貓', mid: '長毛貓' }
         : { small: '小型犬 (5kg以下)', mid: '中型犬 (5-15kg)', big: '大型犬 (15kg以上)' };
@@ -144,6 +148,18 @@ export default {
         type: labels[key] || key,
         price
       }));
+    },
+    // 把後台填的「服務描述」拆成一條一條的特色清單。
+    // 後台請用「、」或換行（也支援逗號、句號）把每個特色隔開，
+    // 例如：深層清潔、指甲修剪、耳朵清潔 → 會變成 3 條打勾項目。
+    splitDescription(description) {
+      // 沒有描述就回傳空陣列，卡片上不會顯示任何清單
+      if (!description) return [];
+      // 用頓號 / 換行 / 逗號 / 句號當分隔符號切開，去掉前後空白，再濾掉空字串
+      return description
+        .split(/[\n、，,。]/)
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
     }
   }
 }

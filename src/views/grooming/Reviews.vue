@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <NavBar />
 
@@ -126,7 +126,7 @@
           <div class="review-body">
             <div class="review-header">
               <span class="user-name">{{ review.userName }}</span>
-              <span class="review-date">{{ review.date.split('T')[0] }}</span>
+              <span class="review-date">{{ review.date ? review.date.split('T')[0] : '' }}</span>
             </div>
             <div class="review-meta">
               <span class="groomer-tag">美容師：{{ review.groomerName }}</span>
@@ -135,6 +135,34 @@
               </div>
             </div>
             <p class="review-text">{{ review.comment }}</p>
+
+            <!-- 評價細項分數：服務／環境／價格，各自獨立的星等 -->
+            <div class="review-sub-ratings">
+              <div class="sub-rating-row">
+                <span class="sub-label">服務品質</span>
+                <span class="sub-stars">
+                  <span v-for="s in 5" :key="s" :class="{ 'star-filled': s <= review.serviceRating }">★</span>
+                </span>
+              </div>
+              <div class="sub-rating-row">
+                <span class="sub-label">環境</span>
+                <span class="sub-stars">
+                  <span v-for="s in 5" :key="s" :class="{ 'star-filled': s <= review.envRating }">★</span>
+                </span>
+              </div>
+              <div class="sub-rating-row">
+                <span class="sub-label">價格</span>
+                <span class="sub-stars">
+                  <span v-for="s in 5" :key="s" :class="{ 'star-filled': s <= review.priceRating }">★</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- 店家回覆：有 replyText 才顯示 -->
+            <div v-if="review.replyText" class="review-reply">
+              <span class="reply-label">🏪 店家回覆</span>
+              <p class="reply-text">{{ review.replyText }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -187,7 +215,7 @@ export default {
       sortBy: 'newest',
       filterGroomer: 'all',
       currentPage: 1,
-      pageSize: 4, // 每頁顯示 4 筆評價
+      pageSize: 6, // 每頁顯示 6 筆評價（一排 3 個剛好排成兩排，不會有單一個落單）
       isLoggedIn: false, // 真正的登入狀態，created() 時從 user.js 共用資料源讀
       currentUserName: '', // 真正的會員姓名
       lightboxImage: null, // 儲存目前放大顯示的圖片
@@ -199,7 +227,8 @@ export default {
         envRating: 5,      // 環境評分
         priceRating: 5,    // 價格評分
         comment: '',
-        image: null
+        image: null,
+        imageFile: null
       },
       userAppointments: [],
       reviews: []
@@ -249,7 +278,7 @@ export default {
           return b.rating - a.rating; // 由高到低
         }
         // 預設為最新發布 (newest)
-        return new Date(b.date) - new Date(a.date);
+        return this.parseApiDate(b.date) - this.parseApiDate(a.date);
       });
     },
     totalPages() {
@@ -268,6 +297,11 @@ export default {
     filterGroomer: 'fetchReviews'
   },
   methods: {
+    // 把後端日期字串（如 "2026-06-22 10:00"，空格分隔）轉成 Date 物件：
+    // 換成 ISO 的 'T' 才能在 Safari/Firefox 正確解析；null/空字串回 Invalid Date（不丟錯）
+    parseApiDate(dateStr) {
+      return new Date((dateStr || '').replace(' ', 'T'));
+    },
     async fetchReviews() {
       try {
         const response = await getReviews({
@@ -309,12 +343,14 @@ export default {
     handleFileUpload(event) {
       const file = event.target.files[0];
       if (file) {
-        // 這裡僅作展示用，實際應用需將檔案上傳至伺服器或轉為 Base64
+        // image 是給畫面預覽用的暫時網址；imageFile 才是真正要上傳到後端的檔案
         this.newReview.image = URL.createObjectURL(file);
+        this.newReview.imageFile = file;
       }
     },
     removeImage() {
       this.newReview.image = null;
+      this.newReview.imageFile = null;
       if (this.$refs.fileInput) {
         this.$refs.fileInput.value = ''; // 清空檔案選擇器
       }
@@ -329,31 +365,41 @@ export default {
     },
     async submitReview() {
       try {
-        // 已串接真正後端 API：POST /api/secure/reviews
-        // 註：圖片目前後端還沒支援上傳，先不送；groomerName 也不用送，後端會自己從預約紀錄查出來
-        const payload = {
-          appointmentId: this.newReview.appointmentId,
-          overallRating: this.newReview.overallRating,
-          serviceRating: this.newReview.serviceRating,
-          envRating: this.newReview.envRating,
-          priceRating: this.newReview.priceRating,
-          comment: this.newReview.comment,
-          isAnonymous: false
-        };
+        // 已串接真正後端 API：POST /api/secure/reviews（改用 multipart，才能一起把照片送上去）
+        // 用 FormData 裝：文字欄位 + 照片檔（有選才放）。groomerName 不用送，後端會從預約紀錄查出來
+        const formData = new FormData();
+        formData.append('appointmentId', this.newReview.appointmentId);
+        formData.append('overallRating', this.newReview.overallRating);
+        formData.append('serviceRating', this.newReview.serviceRating);
+        formData.append('envRating', this.newReview.envRating);
+        formData.append('priceRating', this.newReview.priceRating);
+        formData.append('comment', this.newReview.comment);
+        formData.append('isAnonymous', false);
+        // 有選照片才加進去（後端 image 是 required=false，可以不附）
+        if (this.newReview.imageFile) {
+          formData.append('image', this.newReview.imageFile);
+        }
 
-        await submitGroomingReview(payload);
+        await submitGroomingReview(formData);
 
         alert('感謝您的評價！');
         this.newReview = {
           appointmentId: '', groomer: '',
           overallRating: 5, serviceRating: 5, envRating: 5, priceRating: 5,
-          comment: '', image: null
+          comment: '', image: null, imageFile: null
         };
         await this.fetchReviews();
         await this.fetchUserAppointments();
       } catch (error) {
-        // 後端有給原因的話（例如「這筆預約還沒完成，不能評價」），顯示真正的原因
-        const message = error.response && error.response.data ? error.response.data : '提交評價失敗，請稍後再試。';
+        // 後端可能回兩種格式：grooming 例外處理器回「純文字訊息」；Spring 預設錯誤回「物件」(含 message)。
+        // 兩種都接住，盡量顯示看得懂的原因，避免印出 [object Object]。
+        const data = error.response && error.response.data;
+        let message = '提交評價失敗，請稍後再試。';
+        if (typeof data === 'string' && data) {
+          message = data;
+        } else if (data && data.message) {
+          message = data.message;
+        }
         alert(message);
       }
     },
@@ -567,6 +613,55 @@ select:focus, textarea:focus {
   font-size: 0.95rem;
   line-height: 1.6;
   color: #555;
+}
+
+/* 評價細項分數：三行小星等（服務／環境／價格） */
+.review-sub-ratings {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #eee;
+}
+
+.sub-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sub-label {
+  width: 64px;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.sub-stars {
+  color: #ddd;
+  font-size: 0.9rem;
+}
+
+/* 店家回覆區塊：縮排＋左側色條，跟一般評論內容區隔開 */
+.review-reply {
+  margin-top: 15px;
+  padding: 12px 15px;
+  background: #f7f9fc;
+  border-left: 3px solid var(--primary-color);
+  border-radius: 6px;
+}
+
+.reply-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+
+.reply-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
 }
 
 /* 燈箱樣式 */

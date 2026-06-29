@@ -8,6 +8,7 @@ import StaffDashboard from '@/views/grooming/StaffDashboard.vue';
 import AdminLoginPage from '@/views/grooming/AdminLogin.vue';
 import GroomingMember from '@/views/grooming/Member.vue'
 import useAdminStore from '@/stores/grooming/admin.js'
+import useUserStore from '@/stores/user.js'
 
 // 進這個頁面前先檢查有沒有管理員 token，沒有就導去管理員登入頁
 // （只掛在這個路由設定檔自己負責的 StaffDashboard 上，不影響其他組的路由）
@@ -20,13 +21,24 @@ function requireAdminLogin(to, from, next) {
   }
 }
 
+// 進會員專屬頁面前先檢查有沒有會員 token，沒有就導去會員登入頁
+// （只掛在這個路由設定檔自己負責的 booking / appointments 上，不影響其他組的路由）
+function requireMemberLogin(to, from, next) {
+  const userStore = useUserStore();
+  if (!userStore.token) {
+    next({ path: '/member/login', query: { redirect: to.fullPath } });
+  } else {
+    next();
+  }
+}
+
 const groomingRoutes = [
   { path: '/grooming', name: 'GroomingHome', component: IndexPage },
-  { path: '/grooming/booking', name: 'Booking', component: BookingPage },
+  { path: '/grooming/booking', name: 'Booking', component: BookingPage, beforeEnter: requireMemberLogin },
   { path: '/grooming/services', name: 'GroomingServices', component: ServicesPage },
   { path: '/grooming/staff', name: 'Staff', component: StaffPage },
   { path: '/grooming/reviews', name: 'Reviews', component: ReviewsPage },
-  { path: '/grooming/appointments', name: 'Appointments', component: AppointmentsPage },
+  { path: '/grooming/appointments', name: 'Appointments', component: AppointmentsPage, beforeEnter: requireMemberLogin },
   { path: '/grooming/admin-login', name: 'AdminLogin', component: AdminLoginPage },
   {
     path: '/grooming/StaffDashboard',

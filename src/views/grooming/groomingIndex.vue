@@ -6,7 +6,6 @@
       <div class="grooming-hero-inner">
         <h1>給毛孩最頂級的呵護</h1>
         <p>專業美容師團隊，透明化價格，提供最安心的洗剪洗藥浴服務</p>
-        <router-link to="/grooming/booking" class="btn btn-primary">立即預約服務</router-link>
       </div>
     </header>
 
@@ -47,6 +46,26 @@
       </div>
     </section>
 
+    <!-- 精選好評區塊：只在有抓到評價時才顯示 -->
+    <section v-if="featuredReviews.length" class="testimonials-section container">
+      <h2 class="section-title">毛孩家長怎麼說</h2>
+      <div class="grid grid-3">
+        <div v-for="review in featuredReviews" :key="review.id" class="card testimonial-card">
+          <div class="testimonial-stars">
+            <span v-for="s in 5" :key="s" :class="{ 'star-filled': s <= review.rating }">★</span>
+          </div>
+          <p class="testimonial-text">「{{ review.comment }}」</p>
+          <div class="testimonial-footer">
+            <span class="testimonial-user">{{ review.userName }}</span>
+            <span class="testimonial-groomer">美容師：{{ review.groomerName }}</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 30px;">
+        <router-link to="/grooming/reviews" class="btn btn-outline">查看更多顧客評價</router-link>
+      </div>
+    </section>
+
     <!-- 優惠促銷區塊 -->
     <section v-if="isPromoActive" ref="promoSection" class="promo-section container">
       <div class="promo-content">
@@ -61,8 +80,8 @@
             tabindex="0"
             role="button"
             title="點擊複製代碼"
-          >PET80</span> 
-          即享 8 折優惠。
+          >{{ promoData.promoCode }}</span>
+          {{ promoData.discountText }}。
         </p>
         
         <!-- 倒數計時器區塊 -->
@@ -132,7 +151,7 @@
 import NavBar from './NavBar.vue'
 // 【合併前要還原】組員原本寫 '@/api/groomingApi'，但本專案沒有 src/api 資料夾，會導致整個專案編譯失敗。
 // 暫時改成相對路徑 './groomingApi'（指向同資料夾的假資料檔），讓本機能跑。上傳 GitHub 前要改回 '@/api/groomingApi'。
-import { getFeaturedServices, getActivePromotion } from './groomingApi';
+import { getFeaturedServices, getActivePromotion, getReviews } from './groomingApi';
 
 export default {
   name: 'GroomingIndex',
@@ -151,17 +170,20 @@ export default {
       toastType: 'success', // 新增：Toast 類型 (success / error)
       timerInterval: null,
       featuredServices: [], // 從 API 獲取的服務
+      featuredReviews: [], // 首頁精選好評（從所有評價中挑評分最高的前 3 筆）
       promoData: {
         promoCode: '',
         endDate: '',
         title: '',
         description: '',
+        discountText: '',
         tag: ''
       }
     }
   },
   async mounted() {
     await this.fetchInitialData();
+    await this.fetchFeaturedReviews();
 
     // 建立觀察器：偵測元素是否進入畫面
     this.observer = new IntersectionObserver((entries) => {
@@ -197,6 +219,21 @@ export default {
         }
       } catch (error) {
         console.error('獲取首頁資料失敗:', error);
+        // 抓資料失敗時，把促銷橫幅藏起來，避免露出沒有內容的空殼橫幅
+        this.isPromoActive = false;
+      }
+    },
+    // 抓所有評價，挑出整體評分最高的前 3 筆，當首頁的「精選好評」
+    async fetchFeaturedReviews() {
+      try {
+        const response = await getReviews();
+        const all = response.data || [];
+        // 複製一份再排序（不要直接改到原陣列），依 rating 由高到低排，取前 3 筆
+        const sorted = [...all].sort((a, b) => b.rating - a.rating);
+        this.featuredReviews = sorted.slice(0, 3);
+      } catch (error) {
+        console.error('獲取精選評價失敗:', error);
+        // 抓失敗就讓區塊維持空陣列、不顯示，不影響首頁其他內容
       }
     },
     startCountdown(endDateStr) {
@@ -256,8 +293,8 @@ export default {
 /* 將內聯樣式整理至此 */
 .grooming-hero-section {
   /* 換成寵物照片，並加入半透明遮罩確保文字易讀 */
-  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
-              url('https://images.unsplash.com/photo-1581888227599-779811939961?w=1200&h=450&fit=crop');
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+              url('/grooming-img/hero-dog.jpg');
   background-size: cover;
   background-position: center;
   
@@ -279,17 +316,20 @@ export default {
 
 .grooming-hero-inner p {
   color: #ffffff;
+  font-size: 1.25rem; /* 放大副標題 */
   text-shadow: 0 1px 5px rgba(0,0,0,0.5); /* 增加陰影確保在背景圖上更易讀 */
   margin-bottom: 20px;
 }
 
 .grooming-hero-inner h1 {
+  font-size: 3rem; /* 放大主標題 */
   text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
+/* 首頁專用：刻意覆蓋 index.css 共用的 .section-title（改成置中＋加字距） */
 .section-title {
   text-align: center;
-  letter-spacing: 0.4em; 
+  letter-spacing: 0.4em;
   text-indent: 0.4em;   /* 抵銷最後一個字的右側間距，確保視覺完全置中 */
   font-weight: 700;
   margin-bottom: 30px;
@@ -304,14 +344,68 @@ export default {
 }
 .feature-item h4 {
   margin-top: 10px;
+  font-size: 1.3rem;        /* 放大標題（全程透明公開等） */
+  font-weight: 800;          /* 從 index.css 整合過來 */
+  color: var(--foreground);  /* 從 index.css 整合過來 */
 }
 .feature-item p {
-  font-size: 0.9rem;
+  font-size: 1.05rem; /* 放大說明文字 */
   color: #666;
 }
 .service-card {
   padding: 0;
   overflow: hidden;
+}
+
+/* 精選好評區塊 */
+.testimonials-section {
+  margin-top: 50px;
+}
+.testimonial-card {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+.testimonial-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.testimonial-stars {
+  color: #ddd;          /* 未亮的星星灰色 */
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+.testimonial-stars .star-filled {
+  color: #f1c40f;       /* 亮起的星星金黃色 */
+}
+.testimonial-text {
+  flex-grow: 1;         /* 撐滿讓三張卡片底部對齊 */
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #555;
+  margin-bottom: 15px;
+}
+.testimonial-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed #eee;
+  padding-top: 12px;
+  font-size: 0.85rem;
+}
+.testimonial-user {
+  font-weight: bold;
+  color: #333;
+}
+.testimonial-groomer {
+  background: #f0f4ff;
+  color: var(--primary-color);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 .card-body {
   padding: 20px;
@@ -399,8 +493,8 @@ export default {
 
 /* 宣傳區塊樣式 */
 .promo-section {
-  background: linear-gradient(135deg, rgba(190, 230, 190, 0.95), rgba(108, 136, 108, 0.9)), 
-              url('https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=2000&auto=format&fit=crop');
+  background: linear-gradient(135deg, rgba(190, 230, 190, 0.95), rgba(108, 136, 108, 0.9)),
+              url('/grooming-img/dog3.jpg');
   background-size: cover;
   background-position: center;
   color: #166534;

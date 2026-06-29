@@ -207,14 +207,13 @@
       <!-- 篩選與搜尋工具欄 -->
       <div class="tool-bar">
         <input v-model="searchQuery" type="text" placeholder="搜尋寵物名稱..." class="search-input" />
+        <!-- 只列出目前後台訂單功能會用到的狀態：待確認(0)、服務已完成(3)、預約已取消(4)
+             其他狀態的訂單仍可從「所有狀態」看到，只是不另外列篩選選項 -->
         <select v-model="statusFilter" class="filter-select">
           <option value="all">所有狀態</option>
           <option value="0">待確認</option>
-          <option value="1">已確認</option>
-          <option value="2">美容進行中</option>
           <option value="3">服務已完成</option>
           <option value="4">預約已取消</option>
-          <option value="5">未到店</option>
         </select>
       </div>
 
@@ -223,8 +222,10 @@
         <thead>
           <tr>
             <th>訂單 ID</th>
+            <th>主人</th>
             <th>寵物名稱</th>
             <th>服務項目</th>
+            <th>預約時間</th>
             <th>狀態</th>
             <th>操作</th>
           </tr>
@@ -232,13 +233,17 @@
         <tbody>
           <tr v-for="order in paginatedOrders" :key="order.id">
             <td>{{ order.id }}</td>
+            <td>{{ order.memberName }}</td>
             <td>{{ order.petName }}</td>
             <td>{{ order.service }}</td>
+            <td>{{ order.date }}</td>
             <td>{{ orderStatusMap[order.status]?.label || '未知' }}</td>
             <td>
-              <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 2)" class="btn-primary">開始美容</button>
-              <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 4)" class="btn-cancel">取消</button>
-              <button v-if="order.status === 2" @click="updateOrderStatus(order.id, 3)" class="btn-success">完成美容</button>
+              <!-- 一鍵「完成美容」：待確認(0)/已確認(1)/進行中(2) 都能直接標記為已完成(3)，
+                   訂單變成已完成後，客戶端才會出現「評價服務」按鈕 -->
+              <button v-if="order.status === 0 || order.status === 1 || order.status === 2" @click="updateOrderStatus(order.id, 3)" class="btn-success">完成美容</button>
+              <!-- 取消預約：只有還沒開始的（待確認0/已確認1）能取消，按下後會跳確認再取消(4) -->
+              <button v-if="order.status === 0 || order.status === 1" @click="updateOrderStatus(order.id, 4)" class="btn-cancel">取消預約</button>
               <button class="btn-blacklist" @click="addToBlacklist(order.memberId)">加入黑名單</button>
             </td>
           </tr>

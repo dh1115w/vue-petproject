@@ -23,16 +23,23 @@ export const getAllServices = (params) => {
 };
 
 // 已串接真正後端 API：GET /api/available-slots
-// params 要帶 { groomer_id, date, pricing_id }，後端會依排班、已有預約、服務時長算出空檔
+// params 要帶 { groomerId, date, pricingId }，後端會依排班、已有預約、服務時長算出空檔
 export const getAvailableTimeSlots = (params) => {
   return axios.get('/api/available-slots', { params });
 };
 
 // 已串接真正後端 API：GET /api/groomer-availability
-// params 要帶 { date, pricing_id }，一次回傳「某天、某服務定價下」全部在職美容師的可預約狀態
+// params 要帶 { date, pricingId }，一次回傳「某天、某服務定價下」全部在職美容師的可預約狀態
 // 每筆回 { groomerId, available, slotCount }，預約頁用來在美容師下拉選單標示「尚有時段/已額滿」
 export const getGroomerAvailability = (params) => {
   return axios.get('/api/groomer-availability', { params });
+};
+
+// 已串接真正後端 API：GET /api/groomer-available-dates
+// params 要帶 { groomerId, pricingId }（可選 from/to），回傳「這位美容師未來哪幾天有空」的日期字串陣列，
+// 例如 ["2026-06-30","2026-07-02"]；新版預約頁用來讓「預約日期」下拉只列出有空的日子
+export const getGroomerAvailableDates = (params) => {
+  return axios.get('/api/groomer-available-dates', { params });
 };
 
 // 已串接真正後端 API：POST /api/secure/appointments（要登入會員才能用）

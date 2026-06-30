@@ -4,6 +4,11 @@
     font-family: "Microsoft JhengHei", sans-serif;
 }
 
+/* 工具列（新增按鈕）：跟下方在職/離職頁籤拉開間距，不要黏在一起 */
+.tool-bar {
+    margin-bottom: 16px;
+}
+
 /* 頁籤按鈕 (Tabs) */
 .tab-menu {
     display: flex;

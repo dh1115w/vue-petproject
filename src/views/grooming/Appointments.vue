@@ -417,7 +417,8 @@ export default {
   margin-bottom: 30px;
 }
 .appointments-page-header .section-title {
-  font-size: 1.85rem;  /* 放大標題（其餘維持原樣：左綠條、靠左） */
+  text-align: left;    /* 蓋過全站 home.css 的置中，讓綠條緊貼標題文字 */
+  font-size: 1.85rem;  /* 放大標題 */
   color: #383a36;      /* 寫死顏色，跟其他頁一致 */
   margin-bottom: 8px;
 }
@@ -425,6 +426,7 @@ export default {
   color: #666;
   font-size: 1.05rem;
   margin: 0;
+  padding-left: 0.75rem;  /* 對齊標題文字（標題因綠條往右 0.75rem） */
 }
 
 /* === 表格小美化：表頭淡綠底、隔列換色、滑過變色（只針對本頁專屬的表格 class） === */

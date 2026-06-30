@@ -95,6 +95,9 @@
 
       <!-- 評價總覽統計面板（只讀現有評價資料來顯示，不影響任何功能） -->
       <section class="reviews-summary" v-if="reviews.length">
+        <div class="summary-img-side">
+          <img src="/grooming-img/pet-cuddle.jpg" alt="開心的毛孩" class="summary-img" />
+        </div>
         <div class="summary-score">
           <div class="summary-avg">{{ averageRating }}</div>
           <div class="summary-stars">
@@ -451,9 +454,19 @@ export default {
 <style scoped>
 @import '@/css/grooming/index.css';
 
+/* 蓋掉會員組全域 CSS（create-account.css）對 .page-header 的 max-width:760px 置中限制，讓標題區滿版貼齊左邊 */
+.page-header {
+  max-width: none;
+  margin: 0 0 1rem;
+}
 /* 評價頁標題加大（其餘維持原樣：左綠條、靠左、原色） */
 .page-header .section-title {
+  text-align: left;    /* 蓋過全站 home.css 的置中，讓綠條緊貼標題文字 */
   font-size: 1.85rem;
+}
+/* 副標對齊標題文字（標題因綠條往右 0.75rem） */
+.page-header .section-subtitle {
+  padding-left: 0.75rem;
 }
 
 /* === 評價總覽統計面板 === */
@@ -461,8 +474,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 40px;
-  max-width: 760px;
-  margin: 0 auto 40px;
+  margin: 0 0 40px;   /* 滿版貼齊左邊，跟上方卡片、標題對齊 */
   padding: 28px 40px;
   background: linear-gradient(135deg, #f3f8f4, #eef5ef);
   border: 1px solid #e6efe7;
@@ -495,6 +507,18 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+/* 左側小圖：真實照片，圓角直接貼在面板上（不用白框），加寬成橫向長方形 */
+.summary-img-side {
+  flex: 0 0 240px;
+  align-self: stretch;
+}
+.summary-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;   /* 維持比例填滿、不變形 */
+  border-radius: 12px;
 }
 .summary-bar-row {
   display: flex;
@@ -538,9 +562,13 @@ export default {
 }
 
 .review-form-section {
-  max-width: 800px;
-  margin: 0 auto 40px;
+  margin: 0 0 40px;   /* 滿版貼齊左邊，卡片左緣跟標題綠條對齊（跟其他頁一致） */
   padding: 30px;
+}
+/* 空狀態卡片（尚無可評價／尚未登入）內容置中：text-center 這個 class 全站沒定義，在這裡補上 */
+.review-form-section.text-center {
+  text-align: center;
+  padding: 70px 30px;   /* 加大上下內距，避免滿版卡片太扁 */
 }
 
 .review-form-section h3 {

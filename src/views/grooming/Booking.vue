@@ -824,7 +824,8 @@ export default {
   margin-bottom: 30px;
 }
 .booking-page-header .section-title {
-  font-size: 1.85rem;  /* 放大標題（其餘維持原樣：左綠條、靠左） */
+  text-align: left;    /* 蓋過全站 home.css 的置中，讓綠條緊貼標題文字 */
+  font-size: 1.85rem;  /* 放大標題 */
   color: #383a36;      /* 寫死顏色，避免變數在不同頁解析不同 */
   margin-bottom: 8px;
 }
@@ -832,6 +833,7 @@ export default {
   color: #666;
   font-size: 1.05rem;
   margin: 0;
+  padding-left: 0.75rem;  /* 對齊標題文字（標題因綠條往右 0.75rem） */
 }
 
 /* ===== 預約頁專屬版面：用 !important 強制鎖死，避免其他組員的全域 CSS（.grid/.form-container 等同名 class）漏進來把版面擠壞 ===== */

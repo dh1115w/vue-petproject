@@ -93,6 +93,24 @@
 
       <hr class="divider" />
 
+      <!-- 評價總覽統計面板（只讀現有評價資料來顯示，不影響任何功能） -->
+      <section class="reviews-summary" v-if="reviews.length">
+        <div class="summary-score">
+          <div class="summary-avg">{{ averageRating }}</div>
+          <div class="summary-stars">
+            <span v-for="s in 5" :key="s" :class="{ 'star-filled': s <= Math.round(averageRating) }">★</span>
+          </div>
+          <div class="summary-count">共 {{ reviewCount }} 則評價</div>
+        </div>
+        <div class="summary-bars">
+          <div class="summary-bar-row" v-for="item in ratingDistribution" :key="item.star">
+            <span class="bar-label">{{ item.star }} ★</span>
+            <span class="bar-track"><span class="bar-fill" :style="{ width: item.percent + '%' }"></span></span>
+            <span class="bar-count">{{ item.count }}</span>
+          </div>
+        </div>
+      </section>
+
       <!-- 排序與過濾工具列 -->
       <div class="list-tools">
         <div class="filter-group">
@@ -288,6 +306,25 @@ export default {
       const start = (this.currentPage - 1) * this.pageSize;
       const end = start + this.pageSize;
       return this.sortedReviews.slice(start, end);
+    },
+    // === 評價總覽用（只讀 this.reviews 計算，不影響任何送出/篩選/分頁功能） ===
+    // 平均整體星數（取一位小數）
+    averageRating() {
+      if (this.reviews.length === 0) return '0.0';
+      const sum = this.reviews.reduce((acc, r) => acc + r.rating, 0);
+      return (sum / this.reviews.length).toFixed(1);
+    },
+    // 評價總則數
+    reviewCount() {
+      return this.reviews.length;
+    },
+    // 五星到一星的分佈（含數量與百分比，畫長條用）
+    ratingDistribution() {
+      return [5, 4, 3, 2, 1].map(star => {
+        const count = this.reviews.filter(r => Math.round(r.rating) === star).length;
+        const percent = this.reviews.length ? Math.round((count / this.reviews.length) * 100) : 0;
+        return { star, count, percent };
+      });
     }
   },
   watch: {
@@ -413,6 +450,92 @@ export default {
 
 <style scoped>
 @import '@/css/grooming/index.css';
+
+/* 評價頁標題加大（其餘維持原樣：左綠條、靠左、原色） */
+.page-header .section-title {
+  font-size: 1.85rem;
+}
+
+/* === 評價總覽統計面板 === */
+.reviews-summary {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  max-width: 760px;
+  margin: 0 auto 40px;
+  padding: 28px 40px;
+  background: linear-gradient(135deg, #f3f8f4, #eef5ef);
+  border: 1px solid #e6efe7;
+  border-radius: 16px;
+}
+.summary-score {
+  text-align: center;
+  flex-shrink: 0;
+}
+.summary-avg {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  line-height: 1;
+}
+.summary-stars {
+  color: #ddd;          /* 未點亮的星 */
+  font-size: 1.1rem;
+  margin: 6px 0 4px;
+}
+.summary-stars .star-filled {
+  color: #f1c40f;       /* 點亮的星（金黃） */
+}
+.summary-count {
+  font-size: 0.9rem;
+  color: #666;
+}
+.summary-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.summary-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #666;
+}
+.bar-label {
+  width: 36px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.bar-track {
+  flex: 1;
+  height: 10px;
+  background: #e6ece7;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 5px;
+}
+.bar-count {
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+/* 手機版改成上下排 */
+@media (max-width: 768px) {
+  .reviews-summary {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .summary-bars {
+    width: 100%;
+  }
+}
 
 .review-form-section {
   max-width: 800px;

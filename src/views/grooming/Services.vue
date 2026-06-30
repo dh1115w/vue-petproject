@@ -4,7 +4,7 @@
 
     <main class="container page-content">
       <header class="page-header">
-        <h2 class="section-title">全方位美容服務</h2>
+        <h2 class="section-title" data-en="SERVICES">全方位美容服務</h2>
         <p class="section-subtitle">我們提供多樣化的美容護理，讓您的毛孩煥然一新</p>
         
         <!-- 新增過濾切換按鈕 -->
@@ -25,7 +25,6 @@
           v-for="service in services"
           :key="service.title"
           class="card service-detail-card"
-          :class="{ 'highlight-border': service.highlight }"
         >
           <div class="service-image-wrapper">
             <img :src="service.image" :alt="service.title" class="service-img" />
@@ -48,14 +47,35 @@
             </ul>
             <router-link
               :to="{ path: '/grooming/booking', query: { serviceId: service.id } }"
-              class="btn"
-              :class="service.highlight ? 'btn-primary' : 'btn-outline'"
+              class="btn btn-outline"
             >
               {{ service.buttonText }}
             </router-link>
           </div>
         </div>
       </div>
+
+      <!-- 嚴選用料與設備特色帶（沿用首頁 feature-item 三宮格樣式） -->
+      <section class="features-section">
+        <h2 class="section-title">嚴選用料與專業設備</h2>
+        <div class="grid grid-3">
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-leaf"></i></div>
+            <h4>全天然洗毛精</h4>
+            <p>國際賽事等級低敏配方，溫和不刺激毛孩肌膚。</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-shower"></i></div>
+            <h4>一犬一浴一剪</h4>
+            <p>器具一客一消毒，獨立作業不交叉感染。</p>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-tools"></i></div>
+            <h4>專業工具消毒</h4>
+            <p>美容工具定期保養與消毒，每個環節都為毛孩安全把關。</p>
+          </div>
+        </div>
+      </section>
 
       <!-- 常見問題 FAQ 區塊 -->
       <section class="faq-section">
@@ -167,6 +187,100 @@ export default {
 
 <style scoped>
 @import '@/css/grooming/index.css';
+/* 標題裝飾英文字用的優雅襯線字（和首頁同一支字型） */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap');
+/* Font Awesome 圖示（用料與設備特色帶的 icon 用，和首頁同一個來源） */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
+/* === 標題裝飾英文字（外觀複製自首頁 groomingIndex.vue，無任何邏輯） === */
+/* 中文標題：置中、放大、加字距，和首頁一致 */
+.section-title {
+  text-align: center;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;   /* 抵銷最後一個字的右側間距，確保視覺完全置中 */
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #2c3e50;
+}
+/* 只有掛了 data-en 的標題，才會在後面浮現大字英文浮水印 */
+.section-title[data-en] {
+  position: relative;
+}
+.section-title[data-en]::before {
+  content: attr(data-en);          /* 直接把 data-en 的值印出來當底字 */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -68%); /* 往上推，露在中文標題上方 */
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(4rem, 13vw, 6.5rem); /* 手機自動縮小避免超出畫面 */
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-indent: 0;
+  text-transform: uppercase;
+  color: rgba(107, 174, 138, 0.2); /* 淺綠浮水印 */
+  white-space: nowrap;
+  z-index: -1;                     /* 沉到中文標題後面 */
+  pointer-events: none;
+}
+
+/* === 風格統一：沒有英文浮水印的子標題（用料/FAQ）改成和美容師頁一致的乾淨置中＋短綠線 === */
+.section-title:not([data-en]) {
+  border-left: none;       /* 拿掉 index.css 的左側綠條 */
+  padding-left: 0;
+  letter-spacing: normal;  /* 取消寬字距 */
+  text-indent: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  position: relative;
+  padding-bottom: 14px;
+}
+/* 子標題下方的短綠線點綴（和美容師頁 .block-heading 一致） */
+.section-title:not([data-en])::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+/* === 用料與設備特色帶（feature-item 樣式複製自首頁 groomingIndex.vue） === */
+.features-section {
+  max-width: 1140px;
+  margin: 0 auto 80px;  /* 與下方 FAQ 區塊保持間距 */
+  padding: 0 20px;
+}
+.feature-item {
+  text-align: center;
+}
+/* 圓形淡綠底徽章 + 主色圖示 */
+.feature-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef5ef;
+  color: var(--primary);
+  font-size: 1.9rem;
+}
+.feature-item h4 {
+  margin-top: 10px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+.feature-item p {
+  font-size: 1.05rem;
+  color: #666;
+}
 
 /* 新增過濾按鈕樣式 */
 .category-filter {

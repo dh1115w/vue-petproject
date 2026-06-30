@@ -356,12 +356,13 @@ export default {
   background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
               url('/grooming-img/image_ea51f7f9.png');
   background-size: cover;
-  background-position: center;
+  /* 取景往上移（35%），寬螢幕時才不會把狗狗的頭/耳朵切到上緣 */
+  background-position: center 35%;
   
-  /* 調整為更適當的長方形比例 */
-  height: 400px;
-  max-width: 1200px;
-  margin: 0 auto;       /* 拿掉上下空隙，讓它跟上下色塊切齊（左右仍置中） */
+  /* 滿版主視覺：不限制寬度，鋪滿整個畫面寬度 */
+  /* 高度隨螢幕寬度等比縮放：寬螢幕自動變高（有氣勢），窄螢幕自動變矮（避免變正方形把狗裁爆）；
+     最矮不低於 360px、最高不超過 520px */
+  height: clamp(360px, 40vw, 520px);
   display: flex;
   align-items: center;
   justify-content: center;

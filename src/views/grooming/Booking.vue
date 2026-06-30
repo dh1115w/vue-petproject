@@ -3,7 +3,10 @@
     <NavBar />
 
     <main class="container page-content">
-      <h2 class="section-title">預約寵物美容</h2>
+      <header class="booking-page-header">
+        <h2 class="section-title">預約寵物美容</h2>
+        <p class="booking-subtitle">線上挑選毛孩專屬的服務與時段，幾個步驟就能完成預約</p>
+      </header>
       <div class="grid grid-2 booking-layout">
         <div class="booking-info-side">
           <div class="card reminder-card">
@@ -73,14 +76,14 @@
 
         <form class="form-container" style="margin-top: 0;" @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label for="petSelect">選擇您的毛孩 (pet_id)</label>
+            <label for="petSelect">選擇您的毛孩</label>
             <select id="petSelect" v-model="form.petId" required> 
               <option value="">-- 請選擇毛孩 --</option>
               <option v-for="pet in pets" :key="pet.id" :value="pet.id">{{ pet.name }} ({{ pet.breed }}/{{ pet.age }}歲)</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="petSize">毛孩體型 (Size)</label>
+            <label for="petSize">毛孩體型</label>
             <select id="petSize" v-model="form.size" required>
               <option value="" disabled>-- 請選擇體型 --</option>
               <option value="small">小型 - 5kg 以下</option>
@@ -89,7 +92,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="serviceSelect">選擇服務項目 (service_id)</label>
+            <label for="serviceSelect">選擇服務項目</label>
             <div v-if="incompatibleServiceWarning" class="warning-message">
               {{ incompatibleServiceWarning }}
             </div>
@@ -101,7 +104,7 @@
 
           <!-- 先選美容師（依毛孩貓狗物種篩選），再依美容師列出可預約日期 -->
           <div class="form-group">
-            <label for="groomerSelect">指定美容師 (groomerId)</label>
+            <label for="groomerSelect">指定美容師</label>
             <select id="groomerSelect" v-model="form.groomerId" required>
               <option value="">
                 {{ !form.serviceId ? '-- 請先選擇服務項目 --' : '-- 請選擇美容師 --' }}
@@ -815,6 +818,21 @@ export default {
 
 <style scoped>
 @import '@/css/grooming/booking.css';
+
+/* 預約頁標題：置中、拿掉左側綠條、加副標 */
+.booking-page-header {
+  margin-bottom: 30px;
+}
+.booking-page-header .section-title {
+  font-size: 1.85rem;  /* 放大標題（其餘維持原樣：左綠條、靠左） */
+  color: #383a36;      /* 寫死顏色，避免變數在不同頁解析不同 */
+  margin-bottom: 8px;
+}
+.booking-subtitle {
+  color: #666;
+  font-size: 1.05rem;
+  margin: 0;
+}
 
 /* ===== 預約頁專屬版面：用 !important 強制鎖死，避免其他組員的全域 CSS（.grid/.form-container 等同名 class）漏進來把版面擠壞 ===== */
 .booking-layout {

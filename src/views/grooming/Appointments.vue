@@ -3,7 +3,10 @@
     <NavBar />
 
     <main class="container page-content">
-      <h2 class="section-title">我的美容預約紀錄</h2>
+      <header class="appointments-page-header">
+        <h2 class="section-title">我的美容預約紀錄</h2>
+        <p class="appointments-subtitle">查看您的預約進度與歷史紀錄</p>
+      </header>
 
       <!-- 預約紀錄卡片 -->
       <div class="card mt-20">
@@ -408,6 +411,48 @@ export default {
 
 <style>
 @import '@/css/grooming/appointments.css';
+
+/* === 預約紀錄標題：置中＋副標（用頁面專屬 class，避免影響其他頁的 .section-title） === */
+.appointments-page-header {
+  margin-bottom: 30px;
+}
+.appointments-page-header .section-title {
+  font-size: 1.85rem;  /* 放大標題（其餘維持原樣：左綠條、靠左） */
+  color: #383a36;      /* 寫死顏色，跟其他頁一致 */
+  margin-bottom: 8px;
+}
+.appointments-subtitle {
+  color: #666;
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+/* === 表格小美化：表頭淡綠底、隔列換色、滑過變色（只針對本頁專屬的表格 class） === */
+.custom-dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.custom-dashboard-table thead th {
+  background: #eef5ef;            /* 淡綠表頭 */
+  color: var(--foreground);
+  font-weight: 700;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 2px solid #d9e6db;
+  white-space: nowrap;
+}
+.custom-dashboard-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+  color: #444;
+}
+.custom-dashboard-table tbody tr:nth-child(even) {
+  background: #fafcfa;           /* 斑馬紋 */
+}
+.custom-dashboard-table tbody tr:hover {
+  background: #f1f7f2;           /* 滑過整列淡綠 */
+}
 
 /* 新增的 loading 和 error 樣式 */
 .loading-indicator, .error-message, .no-data-message {

@@ -20,14 +20,14 @@
 
     <!-- 頁籤切換 -->
     <div class="tab-menu">
-      <button :class="{ active: currentTab === 'schedule' }" @click="currentTab = 'schedule'">排班管理</button>
+      <button :class="{ active: currentTab === 'schedule' }" @click="currentTab = 'schedule'">排班</button>
       <button :class="{ active: currentTab === 'calendar' }" @click="currentTab = 'calendar'">月曆視圖</button>
-      <button :class="{ active: currentTab === 'orders' }" @click="currentTab = 'orders'">訂單管理</button>
-      <button :class="{ active: currentTab === 'blacklist' }" @click="currentTab = 'blacklist'">黑名單管理</button>
-      <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券管理</button>
-      <button :class="{ active: currentTab === 'services' }" @click="currentTab = 'services'; loadServices()">服務管理</button>
-      <button :class="{ active: currentTab === 'groomers' }" @click="currentTab = 'groomers'; loadGroomers()">美容師管理</button>
-      <button :class="{ active: currentTab === 'reviews' }" @click="currentTab = 'reviews'; loadReviews()">評價管理</button>
+      <button :class="{ active: currentTab === 'orders' }" @click="currentTab = 'orders'">訂單</button>
+      <button :class="{ active: currentTab === 'reviews' }" @click="currentTab = 'reviews'; loadReviews()">評價</button>
+      <button :class="{ active: currentTab === 'blacklist' }" @click="currentTab = 'blacklist'">黑名單</button>
+      <button :class="{ active: currentTab === 'coupons' }" @click="currentTab = 'coupons'; loadCoupons()">優惠券</button>
+      <button :class="{ active: currentTab === 'services' }" @click="currentTab = 'services'; loadServices()">服務</button>
+      <button :class="{ active: currentTab === 'groomers' }" @click="currentTab = 'groomers'; loadGroomers()">美容師</button>
     </div>
 
     <!-- 1. 排班管理 -->
